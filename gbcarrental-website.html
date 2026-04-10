@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GB Car Rental | Turn Driving to Income</title>
+    <style>
+        :root {
+            --primary-green: #0a4f32;
+            --highlight-yellow: #d1df24;
+            --dark-bg: #1a1a1a;
+            --light-bg: #f5f5f5;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            color: #333;
+            background-color: var(--light-bg);
+            scroll-behavior: smooth;
+        }
+
+        /* --- Premium Dark Navbar --- */
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 50px;
+            background: var(--primary-green);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        .logo { font-size: 26px; font-weight: 900; color: white; text-transform: uppercase; letter-spacing: 1px;}
+        .logo span { color: var(--highlight-yellow); }
+        .nav-links a { margin: 0 15px; text-decoration: none; color: white; font-weight: 500; transition: color 0.3s ease;}
+        .nav-links a:hover { color: var(--highlight-yellow); }
+        .nav-btn { background: var(--highlight-yellow); color: var(--dark-bg); padding: 10px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; transition: transform 0.2s;}
+        .nav-btn:hover { transform: scale(1.05); }
+
+        /* --- Hero Section --- */
+        .hero {
+            background: linear-gradient(rgba(10, 79, 50, 0.85), rgba(26, 26, 26, 0.95)), url('https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?q=80&w=2070&auto=format&fit=crop') center/cover;
+            color: white;
+            text-align: center;
+            padding: 120px 20px;
+        }
+        .hero h1 { font-size: 56px; margin: 0 0 10px 0; text-transform: capitalize;}
+        .hero h2 { font-size: 28px; color: var(--highlight-yellow); margin: 0 0 20px 0;}
+        .hero p { font-size: 18px; max-width: 650px; margin: 0 auto 40px auto; line-height: 1.6; color: #ddd;}
+        .btn-main { background: var(--primary-green); color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-size: 18px; font-weight: bold; border: none; cursor: pointer; transition: background 0.3s;}
+        .btn-main:hover { background: #083c26; }
+
+        /* --- Trust Stats --- */
+        .trust-stats {
+            display: flex;
+            justify-content: space-around;
+            background: var(--dark-bg);
+            color: white;
+            padding: 40px 20px;
+            text-align: center;
+        }
+        .stat-box h3 { font-size: 36px; color: var(--highlight-yellow); margin: 0 0 5px 0;}
+        .stat-box p { margin: 0; font-size: 16px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;}
+
+        /* --- Benefits Strip --- */
+        .benefits {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            background: var(--highlight-yellow);
+            padding: 25px 20px;
+            font-weight: bold;
+            color: var(--dark-bg);
+            gap: 30px;
+            font-size: 16px;
+        }
+        .benefits div { display: flex; align-items: center; gap: 10px;}
+        .check-icon { background: var(--primary-green); color: white; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 14px;}
+
+        /* --- Fleet Section --- */
+        .fleet-section, .how-it-works, .faq-section { padding: 80px 20px; max-width: 1200px; margin: 0 auto; text-align: center; }
+        h2.section-title { font-size: 36px; color: var(--primary-green); margin-bottom: 50px;}
+        
+        .fleet-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 40px;}
+        .car-card { background: white; padding: 25px; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.08); text-align: left; border-top: 5px solid var(--primary-green);}
+        .car-card img { width: 100%; height: 220px; object-fit: cover; border-radius: 5px; margin-bottom: 15px;}
+        .car-title { font-size: 24px; font-weight: bold; margin-bottom: 5px; color: var(--dark-bg);}
+        .car-price { font-size: 22px; color: var(--primary-green); font-weight: bold; margin-bottom: 15px;}
+        .car-features { font-size: 15px; color: #555; margin-bottom: 25px; border-top: 1px solid #eee; padding-top: 15px; line-height: 1.8;}
+
+        /* --- How It Works Section --- */
+        .steps-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 30px; text-align: center; position: relative;}
+        .step-box { background: white; padding: 30px 20px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); position: relative; z-index: 2;}
+        .step-num { background: var(--primary-green); color: var(--highlight-yellow); width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; margin: 0 auto 15px auto;}
+        .step-box h4 { font-size: 20px; margin: 0; color: var(--dark-bg);}
+
+        /* --- Application Form --- */
+        .form-section { background: var(--primary-green); padding: 80px 20px;}
+        .form-container { max-width: 600px; margin: 0 auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);}
+        .form-container h2 { text-align: center; color: var(--primary-green); margin-top: 0; margin-bottom: 30px; font-size: 32px;}
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: bold; color: #333;}
+        .form-group input, .form-group select { width: 100%; padding: 14px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 16px;}
+        .form-group input:focus, .form-group select:focus { outline: none; border-color: var(--primary-green);}
+
+        /* --- FAQ Section --- */
+        .faq-container { max-width: 800px; margin: 0 auto; text-align: left;}
+        details { background: white; margin-bottom: 15px; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); cursor: pointer;}
+        summary { font-size: 18px; font-weight: bold; color: var(--primary-green); outline: none; list-style-position: inside;}
+        details p { margin-top: 15px; margin-bottom: 0; color: #555; line-height: 1.6; border-top: 1px solid #eee; padding-top: 15px;}
+
+        /* --- Contact Us Section (NEW) --- */
+        .contact-section { background: var(--dark-bg); color: white; padding: 80px 20px; text-align: center;}
+        .contact-section h2 { color: var(--highlight-yellow); margin-top: 0; margin-bottom: 40px; font-size: 36px;}
+        .contact-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; max-width: 1000px; margin: 0 auto;}
+        .contact-card { background: #2a2a2a; padding: 30px 20px; border-radius: 10px; text-decoration: none; color: white; transition: transform 0.3s ease, background 0.3s ease;}
+        .contact-card:hover { transform: translateY(-5px); background: #333;}
+        .contact-icon { font-size: 40px; margin-bottom: 15px; display: block;}
+        .contact-card h4 { font-size: 20px; margin: 0 0 10px 0; color: var(--highlight-yellow);}
+        .contact-card p { font-size: 16px; margin: 0; color: #ccc;}
+
+        /* --- Floating WhatsApp Button (NEW) --- */
+        .whatsapp-float {
+            position: fixed;
+            width: 60px;
+            height: 60px;
+            bottom: 25px;
+            right: 25px;
+            background-color: #25d366;
+            color: #FFF;
+            border-radius: 50px;
+            text-align: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            transition: transform 0.3s;
+        }
+        .whatsapp-float:hover { transform: scale(1.1); }
+        .whatsapp-float svg { width: 35px; height: 35px; fill: white;}
+
+        /* Footer */
+        footer { background: #111; color: #888; text-align: center; padding: 25px 20px; font-size: 14px;}
+
+        /* --- Mobile Responsiveness --- */
+        @media (max-width: 768px) {
+            nav { flex-direction: column; padding: 15px; gap: 15px; }
+            .nav-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+            .hero h1 { font-size: 40px; }
+            .hero h2 { font-size: 22px; }
+            .trust-stats { flex-direction: column; gap: 30px; }
+            .benefits { flex-direction: column; align-items: flex-start; padding-left: 10%; }
+            .form-container { padding: 25px; }
+            .whatsapp-float { width: 50px; height: 50px; bottom: 15px; right: 15px;}
+            .whatsapp-float svg { width: 30px; height: 30px;}
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navigation -->
+    <nav>
+        <div class="logo"><span>GB</span> Car Rental</div>
+        <div class="nav-links">
+            <a href="#fleet">Our Cars</a>
+            <a href="#how-it-works">How It Works</a>
+            <a href="#faq">FAQ</a>
+            <a href="#contact">Contact</a>
+        </div>
+        <a href="#apply" class="nav-btn">Start Earning</a>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <h1>Turn Driving To Income</h1>
+        <h2>Earn RM6,000 to RM10,000 Monthly</h2>
+        <p>Your journey to financial freedom starts here. We provide reliable, long-term car rentals exclusively for e-hailing drivers. Drive daily, pay weekly.</p>
+        <a href="#apply" class="btn-main" style="background: var(--highlight-yellow); color: var(--dark-bg);">Apply Now</a>
+    </section>
+
+    <!-- Trust Stats -->
+    <section class="trust-stats">
+        <div class="stat-box">
+            <h3>100+</h3>
+            <p>Cars Available</p>
+        </div>
+        <div class="stat-box">
+            <h3>Fast</h3>
+            <p>Approval Process</p>
+        </div>
+        <div class="stat-box">
+            <h3>Weekly</h3>
+            <p>Easy Payments</p>
+        </div>
+    </section>
+
+    <!-- Benefits Strip -->
+    <section class="benefits">
+        <div><span class="check-icon">✓</span> Free Maintenance</div>
+        <div><span class="check-icon">✓</span> Free Insurance</div>
+        <div><span class="check-icon">✓</span> Free E-Hailing License</div>
+        <div><span class="check-icon">✓</span> Free Road Tax</div>
+    </section>
+
+    <!-- Fleet Section -->
+    <section id="fleet" class="fleet-section">
+        <h2 class="section-title">Choose Your E-Hailing Vehicle</h2>
+        <div class="fleet-grid">
+            <div class="car-card">
+                <img src="https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?q=80&w=600&auto=format&fit=crop" alt="Perodua Saga">
+                <div class="car-title">Perodua Saga</div>
+                <div class="car-price">RM 330 / week</div>
+                <div class="car-features">
+                    • Highly Fuel Efficient<br>
+                    • Easy to drive & park<br>
+                    • Perfect for City Rides
+                </div>
+                <a href="#apply" class="btn-main" style="display:block; text-align:center;">Book Saga</a>
+            </div>
+
+            <div class="car-card">
+                <img src="https://images.unsplash.com/photo-1590362891991-f776e747a588?q=80&w=600&auto=format&fit=crop" alt="Perodua Bezza">
+                <div class="car-title">Perodua Bezza</div>
+                <div class="car-price">RM 420 / week</div>
+                <div class="car-features">
+                    • Class-Leading Boot Space<br>
+                    • Maximum Fuel Economy<br>
+                    • Ideal for Airport Transfers
+                </div>
+                <a href="#apply" class="btn-main" style="display:block; text-align:center;">Book Bezza</a>
+            </div>
+
+            <div class="car-card">
+                <img src="https://images.unsplash.com/photo-1552519507-da3b142c6e3d?q=80&w=600&auto=format&fit=crop" alt="Perodua Alza">
+                <div class="car-title">Perodua Alza</div>
+                <div class="car-price">RM 460 / week</div>
+                <div class="car-features">
+                    • 7-Seater MPV Space<br>
+                    • Qualifies for Premium Fares<br>
+                    • Maximum earning potential
+                </div>
+                <a href="#apply" class="btn-main" style="display:block; text-align:center;">Book Alza</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works -->
+    <section id="how-it-works" class="how-it-works">
+        <h2 class="section-title">How It Works</h2>
+        <div class="steps-grid">
+            <div class="step-box">
+                <div class="step-num">1</div>
+                <h4>Apply Online</h4>
+                <p style="color:#666; font-size: 14px;">Fill out the form below to register your interest.</p>
+            </div>
+            <div class="step-box">
+                <div class="step-num">2</div>
+                <h4>Submit Documents</h4>
+                <p style="color:#666; font-size: 14px;">Provide your NRIC, License, and PSV via WhatsApp.</p>
+            </div>
+            <div class="step-box">
+                <div class="step-num">3</div>
+                <h4>Get Approved</h4>
+                <p style="color:#666; font-size: 14px;">Our team will process your application within 24 hours.</p>
+            </div>
+            <div class="step-box">
+                <div class="step-num">4</div>
+                <h4>Start Earning</h4>
+                <p style="color:#666; font-size: 14px;">Collect your car and start turning your driving into income!</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Application Form -->
+    <section id="apply" class="form-section">
+        <div class="form-container">
+            <h2>Apply to Drive Today</h2>
+            <form action="#" method="POST">
+                <div class="form-group">
+                    <label>Full Name (As per IC)</label>
+                    <input type="text" placeholder="Enter your full name" required>
+                </div>
+                <div class="form-group">
+                    <label>WhatsApp Number</label>
+                    <input type="tel" placeholder="e.g., 012-3456789" required>
+                </div>
+                <div class="form-group">
+                    <label>Which car do you want?</label>
+                    <select required>
+                        <option value="" disabled selected>Select Preferred Car...</option>
+                        <option value="saga">Perodua Saga (RM 330/week)</option>
+                        <option value="bezza">Perodua Bezza (RM 420/week)</option>
+                        <option value="alza">Perodua Alza (RM 460/week)</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn-main" style="width: 100%; margin-top: 10px; font-size: 18px; padding: 18px;">Submit Application</button>
+            </form>
+        </div>
+    </section>
+
+    <!-- FAQ Section -->
+    <section id="faq" class="faq-section">
+        <h2 class="section-title">Frequently Asked Questions</h2>
+        <div class="faq-container">
+            <details>
+                <summary>What documents do I need to prepare?</summary>
+                <p>To speed up your application, please prepare a copy of your NRIC (Identity Card), your Competent Driving License (CDL), and your E-hailing PSV License. If you do not have a PSV yet, let us know and we can guide you.</p>
+            </details>
+            <details>
+                <summary>Is there a deposit required?</summary>
+                <p>Yes, a standard refundable deposit is required before you collect the vehicle. This protects both parties. Contact us to find out the exact deposit amount for your chosen car model.</p>
+            </details>
+            <details>
+                <summary>Who pays for car maintenance and servicing?</summary>
+                <p>We do! Routine servicing, oil changes, and normal wear-and-tear maintenance are 100% covered by GB Car Rental. Just bring the car to our panel workshop when it's due for service.</p>
+            </details>
+        </div>
+    </section>
+
+    <!-- Contact Us Section (NEW) -->
+    <section id="contact" class="contact-section">
+        <h2>Get In Touch With Us</h2>
+        <div class="contact-grid">
+            <!-- WhatsApp -->
+            <a href="https://wa.me/60163652235" target="_blank" class="contact-card">
+                <span class="contact-icon">📱</span>
+                <h4>WhatsApp Us</h4>
+                <p>016-365 2235</p>
+            </a>
+            
+            <!-- Email -->
+            <a href="mailto:gbcarrental@gmail.com" class="contact-card">
+                <span class="contact-icon">✉️</span>
+                <h4>Email Us</h4>
+                <p>gbcarrental@gmail.com</p>
+            </a>
+
+            <!-- Facebook -->
+            <a href="https://www.facebook.com/share/1U1auLBxU5/?mibextid=wwXIfr" target="_blank" class="contact-card">
+                <span class="contact-icon">📘</span>
+                <h4>Facebook</h4>
+                <p>Visit our Page</p>
+            </a>
+
+            <!-- Location (Trust factor) -->
+            <div class="contact-card">
+                <span class="contact-icon">📍</span>
+                <h4>Our Location</h4>
+                <p>Klang Valley / KL <br><span style="font-size: 12px; color: #888;">(Change to actual address)</span></p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <p>&copy; 2024 GB Car Rental. All rights reserved. | Turn Driving To Income.</p>
+    </footer>
+
+    <!-- Floating WhatsApp Button (NEW) -->
+    <a href="https://wa.me/60163652235" class="whatsapp-float" target="_blank" title="WhatsApp Us">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512">
+            <!-- FontAwesome WhatsApp SVG Path -->
+            <path d="M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 39.1 10.2 77.3 29.6 111L0 480l117.7-30.9c32.4 17.7 68.9 27 106.1 27h.1c122.3 0 224.1-99.6 224.1-222 0-59.3-25.2-115-67.1-157zM223.9 414.7c-33 0-65.3-8.9-93.5-25.7l-6.7-4-69.5 18.2 18.5-67.7-4.4-7c-18.4-29.3-28.1-63.1-28.1-98.2 0-101.4 82.5-183.9 184-183.9 49.1 0 95.3 19.1 130 53.9 34.7 34.7 53.8 80.9 53.8 130-.1 101.5-82.6 183.9-184.2 183.9zM324.5 289.4c-5.5-2.8-32.6-16.1-37.7-18-5.1-1.9-8.8-2.8-12.5 2.8-3.7 5.5-14.3 18-17.5 21.6-3.2 3.7-6.5 4.1-12 1.4-5.5-2.8-23.3-8.6-44.4-27.4-16.4-14.6-27.5-32.7-30.7-38.2-3.2-5.5-.3-8.5 2.5-11.2 2.5-2.5 5.5-6.5 8.3-9.7 2.8-3.2 3.7-5.5 5.5-9.2 1.9-3.7 .9-7-.5-9.7-1.4-2.8-12.5-30.1-17.1-41.2-4.5-10.8-9.1-9.3-12.5-9.5-3.2-.2-6.9-.2-10.6-.2-3.7 0-9.7 1.4-14.8 6.9-5.1 5.5-19.4 19-19.4 46.3 0 27.3 19.9 53.7 22.6 57.4 2.8 3.7 39.1 59.7 94.8 83.8 35.2 15.2 49 16.5 66.6 13.9 10.7-1.6 32.6-13.4 37.2-26.4 4.6-13 4.6-24.1 3.2-26.4-1.3-2.5-5-3.9-10.5-6.6z"/>
+        </svg>
+    </a>
+
+</body>
+</html>
