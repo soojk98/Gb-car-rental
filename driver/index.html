@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Rental | GB Car Rental</title>
+    <link rel="stylesheet" href="../css/app.css">
+    <style>
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+            margin-bottom: 8px;
+        }
+        .info-box {
+            background: var(--light-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+        }
+        .info-box .label { font-size: 11px; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px; }
+        .info-box .value { font-size: 18px; font-weight: 700; color: var(--dark-bg); margin-top: 4px; }
+        .info-box .sub   { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+        .expiry-list { list-style: none; padding: 0; margin: 0; }
+        .expiry-list li {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .expiry-list li:last-child { border-bottom: none; }
+        .expiry-list .name { font-weight: 600; }
+        .expiry-list .meta { font-size: 13px; color: var(--text-muted); }
+        .expiry-list .status-ok { color: var(--success); font-weight: 600; }
+        .expiry-list .status-warn { color: var(--warning); font-weight: 600; }
+        .expiry-list .status-bad { color: var(--danger); font-weight: 600; }
+
+        .due-banner {
+            padding: 16px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+        .due-banner.ok      { background: #e6f4ea; color: #0a4f32; border: 1px solid #a8d5b9; }
+        .due-banner.overdue { background: #fdecea; color: #a61b1b; border: 1px solid #f5c2c0; }
+    </style>
+</head>
+<body>
+    <div id="app" style="display:none;">
+        <div class="app-shell">
+            <aside class="sidebar">
+                <div class="sidebar-brand"><span>GB</span> Driver</div>
+                <nav class="sidebar-nav">
+                    <a href="index.html" class="active">My Rental</a>
+                    <a href="payments.html">Payments</a>
+                    <a href="documents.html">Documents</a>
+                    <a href="logs.html">Logs</a>
+                </nav>
+                <div class="sidebar-footer">
+                    <div class="user-name" id="user-name"></div>
+                    <a href="#" id="logout" style="color:#cbd1d8;">Sign out</a>
+                </div>
+            </aside>
+
+            <main class="main">
+                <div class="topbar">
+                    <h1>My Rental</h1>
+                </div>
+                <div class="content" id="content"></div>
+            </main>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../js/supabase.js"></script>
+    <script src="../js/auth.js"></script>
+    <script>
+    (async function () {
+        const profile = await requireRole('driver');
+        if (!profile) return;
+        document.getElementById('user-name').textContent = profile.full_name || 'Driver';
+        document.getElementById('app').style.display = 'block';
+        document.getElementById('logout').addEventListener('click', function (e) { e.preventDefault(); signOut(); });
+
+        const content = document.getElementById('content');
+
+        function escapeHtml(s) {
+            if (s == null) return '';
+            return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+        }
+        function fmtDate(s) { return s ? new Date(s).toLocaleDateString('en-MY', { year:'numeric', month:'short', day:'numeric' }) : '—'; }
+        function fmtRM(n)   { return 'RM ' + Number(n || 0).toFixed(2); }
+        function daysUntil(date) {
+            if (!date) return null;
+            const diff = (new Date(date) - new Date()) / (1000*60*60*24);
+            return Math.ceil(diff);
+        }
+
+        const ctx = await getDriverContext();
+        if (ctx.error) {
+            content.innerHTML = '<div class="alert alert-error">' + escapeHtml(ctx.error) + '</div>';
+            return;
+        }
+
+        if (!ctx.rental || !ctx.car) {
+            content.innerHTML =
+                '<div class="card"><div class="card-header"><h2>No active rental</h2></div>'
+                + '<p>You don\'t currently have an active rental. Once admin assigns a car to you, the details will appear here.</p>'
+                + '</div>';
+            return;
+        }
+
+        const car = ctx.car;
+        const rental = ctx.rental;
+
+        // Compute total paid + due
+        const payResp = await supabaseClient.from('payments').select('amount, paid_at').eq('rental_id', rental.id);
+        const totalPaid = (payResp.data || []).reduce(function (sum, p) { return sum + Number(p.amount || 0); }, 0);
+        const start = new Date(rental.start_date);
+        const weeksElapsed = Math.max(0, Math.floor((new Date() - start) / (1000*60*60*24*7)));
+        const dueSoFar = weeksElapsed * Number(rental.weekly_rate || 0);
+        const balance = dueSoFar - totalPaid;
+
+        let dueBanner;
+        if (balance > 0.01) {
+            dueBanner = '<div class="due-banner overdue">⚠ You have an outstanding balance of ' + fmtRM(balance) + '. Please pay as soon as possible.</div>';
+        } else if (balance < -0.01) {
+            dueBanner = '<div class="due-banner ok">✓ Your account is in credit by ' + fmtRM(-balance) + '. Thank you!</div>';
+        } else {
+            dueBanner = '<div class="due-banner ok">✓ Your payments are up to date. Thank you!</div>';
+        }
+
+        // Fetch insurance / road tax / puspakom for the car
+        const [insuranceResp, roadTaxResp, puspakomResp] = await Promise.all([
+            supabaseClient.from('insurance_policies').select('*').eq('car_id', car.id).order('end_date', { ascending: false }).limit(1).maybeSingle(),
+            supabaseClient.from('road_tax').select('*').eq('car_id', car.id).order('end_date', { ascending: false }).limit(1).maybeSingle(),
+            supabaseClient.from('puspakom_inspections').select('*').eq('car_id', car.id).order('expiry_date', { ascending: false }).limit(1).maybeSingle()
+        ]);
+
+        function statusFor(record, dateField) {
+            if (!record || !record[dateField]) return { cls: 'status-bad', text: 'Not on record' };
+            const days = daysUntil(record[dateField]);
+            if (days < 0)  return { cls: 'status-bad',  text: 'Expired' };
+            if (days < 30) return { cls: 'status-warn', text: days + ' days left' };
+            return { cls: 'status-ok', text: 'Valid until ' + fmtDate(record[dateField]) };
+        }
+
+        const insStatus = statusFor(insuranceResp.data, 'end_date');
+        const taxStatus = statusFor(roadTaxResp.data, 'end_date');
+        const pusStatus = statusFor(puspakomResp.data, 'expiry_date');
+
+        content.innerHTML =
+            dueBanner
+            + '<div class="card">'
+                + '<div class="card-header"><h2>' + escapeHtml(car.plate_number) + ' — ' + escapeHtml(car.model) + '</h2></div>'
+                + '<div class="info-grid">'
+                    + '<div class="info-box"><div class="label">Year / Color</div><div class="value">' + escapeHtml((car.year || '-') + ' / ' + (car.color || '-')) + '</div></div>'
+                    + '<div class="info-box"><div class="label">Weekly rate</div><div class="value">' + fmtRM(rental.weekly_rate) + '</div></div>'
+                    + '<div class="info-box"><div class="label">Rental started</div><div class="value">' + fmtDate(rental.start_date) + '</div><div class="sub">' + weeksElapsed + ' weeks ago</div></div>'
+                    + '<div class="info-box"><div class="label">Deposit</div><div class="value">' + fmtRM(rental.deposit_amount) + '</div></div>'
+                    + '<div class="info-box"><div class="label">Total paid</div><div class="value">' + fmtRM(totalPaid) + '</div></div>'
+                    + '<div class="info-box"><div class="label">Current mileage</div><div class="value">' + (car.current_mileage != null ? Number(car.current_mileage).toLocaleString() + ' km' : '—') + '</div></div>'
+                + '</div>'
+            + '</div>'
+
+            + '<div class="card">'
+                + '<div class="card-header"><h2>Vehicle compliance</h2></div>'
+                + '<ul class="expiry-list">'
+                    + '<li><div><div class="name">Insurance</div><div class="meta">' + (insuranceResp.data ? escapeHtml(insuranceResp.data.provider || '') : '') + '</div></div><div class="' + insStatus.cls + '">' + insStatus.text + '</div></li>'
+                    + '<li><div><div class="name">Road tax</div></div><div class="' + taxStatus.cls + '">' + taxStatus.text + '</div></li>'
+                    + '<li><div><div class="name">Puspakom inspection</div></div><div class="' + pusStatus.cls + '">' + pusStatus.text + '</div></li>'
+                + '</ul>'
+            + '</div>'
+
+            + '<div class="card">'
+                + '<div class="card-header"><h2>Quick actions</h2></div>'
+                + '<a href="logs.html" class="btn btn-primary" style="margin-right:8px;">Log mileage / maintenance</a>'
+                + '<a href="payments.html" class="btn btn-secondary" style="margin-right:8px;">View payments</a>'
+                + '<a href="documents.html" class="btn btn-secondary">Manage documents</a>'
+            + '</div>';
+    })();
+    </script>
+</body>
+</html>

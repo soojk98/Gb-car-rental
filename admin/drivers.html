@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drivers | GB Car Rental</title>
+    <link rel="stylesheet" href="../css/app.css">
+    <style>
+        .filter-bar { display:flex; gap:8px; margin-bottom:18px; flex-wrap:wrap; }
+        .filter-bar button {
+            padding: 8px 16px; background: white; border: 1px solid var(--border);
+            border-radius: 5px; font-size: 13px; font-weight: 600; color: var(--text); cursor: pointer;
+        }
+        .filter-bar button.active { background: var(--primary-green); color: white; border-color: var(--primary-green); }
+
+        .actions-cell { white-space: nowrap; }
+        .actions-cell .btn { margin-right: 4px; margin-bottom: 2px; }
+
+        .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 100; padding: 20px; }
+        .modal-backdrop.open { display: flex; }
+        .modal { background: white; border-radius: 10px; padding: 28px; width: 100%; max-width: 640px; max-height: 90vh; overflow-y: auto; }
+        .modal h2 { margin: 0 0 18px 0; font-size: 20px; color: var(--dark-bg); }
+        .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+        .help-text { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+    </style>
+</head>
+<body>
+    <div id="app" style="display:none;">
+        <div class="app-shell">
+            <aside class="sidebar">
+                <div class="sidebar-brand"><span>GB</span> Admin</div>
+                <nav class="sidebar-nav">
+                    <a href="index.html">Dashboard</a>
+                    <a href="leads.html">Leads</a>
+                    <a href="cars.html">Cars</a>
+                    <a href="drivers.html" class="active">Drivers</a>
+                    <a href="rentals.html">Rentals</a>
+                </nav>
+                <div class="sidebar-footer">
+                    <div class="user-name" id="user-name"></div>
+                    <a href="#" id="logout" style="color:#cbd1d8;">Sign out</a>
+                </div>
+            </aside>
+
+            <main class="main">
+                <div class="topbar">
+                    <h1>Drivers</h1>
+                    <div>
+                        <button id="refresh-btn" class="btn btn-secondary btn-sm">Refresh</button>
+                        <button id="add-btn" class="btn btn-primary btn-sm">+ Add driver</button>
+                    </div>
+                </div>
+
+                <div class="content">
+                    <div id="page-alert"></div>
+
+                    <div class="filter-bar">
+                        <button data-filter="all" class="active">All <span id="count-all"></span></button>
+                        <button data-filter="active">Active <span id="count-active"></span></button>
+                        <button data-filter="inactive">Inactive <span id="count-inactive"></span></button>
+                        <button data-filter="blacklisted">Blacklisted <span id="count-blacklisted"></span></button>
+                    </div>
+
+                    <div class="card" style="padding:0;">
+                        <div class="table-wrap">
+                            <table class="data" id="drivers-table">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>WhatsApp</th>
+                                        <th>NRIC</th>
+                                        <th>License</th>
+                                        <th>PSV</th>
+                                        <th>Status</th>
+                                        <th>Login linked</th>
+                                        <th>Current car</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="drivers-tbody"></tbody>
+                            </table>
+                            <div id="empty" class="empty-state" style="display:none;">
+                                <h3>No drivers yet</h3>
+                                <p>Convert a lead from the Leads page, or click <strong>+ Add driver</strong>.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Add / Edit modal -->
+    <div class="modal-backdrop" id="driver-modal">
+        <div class="modal">
+            <h2 id="driver-modal-title">Add driver</h2>
+            <div id="driver-error" class="alert alert-error" style="display:none;"></div>
+
+            <div class="form-group">
+                <label>Full name *</label>
+                <input id="driver-name" type="text" required>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>WhatsApp</label>
+                    <input id="driver-whatsapp" type="tel" placeholder="012-3456789">
+                </div>
+                <div class="form-group">
+                    <label>NRIC</label>
+                    <input id="driver-ic" type="text" placeholder="990101-14-1234">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Driving license number</label>
+                    <input id="driver-license" type="text">
+                </div>
+                <div class="form-group">
+                    <label>PSV license number</label>
+                    <input id="driver-psv" type="text">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Address</label>
+                <textarea id="driver-address" rows="2"></textarea>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Status</label>
+                    <select id="driver-status">
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                        <option value="blacklisted">Blacklisted</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Login user ID</label>
+                    <input id="driver-profile-id" type="text" placeholder="(optional) UUID from Supabase Auth">
+                    <div class="help-text">After the driver creates their account at the login page, paste their user ID here so they can see their rental.</div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Notes</label>
+                <textarea id="driver-notes" rows="3"></textarea>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn btn-secondary" id="driver-cancel">Cancel</button>
+                <button class="btn btn-primary" id="driver-save">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../js/supabase.js"></script>
+    <script src="../js/auth.js"></script>
+    <script>
+    (async function () {
+        const profile = await requireRole('admin');
+        if (!profile) return;
+        document.getElementById('user-name').textContent = profile.full_name || 'Admin';
+        document.getElementById('app').style.display = 'block';
+        document.getElementById('logout').addEventListener('click', function (e) { e.preventDefault(); signOut(); });
+
+        const tbody = document.getElementById('drivers-tbody');
+        const tableEl = document.getElementById('drivers-table');
+        const emptyEl = document.getElementById('empty');
+        const pageAlert = document.getElementById('page-alert');
+        const driverModal = document.getElementById('driver-modal');
+
+        let allDrivers = [];
+        let activeRentalsByDriverId = {};   // driver_id -> { car_plate, car_model }
+        let currentFilter = 'all';
+        let editingId = null;
+
+        function escapeHtml(s) {
+            if (s == null) return '';
+            return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+        }
+        function showAlert(msg, isError) {
+            pageAlert.innerHTML = '';
+            const div = document.createElement('div');
+            div.className = 'alert ' + (isError ? 'alert-error' : 'alert-success');
+            div.textContent = msg;
+            pageAlert.appendChild(div);
+            setTimeout(function () { div.remove(); }, 4000);
+        }
+
+        async function loadDrivers() {
+            tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; color:var(--text-muted); padding:40px;">Loading...</td></tr>';
+
+            const driversResp = await supabaseClient
+                .from('drivers')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (driversResp.error) {
+                showAlert('Failed to load drivers: ' + driversResp.error.message, true);
+                tbody.innerHTML = '';
+                return;
+            }
+            allDrivers = driversResp.data || [];
+
+            // Active rentals to find each driver's current car
+            const rentalsResp = await supabaseClient
+                .from('rentals')
+                .select('driver_id, cars(plate_number, model)')
+                .eq('status', 'active');
+            activeRentalsByDriverId = {};
+            if (!rentalsResp.error && rentalsResp.data) {
+                rentalsResp.data.forEach(function (r) {
+                    if (r.cars) {
+                        activeRentalsByDriverId[r.driver_id] = r.cars.plate_number + ' (' + r.cars.model + ')';
+                    }
+                });
+            }
+            render();
+        }
+
+        function render() {
+            const counts = { all: allDrivers.length, active: 0, inactive: 0, blacklisted: 0 };
+            allDrivers.forEach(function (d) { counts[d.status] = (counts[d.status] || 0) + 1; });
+            ['all','active','inactive','blacklisted'].forEach(function (k) {
+                document.getElementById('count-' + k).textContent = '(' + counts[k] + ')';
+            });
+
+            const filtered = currentFilter === 'all' ? allDrivers : allDrivers.filter(function (d) { return d.status === currentFilter; });
+
+            if (filtered.length === 0) {
+                tableEl.style.display = 'none';
+                emptyEl.style.display = 'block';
+                return;
+            }
+            tableEl.style.display = 'table';
+            emptyEl.style.display = 'none';
+
+            tbody.innerHTML = filtered.map(function (driver) {
+                const currentCar = activeRentalsByDriverId[driver.id];
+                const wa = (driver.whatsapp || '').replace(/[^0-9]/g, '');
+                return '<tr>'
+                    + '<td><strong>' + escapeHtml(driver.full_name) + '</strong></td>'
+                    + '<td>' + (wa ? '<a href="https://wa.me/' + escapeHtml(wa) + '" target="_blank">' + escapeHtml(driver.whatsapp) + '</a>' : '<span style="color:var(--text-muted);">—</span>') + '</td>'
+                    + '<td>' + escapeHtml(driver.ic_number || '-') + '</td>'
+                    + '<td>' + escapeHtml(driver.license_number || '-') + '</td>'
+                    + '<td>' + escapeHtml(driver.psv_number || '-') + '</td>'
+                    + '<td><span class="badge badge-' + escapeHtml(driver.status) + '">' + escapeHtml(driver.status) + '</span></td>'
+                    + '<td>' + (driver.profile_id ? '<span style="color:var(--success);">✓ Yes</span>' : '<span style="color:var(--text-muted);">—</span>') + '</td>'
+                    + '<td>' + (currentCar ? escapeHtml(currentCar) : '<span style="color:var(--text-muted);">—</span>') + '</td>'
+                    + '<td class="actions-cell">'
+                        + '<button class="btn btn-sm btn-secondary" data-action="edit" data-id="' + driver.id + '">Edit</button>'
+                        + '<button class="btn btn-sm btn-danger" data-action="delete" data-id="' + driver.id + '">Delete</button>'
+                    + '</td>'
+                + '</tr>';
+            }).join('');
+        }
+
+        document.querySelectorAll('.filter-bar button').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                document.querySelectorAll('.filter-bar button').forEach(function (b) { b.classList.remove('active'); });
+                btn.classList.add('active');
+                currentFilter = btn.dataset.filter;
+                render();
+            });
+        });
+
+        document.getElementById('refresh-btn').addEventListener('click', loadDrivers);
+        document.getElementById('add-btn').addEventListener('click', function () { openModal(null); });
+
+        tbody.addEventListener('click', async function (event) {
+            const target = event.target.closest('button[data-action]');
+            if (!target) return;
+            const id = target.dataset.id;
+            const driver = allDrivers.find(function (d) { return d.id === id; });
+            if (!driver) return;
+
+            if (target.dataset.action === 'edit') {
+                openModal(driver);
+            } else if (target.dataset.action === 'delete') {
+                if (activeRentalsByDriverId[driver.id]) {
+                    alert('Cannot delete: this driver has an active rental. End the rental first.');
+                    return;
+                }
+                if (!confirm('Delete driver ' + driver.full_name + '? This cannot be undone.')) return;
+                const { error } = await supabaseClient.from('drivers').delete().eq('id', id);
+                if (error) { showAlert('Delete failed: ' + error.message, true); return; }
+                showAlert('Driver deleted.', false);
+                await loadDrivers();
+            }
+        });
+
+        function openModal(driver) {
+            editingId = driver ? driver.id : null;
+            document.getElementById('driver-modal-title').textContent = driver ? 'Edit driver' : 'Add driver';
+            document.getElementById('driver-name').value      = driver ? (driver.full_name || '') : '';
+            document.getElementById('driver-whatsapp').value  = driver ? (driver.whatsapp || '') : '';
+            document.getElementById('driver-ic').value        = driver ? (driver.ic_number || '') : '';
+            document.getElementById('driver-license').value   = driver ? (driver.license_number || '') : '';
+            document.getElementById('driver-psv').value       = driver ? (driver.psv_number || '') : '';
+            document.getElementById('driver-address').value   = driver ? (driver.address || '') : '';
+            document.getElementById('driver-status').value    = driver ? (driver.status || 'active') : 'active';
+            document.getElementById('driver-profile-id').value= driver ? (driver.profile_id || '') : '';
+            document.getElementById('driver-notes').value     = driver ? (driver.notes || '') : '';
+            document.getElementById('driver-error').style.display = 'none';
+            driverModal.classList.add('open');
+        }
+
+        document.getElementById('driver-cancel').addEventListener('click', function () { driverModal.classList.remove('open'); });
+        driverModal.addEventListener('click', function (e) { if (e.target === driverModal) driverModal.classList.remove('open'); });
+
+        document.getElementById('driver-save').addEventListener('click', async function () {
+            const errBox = document.getElementById('driver-error');
+            errBox.style.display = 'none';
+
+            const profileIdRaw = document.getElementById('driver-profile-id').value.trim();
+
+            const payload = {
+                full_name:      document.getElementById('driver-name').value.trim(),
+                whatsapp:       document.getElementById('driver-whatsapp').value.trim() || null,
+                ic_number:      document.getElementById('driver-ic').value.trim() || null,
+                license_number: document.getElementById('driver-license').value.trim() || null,
+                psv_number:     document.getElementById('driver-psv').value.trim() || null,
+                address:        document.getElementById('driver-address').value.trim() || null,
+                status:         document.getElementById('driver-status').value,
+                profile_id:     profileIdRaw || null,
+                notes:          document.getElementById('driver-notes').value.trim() || null
+            };
+
+            if (!payload.full_name) {
+                errBox.textContent = 'Full name is required.';
+                errBox.style.display = 'block';
+                return;
+            }
+
+            // Loose UUID format check (don't be strict, just catch typos)
+            if (payload.profile_id && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(payload.profile_id)) {
+                errBox.textContent = 'Login user ID does not look like a valid UUID.';
+                errBox.style.display = 'block';
+                return;
+            }
+
+            let resp;
+            if (editingId) {
+                resp = await supabaseClient.from('drivers').update(payload).eq('id', editingId);
+            } else {
+                resp = await supabaseClient.from('drivers').insert(payload);
+            }
+            if (resp.error) {
+                errBox.textContent = resp.error.message;
+                errBox.style.display = 'block';
+                return;
+            }
+            driverModal.classList.remove('open');
+            showAlert(editingId ? 'Driver updated.' : 'Driver added.', false);
+            await loadDrivers();
+        });
+
+        await loadDrivers();
+    })();
+    </script>
+</body>
+</html>

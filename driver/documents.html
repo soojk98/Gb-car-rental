@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Documents | GB Car Rental</title>
+    <link rel="stylesheet" href="../css/app.css">
+    <style>
+        .doc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+        .doc-card { background: white; border: 1px solid var(--border); border-radius: 8px; padding: 20px; }
+        .doc-card h3 { margin: 0 0 12px 0; font-size: 16px; color: var(--dark-bg); }
+        .doc-card .uploaded { font-size: 12px; color: var(--success); margin-bottom: 8px; }
+        .doc-card .none { font-size: 12px; color: var(--text-muted); margin-bottom: 8px; }
+        .doc-card input[type=file] { font-size: 13px; margin-bottom: 10px; }
+        .doc-card a.view { font-size: 13px; }
+    </style>
+</head>
+<body>
+    <div id="app" style="display:none;">
+        <div class="app-shell">
+            <aside class="sidebar">
+                <div class="sidebar-brand"><span>GB</span> Driver</div>
+                <nav class="sidebar-nav">
+                    <a href="index.html">My Rental</a>
+                    <a href="payments.html">Payments</a>
+                    <a href="documents.html" class="active">Documents</a>
+                    <a href="logs.html">Logs</a>
+                </nav>
+                <div class="sidebar-footer">
+                    <div class="user-name" id="user-name"></div>
+                    <a href="#" id="logout" style="color:#cbd1d8;">Sign out</a>
+                </div>
+            </aside>
+
+            <main class="main">
+                <div class="topbar"><h1>Documents</h1></div>
+                <div class="content">
+                    <div id="page-alert"></div>
+                    <div id="content"></div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../js/supabase.js"></script>
+    <script src="../js/auth.js"></script>
+    <script>
+    (async function () {
+        const profile = await requireRole('driver');
+        if (!profile) return;
+        document.getElementById('user-name').textContent = profile.full_name || 'Driver';
+        document.getElementById('app').style.display = 'block';
+        document.getElementById('logout').addEventListener('click', function (e) { e.preventDefault(); signOut(); });
+
+        const content = document.getElementById('content');
+        const pageAlert = document.getElementById('page-alert');
+
+        function escapeHtml(s) { if (s == null) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+        function showAlert(msg, isError) {
+            pageAlert.innerHTML = '';
+            const div = document.createElement('div');
+            div.className = 'alert ' + (isError ? 'alert-error' : 'alert-success');
+            div.textContent = msg;
+            pageAlert.appendChild(div);
+            setTimeout(function () { div.remove(); }, 4000);
+        }
+
+        const ctx = await getDriverContext();
+        if (ctx.error) { content.innerHTML = '<div class="alert alert-error">' + escapeHtml(ctx.error) + '</div>'; return; }
+
+        const driverId = ctx.driver.id;
+        const docTypes = [
+            { type: 'nric',    title: 'NRIC (Identity Card)' },
+            { type: 'license', title: 'Driving License (CDL)' },
+            { type: 'psv',     title: 'PSV License' },
+            { type: 'other',   title: 'Other documents' }
+        ];
+
+        async function loadDocuments() {
+            const { data, error } = await supabaseClient
+                .from('documents')
+                .select('*')
+                .eq('driver_id', driverId)
+                .order('uploaded_at', { ascending: false });
+
+            if (error) { content.innerHTML = '<div class="alert alert-error">' + escapeHtml(error.message) + '</div>'; return; }
+
+            const byType = {};
+            (data || []).forEach(function (d) {
+                if (!byType[d.type]) byType[d.type] = [];
+                byType[d.type].push(d);
+            });
+
+            const cards = await Promise.all(docTypes.map(async function (t) {
+                const docs = byType[t.type] || [];
+                let listHtml = '';
+                if (docs.length === 0) {
+                    listHtml = '<div class="none">No file uploaded yet.</div>';
+                } else {
+                    const items = await Promise.all(docs.map(async function (d) {
+                        const { data: urlData } = await supabaseClient.storage
+                            .from('driver-documents')
+                            .createSignedUrl(d.file_path, 3600);
+                        const url = urlData ? urlData.signedUrl : '#';
+                        const filename = d.file_path.split('/').pop();
+                        return '<div class="uploaded">✓ ' + escapeHtml(filename) + ' '
+                            + '<a class="view" href="' + escapeHtml(url) + '" target="_blank">View</a></div>';
+                    }));
+                    listHtml = items.join('');
+                }
+                return '<div class="doc-card">'
+                    + '<h3>' + escapeHtml(t.title) + '</h3>'
+                    + listHtml
+                    + '<input type="file" accept="image/*,application/pdf" data-type="' + t.type + '">'
+                    + '</div>';
+            }));
+
+            content.innerHTML = '<div class="doc-grid">' + cards.join('') + '</div>'
+                + '<p style="font-size:12px; color:var(--text-muted); margin-top:16px;">Files are stored privately. Only you and admin can view them.</p>';
+
+            // Wire up file inputs
+            content.querySelectorAll('input[type=file]').forEach(function (input) {
+                input.addEventListener('change', async function () {
+                    const file = input.files[0];
+                    if (!file) return;
+                    const docType = input.dataset.type;
+                    input.disabled = true;
+
+                    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+                    const path = driverId + '/' + docType + '_' + Date.now() + '_' + safeName;
+
+                    const upResp = await supabaseClient.storage
+                        .from('driver-documents')
+                        .upload(path, file);
+
+                    if (upResp.error) {
+                        showAlert('Upload failed: ' + upResp.error.message, true);
+                        input.disabled = false;
+                        return;
+                    }
+
+                    const insResp = await supabaseClient.from('documents').insert({
+                        driver_id: driverId,
+                        type: docType,
+                        file_path: path
+                    });
+
+                    if (insResp.error) {
+                        showAlert('Uploaded but failed to record: ' + insResp.error.message, true);
+                        input.disabled = false;
+                        return;
+                    }
+
+                    showAlert('Uploaded successfully.', false);
+                    await loadDocuments();
+                });
+            });
+        }
+
+        await loadDocuments();
+    })();
+    </script>
+</body>
+</html>

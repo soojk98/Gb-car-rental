@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cars | GB Car Rental</title>
+    <link rel="stylesheet" href="../css/app.css">
+    <style>
+        .filter-bar { display:flex; gap:8px; margin-bottom:18px; flex-wrap:wrap; }
+        .filter-bar button {
+            padding: 8px 16px; background: white; border: 1px solid var(--border);
+            border-radius: 5px; font-size: 13px; font-weight: 600; color: var(--text); cursor: pointer;
+        }
+        .filter-bar button.active { background: var(--primary-green); color: white; border-color: var(--primary-green); }
+
+        .actions-cell { white-space: nowrap; }
+        .actions-cell .btn { margin-right: 4px; margin-bottom: 2px; }
+
+        .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 100; padding: 20px; }
+        .modal-backdrop.open { display: flex; }
+        .modal { background: white; border-radius: 10px; padding: 28px; width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto; }
+        .modal h2 { margin: 0 0 18px 0; font-size: 20px; color: var(--dark-bg); }
+        .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+    </style>
+</head>
+<body>
+    <div id="app" style="display:none;">
+        <div class="app-shell">
+            <aside class="sidebar">
+                <div class="sidebar-brand"><span>GB</span> Admin</div>
+                <nav class="sidebar-nav">
+                    <a href="index.html">Dashboard</a>
+                    <a href="leads.html">Leads</a>
+                    <a href="cars.html" class="active">Cars</a>
+                    <a href="drivers.html">Drivers</a>
+                    <a href="rentals.html">Rentals</a>
+                </nav>
+                <div class="sidebar-footer">
+                    <div class="user-name" id="user-name"></div>
+                    <a href="#" id="logout" style="color:#cbd1d8;">Sign out</a>
+                </div>
+            </aside>
+
+            <main class="main">
+                <div class="topbar">
+                    <h1>Cars</h1>
+                    <div>
+                        <button id="refresh-btn" class="btn btn-secondary btn-sm">Refresh</button>
+                        <button id="add-btn" class="btn btn-primary btn-sm">+ Add car</button>
+                    </div>
+                </div>
+
+                <div class="content">
+                    <div id="page-alert"></div>
+
+                    <div class="filter-bar">
+                        <button data-filter="all" class="active">All <span id="count-all"></span></button>
+                        <button data-filter="available">Available <span id="count-available"></span></button>
+                        <button data-filter="rented">Rented <span id="count-rented"></span></button>
+                        <button data-filter="maintenance">Maintenance <span id="count-maintenance"></span></button>
+                        <button data-filter="retired">Retired <span id="count-retired"></span></button>
+                    </div>
+
+                    <div class="card" style="padding:0;">
+                        <div class="table-wrap">
+                            <table class="data" id="cars-table">
+                                <thead>
+                                    <tr>
+                                        <th>Plate</th>
+                                        <th>Model</th>
+                                        <th>Year / Color</th>
+                                        <th>Weekly rate</th>
+                                        <th>Mileage</th>
+                                        <th>Status</th>
+                                        <th>Current driver</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="cars-tbody"></tbody>
+                            </table>
+                            <div id="empty" class="empty-state" style="display:none;">
+                                <h3>No cars yet</h3>
+                                <p>Click <strong>+ Add car</strong> to add your first vehicle.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Add / Edit modal -->
+    <div class="modal-backdrop" id="car-modal">
+        <div class="modal">
+            <h2 id="car-modal-title">Add car</h2>
+            <div id="car-error" class="alert alert-error" style="display:none;"></div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Plate number *</label>
+                    <input id="car-plate" type="text" placeholder="e.g. WXY 1234" required>
+                </div>
+                <div class="form-group">
+                    <label>Model *</label>
+                    <input id="car-model" type="text" placeholder="e.g. Perodua Saga" required>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Year</label>
+                    <input id="car-year" type="number" min="1990" max="2099" placeholder="2022">
+                </div>
+                <div class="form-group">
+                    <label>Color</label>
+                    <input id="car-color" type="text" placeholder="White">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Weekly rate (RM) *</label>
+                    <input id="car-rate" type="number" min="0" step="0.01" placeholder="330" required>
+                </div>
+                <div class="form-group">
+                    <label>Status *</label>
+                    <select id="car-status">
+                        <option value="available">Available</option>
+                        <option value="rented">Rented</option>
+                        <option value="maintenance">Maintenance</option>
+                        <option value="retired">Retired</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Current mileage (km)</label>
+                <input id="car-mileage" type="number" min="0" placeholder="0">
+            </div>
+
+            <div class="form-group">
+                <label>Notes</label>
+                <textarea id="car-notes" rows="3" placeholder="Internal notes"></textarea>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn btn-secondary" id="car-cancel">Cancel</button>
+                <button class="btn btn-primary" id="car-save">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../js/supabase.js"></script>
+    <script src="../js/auth.js"></script>
+    <script>
+    (async function () {
+        const profile = await requireRole('admin');
+        if (!profile) return;
+        document.getElementById('user-name').textContent = profile.full_name || 'Admin';
+        document.getElementById('app').style.display = 'block';
+        document.getElementById('logout').addEventListener('click', function (e) { e.preventDefault(); signOut(); });
+
+        const tbody = document.getElementById('cars-tbody');
+        const tableEl = document.getElementById('cars-table');
+        const emptyEl = document.getElementById('empty');
+        const pageAlert = document.getElementById('page-alert');
+        const carModal = document.getElementById('car-modal');
+
+        let allCars = [];
+        let activeRentalsByCarId = {};   // car_id -> { driver_full_name }
+        let currentFilter = 'all';
+        let editingId = null;
+
+        function escapeHtml(s) {
+            if (s == null) return '';
+            return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+        }
+        function showAlert(msg, isError) {
+            pageAlert.innerHTML = '';
+            const div = document.createElement('div');
+            div.className = 'alert ' + (isError ? 'alert-error' : 'alert-success');
+            div.textContent = msg;
+            pageAlert.appendChild(div);
+            setTimeout(function () { div.remove(); }, 4000);
+        }
+
+        async function loadCars() {
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:var(--text-muted); padding:40px;">Loading...</td></tr>';
+
+            // Cars
+            const carsResp = await supabaseClient.from('cars').select('*').order('created_at', { ascending: false });
+            if (carsResp.error) { showAlert('Failed to load cars: ' + carsResp.error.message, true); tbody.innerHTML = ''; return; }
+            allCars = carsResp.data || [];
+
+            // Active rentals (to map cars -> current driver)
+            const rentalsResp = await supabaseClient
+                .from('rentals')
+                .select('car_id, drivers(full_name)')
+                .eq('status', 'active');
+            activeRentalsByCarId = {};
+            if (!rentalsResp.error && rentalsResp.data) {
+                rentalsResp.data.forEach(function (r) {
+                    activeRentalsByCarId[r.car_id] = r.drivers ? r.drivers.full_name : null;
+                });
+            }
+            render();
+        }
+
+        function render() {
+            const counts = { all: allCars.length, available: 0, rented: 0, maintenance: 0, retired: 0 };
+            allCars.forEach(function (c) { counts[c.status] = (counts[c.status] || 0) + 1; });
+            ['all','available','rented','maintenance','retired'].forEach(function (k) {
+                document.getElementById('count-' + k).textContent = '(' + counts[k] + ')';
+            });
+
+            const filtered = currentFilter === 'all' ? allCars : allCars.filter(function (c) { return c.status === currentFilter; });
+
+            if (filtered.length === 0) {
+                tableEl.style.display = 'none';
+                emptyEl.style.display = 'block';
+                return;
+            }
+            tableEl.style.display = 'table';
+            emptyEl.style.display = 'none';
+
+            tbody.innerHTML = filtered.map(function (car) {
+                const driverName = activeRentalsByCarId[car.id];
+                return '<tr>'
+                    + '<td><strong>' + escapeHtml(car.plate_number) + '</strong></td>'
+                    + '<td>' + escapeHtml(car.model) + '</td>'
+                    + '<td style="color:var(--text-muted);">' + escapeHtml((car.year || '-') + ' / ' + (car.color || '-')) + '</td>'
+                    + '<td>RM ' + Number(car.weekly_rate || 0).toFixed(2) + '</td>'
+                    + '<td>' + (car.current_mileage != null ? Number(car.current_mileage).toLocaleString() + ' km' : '-') + '</td>'
+                    + '<td><span class="badge badge-' + escapeHtml(car.status) + '">' + escapeHtml(car.status) + '</span></td>'
+                    + '<td>' + (driverName ? escapeHtml(driverName) : '<span style="color:var(--text-muted);">—</span>') + '</td>'
+                    + '<td class="actions-cell">'
+                        + '<button class="btn btn-sm btn-secondary" data-action="edit" data-id="' + car.id + '">Edit</button>'
+                        + '<button class="btn btn-sm btn-danger" data-action="delete" data-id="' + car.id + '">Delete</button>'
+                    + '</td>'
+                + '</tr>';
+            }).join('');
+        }
+
+        document.querySelectorAll('.filter-bar button').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                document.querySelectorAll('.filter-bar button').forEach(function (b) { b.classList.remove('active'); });
+                btn.classList.add('active');
+                currentFilter = btn.dataset.filter;
+                render();
+            });
+        });
+
+        document.getElementById('refresh-btn').addEventListener('click', loadCars);
+
+        document.getElementById('add-btn').addEventListener('click', function () { openModal(null); });
+
+        tbody.addEventListener('click', async function (event) {
+            const target = event.target.closest('button[data-action]');
+            if (!target) return;
+            const id = target.dataset.id;
+            const action = target.dataset.action;
+            const car = allCars.find(function (c) { return c.id === id; });
+            if (!car) return;
+
+            if (action === 'edit') {
+                openModal(car);
+            } else if (action === 'delete') {
+                if (activeRentalsByCarId[car.id]) {
+                    alert('Cannot delete: this car is currently rented. End the rental first.');
+                    return;
+                }
+                if (!confirm('Delete car ' + car.plate_number + '? This cannot be undone.')) return;
+                const { error } = await supabaseClient.from('cars').delete().eq('id', id);
+                if (error) { showAlert('Delete failed: ' + error.message, true); return; }
+                showAlert('Car deleted.', false);
+                await loadCars();
+            }
+        });
+
+        function openModal(car) {
+            editingId = car ? car.id : null;
+            document.getElementById('car-modal-title').textContent = car ? 'Edit car' : 'Add car';
+            document.getElementById('car-plate').value = car ? (car.plate_number || '') : '';
+            document.getElementById('car-model').value = car ? (car.model || '') : '';
+            document.getElementById('car-year').value = car ? (car.year || '') : '';
+            document.getElementById('car-color').value = car ? (car.color || '') : '';
+            document.getElementById('car-rate').value = car ? (car.weekly_rate || '') : '';
+            document.getElementById('car-status').value = car ? (car.status || 'available') : 'available';
+            document.getElementById('car-mileage').value = car ? (car.current_mileage || 0) : 0;
+            document.getElementById('car-notes').value = car ? (car.notes || '') : '';
+            document.getElementById('car-error').style.display = 'none';
+            carModal.classList.add('open');
+        }
+
+        document.getElementById('car-cancel').addEventListener('click', function () { carModal.classList.remove('open'); });
+        carModal.addEventListener('click', function (e) { if (e.target === carModal) carModal.classList.remove('open'); });
+
+        document.getElementById('car-save').addEventListener('click', async function () {
+            const errBox = document.getElementById('car-error');
+            errBox.style.display = 'none';
+
+            const payload = {
+                plate_number: document.getElementById('car-plate').value.trim(),
+                model: document.getElementById('car-model').value.trim(),
+                year: parseInt(document.getElementById('car-year').value) || null,
+                color: document.getElementById('car-color').value.trim() || null,
+                weekly_rate: parseFloat(document.getElementById('car-rate').value),
+                status: document.getElementById('car-status').value,
+                current_mileage: parseInt(document.getElementById('car-mileage').value) || 0,
+                notes: document.getElementById('car-notes').value.trim() || null
+            };
+
+            if (!payload.plate_number || !payload.model || isNaN(payload.weekly_rate)) {
+                errBox.textContent = 'Plate, model, and weekly rate are required.';
+                errBox.style.display = 'block';
+                return;
+            }
+
+            let resp;
+            if (editingId) {
+                resp = await supabaseClient.from('cars').update(payload).eq('id', editingId);
+            } else {
+                resp = await supabaseClient.from('cars').insert(payload);
+            }
+            if (resp.error) {
+                errBox.textContent = resp.error.message;
+                errBox.style.display = 'block';
+                return;
+            }
+            carModal.classList.remove('open');
+            showAlert(editingId ? 'Car updated.' : 'Car added.', false);
+            await loadCars();
+        });
+
+        await loadCars();
+    })();
+    </script>
+</body>
+</html>

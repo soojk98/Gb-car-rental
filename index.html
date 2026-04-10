@@ -170,6 +170,7 @@
             <a href="#how-it-works">How It Works</a>
             <a href="#faq">FAQ</a>
             <a href="#contact">Contact</a>
+            <a href="login.html">Sign in</a>
         </div>
         <a href="#apply" class="nav-btn">Start Earning</a>
     </nav>
@@ -279,25 +280,26 @@
     <section id="apply" class="form-section">
         <div class="form-container">
             <h2>Apply to Drive Today</h2>
-            <form action="#" method="POST">
+            <form id="lead-form">
                 <div class="form-group">
-                    <label>Full Name (As per IC)</label>
-                    <input type="text" placeholder="Enter your full name" required>
+                    <label for="lead-name">Full Name (As per IC)</label>
+                    <input id="lead-name" name="full_name" type="text" placeholder="Enter your full name" required>
                 </div>
                 <div class="form-group">
-                    <label>WhatsApp Number</label>
-                    <input type="tel" placeholder="e.g., 012-3456789" required>
+                    <label for="lead-whatsapp">WhatsApp Number</label>
+                    <input id="lead-whatsapp" name="whatsapp" type="tel" placeholder="e.g., 012-3456789" required>
                 </div>
                 <div class="form-group">
-                    <label>Which car do you want?</label>
-                    <select required>
+                    <label for="lead-car">Which car do you want?</label>
+                    <select id="lead-car" name="preferred_car" required>
                         <option value="" disabled selected>Select Preferred Car...</option>
                         <option value="saga">Perodua Saga (RM 330/week)</option>
                         <option value="bezza">Perodua Bezza (RM 420/week)</option>
                         <option value="alza">Perodua Alza (RM 460/week)</option>
                     </select>
                 </div>
-                <button type="submit" class="btn-main" style="width: 100%; margin-top: 10px; font-size: 18px; padding: 18px;">Submit Application</button>
+                <button id="lead-submit" type="submit" class="btn-main" style="width: 100%; margin-top: 10px; font-size: 18px; padding: 18px;">Submit Application</button>
+                <div id="lead-feedback" style="margin-top: 20px; padding: 15px; border-radius: 5px; display: none; text-align: center; font-weight: bold;"></div>
             </form>
         </div>
     </section>
@@ -359,6 +361,58 @@
     <footer>
         <p>&copy; 2024 GB Car Rental. All rights reserved. | Turn Driving To Income.</p>
     </footer>
+
+    <!-- Supabase client + lead form handler -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase.js"></script>
+    <script>
+        (function () {
+            const form = document.getElementById('lead-form');
+            const submitBtn = document.getElementById('lead-submit');
+            const feedback = document.getElementById('lead-feedback');
+
+            function showFeedback(message, isError) {
+                feedback.textContent = message;
+                feedback.style.display = 'block';
+                feedback.style.background = isError ? '#fdecea' : '#e6f4ea';
+                feedback.style.color = isError ? '#a61b1b' : '#0a4f32';
+                feedback.style.border = isError ? '1px solid #f5c2c0' : '1px solid #a8d5b9';
+            }
+
+            form.addEventListener('submit', async function (event) {
+                event.preventDefault();
+                submitBtn.disabled = true;
+                const originalLabel = submitBtn.textContent;
+                submitBtn.textContent = 'Submitting...';
+                feedback.style.display = 'none';
+
+                const payload = {
+                    full_name: document.getElementById('lead-name').value.trim(),
+                    whatsapp: document.getElementById('lead-whatsapp').value.trim(),
+                    preferred_car: document.getElementById('lead-car').value
+                };
+
+                const { error } = await supabaseClient.from('leads').insert(payload);
+
+                if (error) {
+                    console.error('Lead submission failed:', error);
+                    showFeedback('Sorry, something went wrong. Please WhatsApp us at 016-365 2235.', true);
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = originalLabel;
+                    return;
+                }
+
+                showFeedback('Thank you! We have received your application and will contact you on WhatsApp shortly.', false);
+                form.reset();
+                submitBtn.textContent = 'Submitted ✓';
+                // Re-enable after a few seconds in case they want to submit another
+                setTimeout(function () {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = originalLabel;
+                }, 5000);
+            });
+        })();
+    </script>
 
     <!-- Floating WhatsApp Button (NEW) -->
     <a href="https://wa.me/60163652235" class="whatsapp-float" target="_blank" title="WhatsApp Us">

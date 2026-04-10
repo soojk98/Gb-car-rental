@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payments | GB Car Rental</title>
+    <link rel="stylesheet" href="../css/app.css">
+    <style>
+        .summary-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 16px; }
+        .summary-box { background: var(--light-bg); padding: 14px; border-radius: 6px; border: 1px solid var(--border); }
+        .summary-box .label { font-size: 11px; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px; }
+        .summary-box .value { font-size: 18px; font-weight: 700; color: var(--dark-bg); margin-top: 4px; }
+    </style>
+</head>
+<body>
+    <div id="app" style="display:none;">
+        <div class="app-shell">
+            <aside class="sidebar">
+                <div class="sidebar-brand"><span>GB</span> Driver</div>
+                <nav class="sidebar-nav">
+                    <a href="index.html">My Rental</a>
+                    <a href="payments.html" class="active">Payments</a>
+                    <a href="documents.html">Documents</a>
+                    <a href="logs.html">Logs</a>
+                </nav>
+                <div class="sidebar-footer">
+                    <div class="user-name" id="user-name"></div>
+                    <a href="#" id="logout" style="color:#cbd1d8;">Sign out</a>
+                </div>
+            </aside>
+
+            <main class="main">
+                <div class="topbar"><h1>Payments</h1></div>
+                <div class="content" id="content"></div>
+            </main>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../js/supabase.js"></script>
+    <script src="../js/auth.js"></script>
+    <script>
+    (async function () {
+        const profile = await requireRole('driver');
+        if (!profile) return;
+        document.getElementById('user-name').textContent = profile.full_name || 'Driver';
+        document.getElementById('app').style.display = 'block';
+        document.getElementById('logout').addEventListener('click', function (e) { e.preventDefault(); signOut(); });
+
+        const content = document.getElementById('content');
+
+        function escapeHtml(s) { if (s == null) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+        function fmtDate(s) { return s ? new Date(s).toLocaleDateString('en-MY', { year:'numeric', month:'short', day:'numeric' }) : '—'; }
+        function fmtRM(n)   { return 'RM ' + Number(n || 0).toFixed(2); }
+
+        const ctx = await getDriverContext();
+        if (ctx.error) { content.innerHTML = '<div class="alert alert-error">' + escapeHtml(ctx.error) + '</div>'; return; }
+
+        // Get all rentals (active + ended) for this driver to see complete history
+        const { data: rentals, error: rentErr } = await supabaseClient
+            .from('rentals')
+            .select('id, start_date, end_date, weekly_rate, status, cars(plate_number, model)')
+            .eq('driver_id', ctx.driver.id)
+            .order('start_date', { ascending: false });
+        if (rentErr) { content.innerHTML = '<div class="alert alert-error">' + escapeHtml(rentErr.message) + '</div>'; return; }
+        if (!rentals || rentals.length === 0) {
+            content.innerHTML = '<div class="card"><p>No rentals yet.</p></div>';
+            return;
+        }
+
+        const rentalIds = rentals.map(function (r) { return r.id; });
+        const { data: payments, error: payErr } = await supabaseClient
+            .from('payments')
+            .select('*')
+            .in('rental_id', rentalIds)
+            .order('paid_at', { ascending: false });
+        if (payErr) { content.innerHTML = '<div class="alert alert-error">' + escapeHtml(payErr.message) + '</div>'; return; }
+
+        const totalPaid = (payments || []).reduce(function (s, p) { return s + Number(p.amount || 0); }, 0);
+        const lastPayment = (payments && payments.length > 0) ? payments[0] : null;
+
+        // Active rental due calc
+        let dueText = '—';
+        const active = rentals.find(function (r) { return r.status === 'active'; });
+        if (active) {
+            const weeks = Math.max(0, Math.floor((new Date() - new Date(active.start_date)) / (1000*60*60*24*7)));
+            const dueSoFar = weeks * Number(active.weekly_rate || 0);
+            const activePayments = (payments || []).filter(function (p) { return p.rental_id === active.id; });
+            const activeTotal = activePayments.reduce(function (s, p) { return s + Number(p.amount || 0); }, 0);
+            const balance = dueSoFar - activeTotal;
+            if (balance > 0.01)      dueText = '<span style="color: var(--danger);">' + fmtRM(balance) + ' overdue</span>';
+            else if (balance < -0.01) dueText = '<span style="color: var(--success);">' + fmtRM(-balance) + ' credit</span>';
+            else                     dueText = '<span style="color: var(--success);">Up to date</span>';
+        }
+
+        const summary =
+            '<div class="summary-row">'
+            + '<div class="summary-box"><div class="label">Total paid (all time)</div><div class="value">' + fmtRM(totalPaid) + '</div></div>'
+            + '<div class="summary-box"><div class="label">Last payment</div><div class="value">' + (lastPayment ? fmtRM(lastPayment.amount) : '—') + '</div><div style="font-size:12px; color:var(--text-muted);">' + (lastPayment ? fmtDate(lastPayment.paid_at) : '') + '</div></div>'
+            + '<div class="summary-box"><div class="label">Current rental status</div><div class="value">' + dueText + '</div></div>'
+            + '</div>';
+
+        const rows = (payments || []).map(function (p) {
+            const rental = rentals.find(function (r) { return r.id === p.rental_id; });
+            const carLabel = (rental && rental.cars) ? (rental.cars.plate_number + ' — ' + rental.cars.model) : '—';
+            const period = (p.period_start || p.period_end) ? (fmtDate(p.period_start) + ' → ' + fmtDate(p.period_end)) : '—';
+            return '<tr>'
+                + '<td>' + fmtDate(p.paid_at) + '</td>'
+                + '<td><strong>' + fmtRM(p.amount) + '</strong></td>'
+                + '<td>' + escapeHtml(carLabel) + '</td>'
+                + '<td>' + escapeHtml(period) + '</td>'
+                + '<td>' + escapeHtml(p.method || '-') + '</td>'
+                + '<td style="color:var(--text-muted);">' + escapeHtml(p.notes || '') + '</td>'
+                + '</tr>';
+        }).join('');
+
+        content.innerHTML = summary
+            + '<div class="card" style="padding:0;">'
+                + '<div class="table-wrap">'
+                    + '<table class="data">'
+                        + '<thead><tr><th>Paid on</th><th>Amount</th><th>Car</th><th>Period</th><th>Method</th><th>Notes</th></tr></thead>'
+                        + '<tbody>' + (rows || '<tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:30px;">No payments yet.</td></tr>') + '</tbody>'
+                    + '</table>'
+                + '</div>'
+            + '</div>'
+            + '<p style="font-size:12px; color:var(--text-muted); margin-top:12px;">Payments are recorded by admin. If you have paid but a payment is missing, please contact admin.</p>';
+    })();
+    </script>
+</body>
+</html>

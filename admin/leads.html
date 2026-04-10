@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leads | GB Car Rental</title>
+    <link rel="stylesheet" href="../css/app.css">
+    <style>
+        .filter-bar {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 18px;
+            flex-wrap: wrap;
+        }
+        .filter-bar button {
+            padding: 8px 16px;
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text);
+            cursor: pointer;
+        }
+        .filter-bar button.active {
+            background: var(--primary-green);
+            color: white;
+            border-color: var(--primary-green);
+        }
+        .actions-cell { white-space: nowrap; }
+        .actions-cell .btn { margin-right: 4px; margin-bottom: 2px; }
+
+        /* Modal */
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            padding: 20px;
+        }
+        .modal-backdrop.open { display: flex; }
+        .modal {
+            background: white;
+            border-radius: 10px;
+            padding: 28px;
+            width: 100%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .modal h2 { margin: 0 0 18px 0; font-size: 20px; color: var(--dark-bg); }
+        .modal-actions {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+            margin-top: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div id="app" style="display:none;">
+        <div class="app-shell">
+            <aside class="sidebar">
+                <div class="sidebar-brand"><span>GB</span> Admin</div>
+                <nav class="sidebar-nav">
+                    <a href="index.html">Dashboard</a>
+                    <a href="leads.html" class="active">Leads</a>
+                    <a href="cars.html">Cars</a>
+                    <a href="drivers.html">Drivers</a>
+                    <a href="rentals.html">Rentals</a>
+                </nav>
+                <div class="sidebar-footer">
+                    <div class="user-name" id="user-name"></div>
+                    <a href="#" id="logout" style="color:#cbd1d8;">Sign out</a>
+                </div>
+            </aside>
+
+            <main class="main">
+                <div class="topbar">
+                    <h1>Leads</h1>
+                    <button id="refresh-btn" class="btn btn-secondary btn-sm">Refresh</button>
+                </div>
+
+                <div class="content">
+                    <div id="page-alert"></div>
+
+                    <div class="filter-bar">
+                        <button data-filter="all" class="active">All <span id="count-all"></span></button>
+                        <button data-filter="new">New <span id="count-new"></span></button>
+                        <button data-filter="contacted">Contacted <span id="count-contacted"></span></button>
+                        <button data-filter="converted">Converted <span id="count-converted"></span></button>
+                        <button data-filter="rejected">Rejected <span id="count-rejected"></span></button>
+                    </div>
+
+                    <div class="card" style="padding: 0;">
+                        <div class="table-wrap">
+                            <table class="data" id="leads-table">
+                                <thead>
+                                    <tr>
+                                        <th>Submitted</th>
+                                        <th>Name</th>
+                                        <th>WhatsApp</th>
+                                        <th>Car</th>
+                                        <th>Status</th>
+                                        <th>Notes</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="leads-tbody"></tbody>
+                            </table>
+                            <div id="empty" class="empty-state" style="display:none;">
+                                <h3>No leads yet</h3>
+                                <p>New applications will appear here automatically.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Edit / Notes modal -->
+    <div class="modal-backdrop" id="edit-modal">
+        <div class="modal">
+            <h2>Edit lead</h2>
+            <div id="edit-error" class="alert alert-error" style="display:none;"></div>
+            <div class="form-group">
+                <label>Status</label>
+                <select id="edit-status">
+                    <option value="new">New</option>
+                    <option value="contacted">Contacted</option>
+                    <option value="converted">Converted</option>
+                    <option value="rejected">Rejected</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Notes</label>
+                <textarea id="edit-notes" rows="4" placeholder="Internal notes (not visible to lead)"></textarea>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" id="edit-cancel">Cancel</button>
+                <button class="btn btn-primary" id="edit-save">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Convert-to-driver modal -->
+    <div class="modal-backdrop" id="convert-modal">
+        <div class="modal">
+            <h2>Convert lead to driver</h2>
+            <p style="color: var(--text-muted); font-size: 13px; margin-top:-8px;">
+                This creates a driver record (with the basics from the lead) and marks the lead as converted.
+                You can fill in NRIC, license, and other details on the Drivers page later.
+            </p>
+            <div id="convert-error" class="alert alert-error" style="display:none;"></div>
+            <div class="form-group">
+                <label>Full name</label>
+                <input id="convert-name" type="text" required>
+            </div>
+            <div class="form-group">
+                <label>WhatsApp</label>
+                <input id="convert-whatsapp" type="tel" required>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" id="convert-cancel">Cancel</button>
+                <button class="btn btn-primary" id="convert-confirm">Convert</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../js/supabase.js"></script>
+    <script src="../js/auth.js"></script>
+    <script>
+    (async function () {
+        const profile = await requireRole('admin');
+        if (!profile) return;
+
+        document.getElementById('user-name').textContent = profile.full_name || 'Admin';
+        document.getElementById('app').style.display = 'block';
+        document.getElementById('logout').addEventListener('click', function (e) { e.preventDefault(); signOut(); });
+
+        const tbody = document.getElementById('leads-tbody');
+        const emptyEl = document.getElementById('empty');
+        const tableEl = document.getElementById('leads-table');
+        const pageAlert = document.getElementById('page-alert');
+        let allLeads = [];
+        let currentFilter = 'all';
+        let editingId = null;
+        let convertingLead = null;
+
+        const carLabel = {
+            saga: 'Perodua Saga',
+            bezza: 'Perodua Bezza',
+            alza:  'Perodua Alza'
+        };
+
+        function showAlert(msg, isError) {
+            pageAlert.innerHTML = '';
+            const div = document.createElement('div');
+            div.className = 'alert ' + (isError ? 'alert-error' : 'alert-success');
+            div.textContent = msg;
+            pageAlert.appendChild(div);
+            setTimeout(function () { div.remove(); }, 4000);
+        }
+
+        function escapeHtml(s) {
+            if (s == null) return '';
+            return String(s)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
+        function formatDate(iso) {
+            if (!iso) return '';
+            const d = new Date(iso);
+            return d.toLocaleDateString('en-MY', { year: 'numeric', month: 'short', day: 'numeric' })
+                + ' ' + d.toLocaleTimeString('en-MY', { hour: '2-digit', minute: '2-digit' });
+        }
+
+        async function loadLeads() {
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-muted); padding:40px;">Loading...</td></tr>';
+            const { data, error } = await supabaseClient
+                .from('leads')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                showAlert('Failed to load leads: ' + error.message, true);
+                tbody.innerHTML = '';
+                return;
+            }
+            allLeads = data || [];
+            render();
+        }
+
+        function render() {
+            // Update counts
+            const counts = { all: allLeads.length, new: 0, contacted: 0, converted: 0, rejected: 0 };
+            allLeads.forEach(function (l) { counts[l.status] = (counts[l.status] || 0) + 1; });
+            document.getElementById('count-all').textContent       = '(' + counts.all + ')';
+            document.getElementById('count-new').textContent       = '(' + counts.new + ')';
+            document.getElementById('count-contacted').textContent = '(' + counts.contacted + ')';
+            document.getElementById('count-converted').textContent = '(' + counts.converted + ')';
+            document.getElementById('count-rejected').textContent  = '(' + counts.rejected + ')';
+
+            const filtered = currentFilter === 'all'
+                ? allLeads
+                : allLeads.filter(function (l) { return l.status === currentFilter; });
+
+            if (filtered.length === 0) {
+                tableEl.style.display = 'none';
+                emptyEl.style.display = 'block';
+                return;
+            }
+            tableEl.style.display = 'table';
+            emptyEl.style.display = 'none';
+
+            tbody.innerHTML = filtered.map(function (lead) {
+                return '<tr>'
+                    + '<td>' + escapeHtml(formatDate(lead.created_at)) + '</td>'
+                    + '<td><strong>' + escapeHtml(lead.full_name) + '</strong></td>'
+                    + '<td><a href="https://wa.me/' + escapeHtml((lead.whatsapp || '').replace(/[^0-9]/g, '')) + '" target="_blank">' + escapeHtml(lead.whatsapp) + '</a></td>'
+                    + '<td>' + escapeHtml(carLabel[lead.preferred_car] || lead.preferred_car || '-') + '</td>'
+                    + '<td><span class="badge badge-' + escapeHtml(lead.status) + '">' + escapeHtml(lead.status) + '</span></td>'
+                    + '<td style="max-width:200px; color:var(--text-muted); font-size:13px;">' + escapeHtml(lead.notes || '') + '</td>'
+                    + '<td class="actions-cell">'
+                        + (lead.status === 'new' ? '<button class="btn btn-sm btn-secondary" data-action="contacted" data-id="' + lead.id + '">Mark contacted</button>' : '')
+                        + (lead.status !== 'converted' && lead.status !== 'rejected' ? '<button class="btn btn-sm btn-primary" data-action="convert" data-id="' + lead.id + '">Convert</button>' : '')
+                        + '<button class="btn btn-sm btn-secondary" data-action="edit" data-id="' + lead.id + '">Edit</button>'
+                        + (lead.status !== 'rejected' && lead.status !== 'converted' ? '<button class="btn btn-sm btn-danger" data-action="reject" data-id="' + lead.id + '">Reject</button>' : '')
+                    + '</td>'
+                + '</tr>';
+            }).join('');
+        }
+
+        // Filter buttons
+        document.querySelectorAll('.filter-bar button').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                document.querySelectorAll('.filter-bar button').forEach(function (b) { b.classList.remove('active'); });
+                btn.classList.add('active');
+                currentFilter = btn.dataset.filter;
+                render();
+            });
+        });
+
+        document.getElementById('refresh-btn').addEventListener('click', loadLeads);
+
+        // Row actions
+        tbody.addEventListener('click', async function (event) {
+            const target = event.target.closest('button[data-action]');
+            if (!target) return;
+            const id = target.dataset.id;
+            const action = target.dataset.action;
+            const lead = allLeads.find(function (l) { return l.id === id; });
+            if (!lead) return;
+
+            if (action === 'contacted') {
+                await updateLeadStatus(id, 'contacted');
+            } else if (action === 'reject') {
+                if (!confirm('Reject this lead?')) return;
+                await updateLeadStatus(id, 'rejected');
+            } else if (action === 'edit') {
+                openEditModal(lead);
+            } else if (action === 'convert') {
+                openConvertModal(lead);
+            }
+        });
+
+        async function updateLeadStatus(id, status) {
+            const { error } = await supabaseClient.from('leads').update({ status: status }).eq('id', id);
+            if (error) { showAlert('Update failed: ' + error.message, true); return; }
+            showAlert('Lead updated.', false);
+            await loadLeads();
+        }
+
+        // ---------- Edit modal ----------
+        const editModal = document.getElementById('edit-modal');
+        function openEditModal(lead) {
+            editingId = lead.id;
+            document.getElementById('edit-status').value = lead.status;
+            document.getElementById('edit-notes').value = lead.notes || '';
+            document.getElementById('edit-error').style.display = 'none';
+            editModal.classList.add('open');
+        }
+        document.getElementById('edit-cancel').addEventListener('click', function () { editModal.classList.remove('open'); });
+        document.getElementById('edit-save').addEventListener('click', async function () {
+            const payload = {
+                status: document.getElementById('edit-status').value,
+                notes: document.getElementById('edit-notes').value.trim() || null
+            };
+            const { error } = await supabaseClient.from('leads').update(payload).eq('id', editingId);
+            if (error) {
+                const errBox = document.getElementById('edit-error');
+                errBox.textContent = error.message;
+                errBox.style.display = 'block';
+                return;
+            }
+            editModal.classList.remove('open');
+            showAlert('Lead updated.', false);
+            await loadLeads();
+        });
+
+        // ---------- Convert modal ----------
+        const convertModal = document.getElementById('convert-modal');
+        function openConvertModal(lead) {
+            convertingLead = lead;
+            document.getElementById('convert-name').value = lead.full_name || '';
+            document.getElementById('convert-whatsapp').value = lead.whatsapp || '';
+            document.getElementById('convert-error').style.display = 'none';
+            convertModal.classList.add('open');
+        }
+        document.getElementById('convert-cancel').addEventListener('click', function () { convertModal.classList.remove('open'); });
+        document.getElementById('convert-confirm').addEventListener('click', async function () {
+            if (!convertingLead) return;
+            const name = document.getElementById('convert-name').value.trim();
+            const whatsapp = document.getElementById('convert-whatsapp').value.trim();
+            const errBox = document.getElementById('convert-error');
+            errBox.style.display = 'none';
+
+            if (!name || !whatsapp) {
+                errBox.textContent = 'Name and WhatsApp are required.';
+                errBox.style.display = 'block';
+                return;
+            }
+
+            // 1. Insert driver
+            const { data: driverRow, error: driverErr } = await supabaseClient
+                .from('drivers')
+                .insert({
+                    full_name: name,
+                    whatsapp: whatsapp,
+                    lead_id: convertingLead.id,
+                    status: 'active'
+                })
+                .select()
+                .single();
+
+            if (driverErr) {
+                errBox.textContent = 'Failed to create driver: ' + driverErr.message;
+                errBox.style.display = 'block';
+                return;
+            }
+
+            // 2. Mark lead as converted
+            const { error: leadErr } = await supabaseClient
+                .from('leads')
+                .update({ status: 'converted' })
+                .eq('id', convertingLead.id);
+
+            if (leadErr) {
+                errBox.textContent = 'Driver created but failed to mark lead converted: ' + leadErr.message;
+                errBox.style.display = 'block';
+                return;
+            }
+
+            convertModal.classList.remove('open');
+            showAlert('Lead converted to driver. Open the Drivers page to fill in details.', false);
+            await loadLeads();
+        });
+
+        // Close modals on backdrop click
+        [editModal, convertModal].forEach(function (m) {
+            m.addEventListener('click', function (e) {
+                if (e.target === m) m.classList.remove('open');
+            });
+        });
+
+        await loadLeads();
+    })();
+    </script>
+</body>
+</html>

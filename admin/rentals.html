@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rentals | GB Car Rental</title>
+    <link rel="stylesheet" href="../css/app.css">
+    <style>
+        .filter-bar { display:flex; gap:8px; margin-bottom:18px; flex-wrap:wrap; }
+        .filter-bar button {
+            padding: 8px 16px; background: white; border: 1px solid var(--border);
+            border-radius: 5px; font-size: 13px; font-weight: 600; color: var(--text); cursor: pointer;
+        }
+        .filter-bar button.active { background: var(--primary-green); color: white; border-color: var(--primary-green); }
+
+        .actions-cell { white-space: nowrap; }
+        .actions-cell .btn { margin-right: 4px; margin-bottom: 2px; }
+
+        .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 100; padding: 20px; }
+        .modal-backdrop.open { display: flex; }
+        .modal { background: white; border-radius: 10px; padding: 28px; width: 100%; max-width: 640px; max-height: 90vh; overflow-y: auto; }
+        .modal.modal-lg { max-width: 800px; }
+        .modal h2 { margin: 0 0 18px 0; font-size: 20px; color: var(--dark-bg); }
+        .modal h3 { margin: 24px 0 12px 0; font-size: 16px; color: var(--dark-bg); }
+        .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+
+        .summary-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .summary-box {
+            background: var(--light-bg);
+            padding: 14px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+        }
+        .summary-box .label { font-size: 11px; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px; }
+        .summary-box .value { font-size: 18px; font-weight: 700; color: var(--dark-bg); margin-top: 4px; }
+        @media (max-width: 700px) {
+            .summary-row { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        .overdue { color: var(--danger); font-weight: 700; }
+    </style>
+</head>
+<body>
+    <div id="app" style="display:none;">
+        <div class="app-shell">
+            <aside class="sidebar">
+                <div class="sidebar-brand"><span>GB</span> Admin</div>
+                <nav class="sidebar-nav">
+                    <a href="index.html">Dashboard</a>
+                    <a href="leads.html">Leads</a>
+                    <a href="cars.html">Cars</a>
+                    <a href="drivers.html">Drivers</a>
+                    <a href="rentals.html" class="active">Rentals</a>
+                </nav>
+                <div class="sidebar-footer">
+                    <div class="user-name" id="user-name"></div>
+                    <a href="#" id="logout" style="color:#cbd1d8;">Sign out</a>
+                </div>
+            </aside>
+
+            <main class="main">
+                <div class="topbar">
+                    <h1>Rentals</h1>
+                    <div>
+                        <button id="refresh-btn" class="btn btn-secondary btn-sm">Refresh</button>
+                        <button id="new-btn" class="btn btn-primary btn-sm">+ New rental</button>
+                    </div>
+                </div>
+
+                <div class="content">
+                    <div id="page-alert"></div>
+
+                    <div class="filter-bar">
+                        <button data-filter="active" class="active">Active <span id="count-active"></span></button>
+                        <button data-filter="ended">Ended <span id="count-ended"></span></button>
+                        <button data-filter="all">All <span id="count-all"></span></button>
+                    </div>
+
+                    <div class="card" style="padding:0;">
+                        <div class="table-wrap">
+                            <table class="data" id="rentals-table">
+                                <thead>
+                                    <tr>
+                                        <th>Driver</th>
+                                        <th>Car</th>
+                                        <th>Start</th>
+                                        <th>End</th>
+                                        <th>Weekly</th>
+                                        <th>Deposit</th>
+                                        <th>Paid</th>
+                                        <th>Due</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="rentals-tbody"></tbody>
+                            </table>
+                            <div id="empty" class="empty-state" style="display:none;">
+                                <h3>No rentals yet</h3>
+                                <p>Click <strong>+ New rental</strong> to assign a car to a driver.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- New rental modal -->
+    <div class="modal-backdrop" id="new-modal">
+        <div class="modal">
+            <h2>New rental</h2>
+            <div id="new-error" class="alert alert-error" style="display:none;"></div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Driver *</label>
+                    <select id="new-driver" required>
+                        <option value="">Select driver...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Car *</label>
+                    <select id="new-car" required>
+                        <option value="">Select available car...</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Start date *</label>
+                    <input id="new-start" type="date" required>
+                </div>
+                <div class="form-group">
+                    <label>Weekly rate (RM) *</label>
+                    <input id="new-rate" type="number" min="0" step="0.01" required>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Deposit (RM)</label>
+                <input id="new-deposit" type="number" min="0" step="0.01" value="0">
+            </div>
+
+            <div class="form-group">
+                <label>Notes</label>
+                <textarea id="new-notes" rows="2"></textarea>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn btn-secondary" id="new-cancel">Cancel</button>
+                <button class="btn btn-primary" id="new-save">Create rental</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- End rental modal -->
+    <div class="modal-backdrop" id="end-modal">
+        <div class="modal">
+            <h2>End rental</h2>
+            <div id="end-error" class="alert alert-error" style="display:none;"></div>
+            <p id="end-summary" style="color: var(--text-muted); font-size: 14px;"></p>
+
+            <div class="form-group">
+                <label>End date *</label>
+                <input id="end-date" type="date" required>
+            </div>
+            <div class="form-group">
+                <label>
+                    <input id="end-deposit-returned" type="checkbox"> Deposit returned to driver
+                </label>
+            </div>
+            <div class="form-group">
+                <label>Notes</label>
+                <textarea id="end-notes" rows="2"></textarea>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn btn-secondary" id="end-cancel">Cancel</button>
+                <button class="btn btn-danger" id="end-confirm">End rental</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payments modal -->
+    <div class="modal-backdrop" id="payments-modal">
+        <div class="modal modal-lg">
+            <h2>Payments</h2>
+            <div id="payments-error" class="alert alert-error" style="display:none;"></div>
+
+            <div class="summary-row">
+                <div class="summary-box"><div class="label">Driver</div><div class="value" id="pm-driver"></div></div>
+                <div class="summary-box"><div class="label">Car</div><div class="value" id="pm-car"></div></div>
+                <div class="summary-box"><div class="label">Total paid</div><div class="value" id="pm-total"></div></div>
+                <div class="summary-box"><div class="label">Status</div><div class="value" id="pm-status"></div></div>
+            </div>
+
+            <h3>Add payment</h3>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Amount (RM) *</label>
+                    <input id="pay-amount" type="number" min="0" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label>Paid on *</label>
+                    <input id="pay-date" type="date" required>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Period start</label>
+                    <input id="pay-period-start" type="date">
+                </div>
+                <div class="form-group">
+                    <label>Period end</label>
+                    <input id="pay-period-end" type="date">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Method</label>
+                    <select id="pay-method">
+                        <option value="cash">Cash</option>
+                        <option value="transfer">Transfer</option>
+                        <option value="cheque">Cheque</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Notes</label>
+                    <input id="pay-notes" type="text">
+                </div>
+            </div>
+            <div style="text-align:right; margin-bottom: 24px;">
+                <button class="btn btn-primary btn-sm" id="pay-add">+ Add payment</button>
+            </div>
+
+            <h3>History</h3>
+            <div class="table-wrap">
+                <table class="data">
+                    <thead>
+                        <tr>
+                            <th>Paid on</th>
+                            <th>Amount</th>
+                            <th>Period</th>
+                            <th>Method</th>
+                            <th>Notes</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="payments-tbody"></tbody>
+                </table>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn btn-secondary" id="payments-close">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../js/supabase.js"></script>
+    <script src="../js/auth.js"></script>
+    <script>
+    (async function () {
+        const profile = await requireRole('admin');
+        if (!profile) return;
+        document.getElementById('user-name').textContent = profile.full_name || 'Admin';
+        document.getElementById('app').style.display = 'block';
+        document.getElementById('logout').addEventListener('click', function (e) { e.preventDefault(); signOut(); });
+
+        const tbody = document.getElementById('rentals-tbody');
+        const tableEl = document.getElementById('rentals-table');
+        const emptyEl = document.getElementById('empty');
+        const pageAlert = document.getElementById('page-alert');
+
+        const newModal = document.getElementById('new-modal');
+        const endModal = document.getElementById('end-modal');
+        const paymentsModal = document.getElementById('payments-modal');
+
+        let allRentals = [];
+        let currentFilter = 'active';
+        let endingRental = null;
+        let paymentsRental = null;
+        let currentPayments = [];
+
+        function escapeHtml(s) {
+            if (s == null) return '';
+            return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+        }
+        function showAlert(msg, isError) {
+            pageAlert.innerHTML = '';
+            const div = document.createElement('div');
+            div.className = 'alert ' + (isError ? 'alert-error' : 'alert-success');
+            div.textContent = msg;
+            pageAlert.appendChild(div);
+            setTimeout(function () { div.remove(); }, 4000);
+        }
+        function fmtDate(s) { return s ? new Date(s).toLocaleDateString('en-MY', { year:'numeric', month:'short', day:'numeric' }) : '—'; }
+        function fmtRM(n)   { return 'RM ' + Number(n || 0).toFixed(2); }
+
+        // For active rentals: how many full weeks have elapsed since start
+        function weeksElapsed(startDate) {
+            const start = new Date(startDate);
+            const now = new Date();
+            const diffDays = Math.floor((now - start) / (1000 * 60 * 60 * 24));
+            return Math.max(0, Math.floor(diffDays / 7));
+        }
+
+        async function loadRentals() {
+            tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; color:var(--text-muted); padding:40px;">Loading...</td></tr>';
+
+            const { data, error } = await supabaseClient
+                .from('rentals')
+                .select('*, drivers(full_name, whatsapp), cars(plate_number, model)')
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                showAlert('Failed to load rentals: ' + error.message, true);
+                tbody.innerHTML = '';
+                return;
+            }
+            allRentals = data || [];
+
+            // Load total paid per rental
+            const ids = allRentals.map(function (r) { return r.id; });
+            let totals = {};
+            if (ids.length > 0) {
+                const payResp = await supabaseClient.from('payments').select('rental_id, amount').in('rental_id', ids);
+                if (!payResp.error && payResp.data) {
+                    payResp.data.forEach(function (p) {
+                        totals[p.rental_id] = (totals[p.rental_id] || 0) + Number(p.amount || 0);
+                    });
+                }
+            }
+            allRentals.forEach(function (r) { r._totalPaid = totals[r.id] || 0; });
+
+            render();
+        }
+
+        function render() {
+            const counts = { all: allRentals.length, active: 0, ended: 0 };
+            allRentals.forEach(function (r) { counts[r.status] = (counts[r.status] || 0) + 1; });
+            ['all','active','ended'].forEach(function (k) {
+                document.getElementById('count-' + k).textContent = '(' + counts[k] + ')';
+            });
+
+            const filtered = currentFilter === 'all' ? allRentals : allRentals.filter(function (r) { return r.status === currentFilter; });
+
+            if (filtered.length === 0) {
+                tableEl.style.display = 'none';
+                emptyEl.style.display = 'block';
+                return;
+            }
+            tableEl.style.display = 'table';
+            emptyEl.style.display = 'none';
+
+            tbody.innerHTML = filtered.map(function (r) {
+                const driverName = r.drivers ? r.drivers.full_name : '(deleted driver)';
+                const carLabel   = r.cars ? (r.cars.plate_number + ' — ' + r.cars.model) : '(deleted car)';
+                const totalPaid  = r._totalPaid;
+
+                // Compute "due so far" for active rentals
+                let dueCell = '—';
+                if (r.status === 'active') {
+                    const weeks = weeksElapsed(r.start_date);
+                    const dueSoFar = weeks * Number(r.weekly_rate || 0);
+                    const balance  = dueSoFar - totalPaid;
+                    if (balance > 0.01) {
+                        dueCell = '<span class="overdue">' + fmtRM(balance) + '</span>';
+                    } else if (balance < -0.01) {
+                        dueCell = '<span style="color: var(--success);">+' + fmtRM(-balance) + ' credit</span>';
+                    } else {
+                        dueCell = '<span style="color: var(--success);">Up to date</span>';
+                    }
+                }
+
+                return '<tr>'
+                    + '<td><strong>' + escapeHtml(driverName) + '</strong></td>'
+                    + '<td>' + escapeHtml(carLabel) + '</td>'
+                    + '<td>' + fmtDate(r.start_date) + '</td>'
+                    + '<td>' + fmtDate(r.end_date) + '</td>'
+                    + '<td>' + fmtRM(r.weekly_rate) + '</td>'
+                    + '<td>' + fmtRM(r.deposit_amount) + (r.deposit_returned ? ' <span class="badge badge-paid">returned</span>' : '') + '</td>'
+                    + '<td>' + fmtRM(totalPaid) + '</td>'
+                    + '<td>' + dueCell + '</td>'
+                    + '<td><span class="badge badge-' + escapeHtml(r.status) + '">' + escapeHtml(r.status) + '</span></td>'
+                    + '<td class="actions-cell">'
+                        + '<button class="btn btn-sm btn-secondary" data-action="payments" data-id="' + r.id + '">Payments</button>'
+                        + (r.status === 'active' ? '<button class="btn btn-sm btn-danger" data-action="end" data-id="' + r.id + '">End</button>' : '')
+                    + '</td>'
+                + '</tr>';
+            }).join('');
+        }
+
+        document.querySelectorAll('.filter-bar button').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                document.querySelectorAll('.filter-bar button').forEach(function (b) { b.classList.remove('active'); });
+                btn.classList.add('active');
+                currentFilter = btn.dataset.filter;
+                render();
+            });
+        });
+
+        document.getElementById('refresh-btn').addEventListener('click', loadRentals);
+
+        tbody.addEventListener('click', function (event) {
+            const target = event.target.closest('button[data-action]');
+            if (!target) return;
+            const id = target.dataset.id;
+            const rental = allRentals.find(function (r) { return r.id === id; });
+            if (!rental) return;
+
+            if (target.dataset.action === 'end') openEndModal(rental);
+            else if (target.dataset.action === 'payments') openPaymentsModal(rental);
+        });
+
+        // ---------- New rental ----------
+        document.getElementById('new-btn').addEventListener('click', openNewModal);
+
+        async function openNewModal() {
+            document.getElementById('new-error').style.display = 'none';
+            document.getElementById('new-driver').innerHTML = '<option value="">Loading...</option>';
+            document.getElementById('new-car').innerHTML    = '<option value="">Loading...</option>';
+            document.getElementById('new-start').value = new Date().toISOString().slice(0, 10);
+            document.getElementById('new-rate').value = '';
+            document.getElementById('new-deposit').value = 0;
+            document.getElementById('new-notes').value = '';
+            newModal.classList.add('open');
+
+            const [driversResp, carsResp] = await Promise.all([
+                supabaseClient.from('drivers').select('id, full_name').eq('status', 'active').order('full_name'),
+                supabaseClient.from('cars').select('id, plate_number, model, weekly_rate').eq('status', 'available').order('plate_number')
+            ]);
+
+            const driverSel = document.getElementById('new-driver');
+            driverSel.innerHTML = '<option value="">Select driver...</option>';
+            (driversResp.data || []).forEach(function (d) {
+                const opt = document.createElement('option');
+                opt.value = d.id;
+                opt.textContent = d.full_name;
+                driverSel.appendChild(opt);
+            });
+
+            const carSel = document.getElementById('new-car');
+            carSel.innerHTML = '<option value="">Select available car...</option>';
+            (carsResp.data || []).forEach(function (c) {
+                const opt = document.createElement('option');
+                opt.value = c.id;
+                opt.dataset.rate = c.weekly_rate;
+                opt.textContent = c.plate_number + ' — ' + c.model + ' (' + fmtRM(c.weekly_rate) + '/wk)';
+                carSel.appendChild(opt);
+            });
+
+            // Auto-fill weekly rate when car selected
+            carSel.addEventListener('change', function () {
+                const opt = carSel.options[carSel.selectedIndex];
+                if (opt && opt.dataset.rate) {
+                    document.getElementById('new-rate').value = opt.dataset.rate;
+                }
+            }, { once: true });
+        }
+
+        document.getElementById('new-cancel').addEventListener('click', function () { newModal.classList.remove('open'); });
+        newModal.addEventListener('click', function (e) { if (e.target === newModal) newModal.classList.remove('open'); });
+
+        document.getElementById('new-save').addEventListener('click', async function () {
+            const errBox = document.getElementById('new-error');
+            errBox.style.display = 'none';
+
+            const driverId = document.getElementById('new-driver').value;
+            const carId    = document.getElementById('new-car').value;
+            const startDate = document.getElementById('new-start').value;
+            const rate     = parseFloat(document.getElementById('new-rate').value);
+            const deposit  = parseFloat(document.getElementById('new-deposit').value) || 0;
+            const notes    = document.getElementById('new-notes').value.trim() || null;
+
+            if (!driverId || !carId || !startDate || isNaN(rate)) {
+                errBox.textContent = 'Driver, car, start date, and weekly rate are required.';
+                errBox.style.display = 'block';
+                return;
+            }
+
+            // 1. Insert rental
+            const rentalResp = await supabaseClient.from('rentals').insert({
+                driver_id: driverId,
+                car_id: carId,
+                start_date: startDate,
+                weekly_rate: rate,
+                deposit_amount: deposit,
+                status: 'active',
+                notes: notes
+            });
+            if (rentalResp.error) {
+                errBox.textContent = 'Failed to create rental: ' + rentalResp.error.message;
+                errBox.style.display = 'block';
+                return;
+            }
+
+            // 2. Mark car as rented
+            const carResp = await supabaseClient.from('cars').update({ status: 'rented' }).eq('id', carId);
+            if (carResp.error) {
+                errBox.textContent = 'Rental created but failed to update car status: ' + carResp.error.message;
+                errBox.style.display = 'block';
+                return;
+            }
+
+            newModal.classList.remove('open');
+            showAlert('Rental created.', false);
+            await loadRentals();
+        });
+
+        // ---------- End rental ----------
+        function openEndModal(rental) {
+            endingRental = rental;
+            document.getElementById('end-error').style.display = 'none';
+            document.getElementById('end-summary').textContent =
+                'Ending rental of ' + (rental.cars ? rental.cars.plate_number : '?') + ' for ' + (rental.drivers ? rental.drivers.full_name : '?') + '.';
+            document.getElementById('end-date').value = new Date().toISOString().slice(0, 10);
+            document.getElementById('end-deposit-returned').checked = false;
+            document.getElementById('end-notes').value = '';
+            endModal.classList.add('open');
+        }
+        document.getElementById('end-cancel').addEventListener('click', function () { endModal.classList.remove('open'); });
+        endModal.addEventListener('click', function (e) { if (e.target === endModal) endModal.classList.remove('open'); });
+
+        document.getElementById('end-confirm').addEventListener('click', async function () {
+            if (!endingRental) return;
+            const errBox = document.getElementById('end-error');
+            errBox.style.display = 'none';
+
+            const endDate = document.getElementById('end-date').value;
+            if (!endDate) { errBox.textContent = 'End date required.'; errBox.style.display = 'block'; return; }
+
+            const update = {
+                status: 'ended',
+                end_date: endDate,
+                deposit_returned: document.getElementById('end-deposit-returned').checked
+            };
+            const newNotes = document.getElementById('end-notes').value.trim();
+            if (newNotes) {
+                update.notes = (endingRental.notes ? endingRental.notes + '\n' : '') + '[Ended ' + endDate + '] ' + newNotes;
+            }
+
+            const r1 = await supabaseClient.from('rentals').update(update).eq('id', endingRental.id);
+            if (r1.error) { errBox.textContent = r1.error.message; errBox.style.display = 'block'; return; }
+
+            // Mark car as available again
+            const r2 = await supabaseClient.from('cars').update({ status: 'available' }).eq('id', endingRental.car_id);
+            if (r2.error) {
+                errBox.textContent = 'Rental ended but failed to free up car: ' + r2.error.message;
+                errBox.style.display = 'block';
+                return;
+            }
+
+            endModal.classList.remove('open');
+            showAlert('Rental ended.', false);
+            endingRental = null;
+            await loadRentals();
+        });
+
+        // ---------- Payments modal ----------
+        async function openPaymentsModal(rental) {
+            paymentsRental = rental;
+            document.getElementById('payments-error').style.display = 'none';
+            document.getElementById('pm-driver').textContent = rental.drivers ? rental.drivers.full_name : '—';
+            document.getElementById('pm-car').textContent    = rental.cars ? rental.cars.plate_number : '—';
+            document.getElementById('pm-total').textContent  = fmtRM(rental._totalPaid);
+            document.getElementById('pm-status').innerHTML   = '<span class="badge badge-' + rental.status + '">' + rental.status + '</span>';
+
+            // Reset form
+            document.getElementById('pay-amount').value = rental.weekly_rate;
+            document.getElementById('pay-date').value = new Date().toISOString().slice(0, 10);
+            document.getElementById('pay-period-start').value = '';
+            document.getElementById('pay-period-end').value = '';
+            document.getElementById('pay-method').value = 'cash';
+            document.getElementById('pay-notes').value = '';
+
+            paymentsModal.classList.add('open');
+            await loadPayments();
+        }
+
+        async function loadPayments() {
+            const tbodyP = document.getElementById('payments-tbody');
+            tbodyP.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:20px;">Loading...</td></tr>';
+            const { data, error } = await supabaseClient
+                .from('payments')
+                .select('*')
+                .eq('rental_id', paymentsRental.id)
+                .order('paid_at', { ascending: false });
+            if (error) {
+                tbodyP.innerHTML = '';
+                document.getElementById('payments-error').textContent = error.message;
+                document.getElementById('payments-error').style.display = 'block';
+                return;
+            }
+            currentPayments = data || [];
+            if (currentPayments.length === 0) {
+                tbodyP.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:20px;">No payments recorded yet.</td></tr>';
+                return;
+            }
+            tbodyP.innerHTML = currentPayments.map(function (p) {
+                const period = (p.period_start || p.period_end) ? (fmtDate(p.period_start) + ' → ' + fmtDate(p.period_end)) : '—';
+                return '<tr>'
+                    + '<td>' + fmtDate(p.paid_at) + '</td>'
+                    + '<td>' + fmtRM(p.amount) + '</td>'
+                    + '<td>' + escapeHtml(period) + '</td>'
+                    + '<td>' + escapeHtml(p.method || '-') + '</td>'
+                    + '<td style="color:var(--text-muted);">' + escapeHtml(p.notes || '') + '</td>'
+                    + '<td><button class="btn btn-sm btn-danger" data-pid="' + p.id + '">Delete</button></td>'
+                + '</tr>';
+            }).join('');
+        }
+
+        document.getElementById('payments-tbody').addEventListener('click', async function (event) {
+            const target = event.target.closest('button[data-pid]');
+            if (!target) return;
+            if (!confirm('Delete this payment?')) return;
+            const { error } = await supabaseClient.from('payments').delete().eq('id', target.dataset.pid);
+            if (error) {
+                document.getElementById('payments-error').textContent = error.message;
+                document.getElementById('payments-error').style.display = 'block';
+                return;
+            }
+            await loadPayments();
+            await loadRentals();
+            // Update summary
+            const refreshed = allRentals.find(function (r) { return r.id === paymentsRental.id; });
+            if (refreshed) {
+                paymentsRental = refreshed;
+                document.getElementById('pm-total').textContent = fmtRM(refreshed._totalPaid);
+            }
+        });
+
+        document.getElementById('pay-add').addEventListener('click', async function () {
+            const errBox = document.getElementById('payments-error');
+            errBox.style.display = 'none';
+
+            const amount = parseFloat(document.getElementById('pay-amount').value);
+            const paidAt = document.getElementById('pay-date').value;
+            if (isNaN(amount) || !paidAt) {
+                errBox.textContent = 'Amount and paid date are required.';
+                errBox.style.display = 'block';
+                return;
+            }
+
+            const payload = {
+                rental_id: paymentsRental.id,
+                amount: amount,
+                paid_at: paidAt,
+                period_start: document.getElementById('pay-period-start').value || null,
+                period_end:   document.getElementById('pay-period-end').value || null,
+                method:       document.getElementById('pay-method').value,
+                notes:        document.getElementById('pay-notes').value.trim() || null
+            };
+            const { error } = await supabaseClient.from('payments').insert(payload);
+            if (error) { errBox.textContent = error.message; errBox.style.display = 'block'; return; }
+
+            // Reset amount + notes for next entry
+            document.getElementById('pay-notes').value = '';
+            document.getElementById('pay-period-start').value = '';
+            document.getElementById('pay-period-end').value = '';
+
+            await loadPayments();
+            await loadRentals();
+            const refreshed = allRentals.find(function (r) { return r.id === paymentsRental.id; });
+            if (refreshed) {
+                paymentsRental = refreshed;
+                document.getElementById('pm-total').textContent = fmtRM(refreshed._totalPaid);
+            }
+        });
+
+        document.getElementById('payments-close').addEventListener('click', function () { paymentsModal.classList.remove('open'); });
+        paymentsModal.addEventListener('click', function (e) { if (e.target === paymentsModal) paymentsModal.classList.remove('open'); });
+
+        await loadRentals();
+    })();
+    </script>
+</body>
+</html>

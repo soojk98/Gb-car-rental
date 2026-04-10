@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login | GB Car Rental</title>
+    <link rel="stylesheet" href="css/app.css">
+    <style>
+        body {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #0a4f32 0%, #1a1a1a 100%);
+            padding: 20px;
+        }
+        .login-card {
+            background: white;
+            padding: 40px 36px;
+            border-radius: 10px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            width: 100%;
+            max-width: 400px;
+        }
+        .login-brand {
+            text-align: center;
+            font-size: 26px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--dark-bg);
+            margin-bottom: 8px;
+        }
+        .login-brand span { color: var(--primary-green); }
+        .login-tagline {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 14px;
+            margin-bottom: 28px;
+        }
+        .login-card h2 {
+            font-size: 20px;
+            margin: 0 0 20px 0;
+            color: var(--dark-bg);
+        }
+        .login-card .btn {
+            width: 100%;
+            padding: 13px;
+            font-size: 15px;
+            margin-top: 8px;
+        }
+        .login-back {
+            display: block;
+            text-align: center;
+            margin-top: 18px;
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <div class="login-brand"><span>GB</span> Car Rental</div>
+        <div class="login-tagline">Management Portal</div>
+
+        <h2>Sign in</h2>
+
+        <div id="login-alert" class="alert alert-error" style="display:none;"></div>
+
+        <form id="login-form">
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input id="email" type="email" autocomplete="email" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input id="password" type="password" autocomplete="current-password" required>
+            </div>
+            <button id="login-btn" type="submit" class="btn btn-primary">Sign in</button>
+        </form>
+
+        <a href="index.html" class="login-back">← Back to website</a>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase.js"></script>
+    <script src="js/auth.js"></script>
+    <script>
+        (async function () {
+            // If already logged in, bounce straight to the right portal
+            const profile = await getCurrentProfile();
+            if (profile) {
+                window.location.href = profile.role === 'admin' ? 'admin/index.html' : 'driver/index.html';
+                return;
+            }
+
+            const form = document.getElementById('login-form');
+            const alertBox = document.getElementById('login-alert');
+            const btn = document.getElementById('login-btn');
+
+            form.addEventListener('submit', async function (event) {
+                event.preventDefault();
+                alertBox.style.display = 'none';
+                btn.disabled = true;
+                btn.textContent = 'Signing in...';
+
+                const email = document.getElementById('email').value.trim();
+                const password = document.getElementById('password').value;
+
+                const result = await signIn(email, password);
+
+                if (result.error) {
+                    alertBox.textContent = result.error;
+                    alertBox.style.display = 'block';
+                    btn.disabled = false;
+                    btn.textContent = 'Sign in';
+                    return;
+                }
+
+                window.location.href = result.profile.role === 'admin'
+                    ? 'admin/index.html'
+                    : 'driver/index.html';
+            });
+        })();
+    </script>
+</body>
+</html>
