@@ -16,21 +16,20 @@
 //
 // Deploy:
 //   Option A — Supabase Dashboard:
-//     1. Open your project → Edge Functions → Create a new function
-//     2. Name: generate-signin-link
-//     3. Paste this entire file
-//     4. Click Deploy
+//     1. Open your project → Edge Functions → generate-signin-link → Code
+//     2. Replace all code with this file's contents
+//     3. Click Deploy
 //
 //   Option B — Supabase CLI (if installed):
 //     supabase functions deploy generate-signin-link
 // =====================================================================
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
+import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const corsHeaders = {
     "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Headers":
+        "authorization, x-client-info, apikey, content-type",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
@@ -41,7 +40,7 @@ function jsonError(message: string, status: number) {
     });
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
     if (req.method === "OPTIONS") {
         return new Response("ok", { headers: corsHeaders });
     }
@@ -60,7 +59,10 @@ serve(async (req) => {
         });
 
         const { data: userData, error: userErr } = await userClient.auth.getUser();
-        if (userErr || !userData?.user) return jsonError("Not authenticated", 401);
+        if (userErr || !userData?.user) {
+            console.error("getUser failed:", userErr);
+            return jsonError("Not authenticated", 401);
+        }
 
         const { data: callerProfile, error: profileErr } = await userClient
             .from("profiles")
@@ -69,6 +71,7 @@ serve(async (req) => {
             .single();
 
         if (profileErr || callerProfile?.role !== "admin") {
+            console.error("admin check failed:", profileErr, callerProfile);
             return jsonError("Admin only", 403);
         }
 
@@ -91,18 +94,25 @@ serve(async (req) => {
             .eq("id", driver_id)
             .single();
 
-        if (dErr || !driver) return jsonError("Driver not found", 404);
+        if (dErr || !driver) {
+            console.error("driver lookup failed:", dErr);
+            return jsonError("Driver not found", 404);
+        }
 
         // ---------- 5. Determine the email to use ----------
         const driverIdShort = driver.id.replace(/-/g, "").slice(0, 12);
-        const email = driver.email || `driver-${driverIdShort}@noreply.example.com`;
+        const email = driver.email ||
+            `driver-${driverIdShort}@noreply.example.com`;
         const isSynthetic = !driver.email;
 
-        console.log("generate-signin-link: using email", email, "synthetic:", isSynthetic);
+        console.log(
+            "generate-signin-link: using email",
+            email,
+            "synthetic:",
+            isSynthetic,
+        );
 
         // ---------- 6. Ensure the auth user exists ----------
-        // createUser is idempotent for our purposes — if the user already exists,
-        // we treat that as success. Any OTHER error must be reported.
         const { error: createErr } = await adminClient.auth.admin.createUser({
             email,
             email_confirm: true,
@@ -110,9 +120,9 @@ serve(async (req) => {
         });
         if (createErr) {
             const msg = createErr.message || "";
-            const alreadyExists = /already (registered|exists|been)/i.test(msg)
-                || /duplicate/i.test(msg)
-                || createErr.status === 422;
+            const alreadyExists = /already (registered|exists|been)/i.test(msg) ||
+                /duplicate/i.test(msg) ||
+                createErr.status === 422;
             if (!alreadyExists) {
                 console.error("createUser failed:", createErr);
                 return jsonError("createUser failed: " + msg, 500);
@@ -160,6 +170,10 @@ serve(async (req) => {
             },
         );
     } catch (e) {
-        return jsonError(e?.message || String(e), 500);
+        console.error("Unhandled error in generate-signin-link:", e);
+        return jsonError(
+            (e && (e as Error).message) || String(e),
+            500,
+        );
     }
 });
