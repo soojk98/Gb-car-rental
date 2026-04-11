@@ -118,8 +118,8 @@
 
             <div class="form-row">
                 <div class="form-group">
-                    <label>Email * <span style="color:var(--text-muted); font-weight:normal;">(used to send sign-in link)</span></label>
-                    <input id="driver-email" type="email" required>
+                    <label>Email <span style="color:var(--text-muted); font-weight:normal;">(optional — leave blank if driver has none)</span></label>
+                    <input id="driver-email" type="email">
                 </div>
                 <div class="form-group">
                     <label>WhatsApp</label>
@@ -199,6 +199,26 @@
         </div>
     </div>
 
+    <!-- Sign-in link share modal -->
+    <div class="modal-backdrop" id="link-modal">
+        <div class="modal">
+            <h2>Sign-in link</h2>
+            <p style="color: var(--text-muted); font-size: 13px; margin-top:-8px;">
+                Share this link with the driver. When they open it, they will be signed in to the driver portal.
+                The link is valid for 1 hour and can only be used once.
+            </p>
+            <div class="form-group">
+                <label>Sign-in URL</label>
+                <input id="link-url" type="text" readonly style="font-family: monospace; font-size: 12px;">
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" id="link-close">Close</button>
+                <a class="btn btn-primary" id="link-whatsapp" target="_blank" rel="noopener">Share via WhatsApp</a>
+                <button class="btn btn-primary" id="link-copy">Copy link</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Review deposit modal -->
     <div class="modal-backdrop" id="deposit-modal">
         <div class="modal">
@@ -238,6 +258,7 @@
         const driverModal  = document.getElementById('driver-modal');
         const docsModal    = document.getElementById('docs-modal');
         const depositModal = document.getElementById('deposit-modal');
+        const linkModal    = document.getElementById('link-modal');
 
         let allDrivers = [];
         let activeRentalsByDriverId = {};
@@ -322,7 +343,8 @@
                         + '<button class="btn btn-sm btn-secondary" data-action="edit"     data-id="' + driver.id + '">Edit</button>'
                         + '<button class="btn btn-sm btn-secondary" data-action="docs"     data-id="' + driver.id + '">Documents</button>'
                         + (depositStatus === 'submitted' ? '<button class="btn btn-sm btn-primary" data-action="deposit"  data-id="' + driver.id + '">Review deposit</button>' : '')
-                        + (driver.email && !driver.profile_id ? '<button class="btn btn-sm btn-secondary" data-action="resend"   data-id="' + driver.id + '">Resend invite</button>' : '')
+                        + (driver.email && !driver.profile_id ? '<button class="btn btn-sm btn-secondary" data-action="resend"   data-id="' + driver.id + '">Email invite</button>' : '')
+                        + '<button class="btn btn-sm btn-secondary" data-action="link"     data-id="' + driver.id + '">Sign-in link</button>'
                         + '<button class="btn btn-sm btn-danger"    data-action="delete"   data-id="' + driver.id + '">Delete</button>'
                     + '</td>'
                 + '</tr>';
@@ -353,8 +375,24 @@
             else if (action === 'docs')     openDocsModal(driver);
             else if (action === 'deposit')  openDepositModal(driver);
             else if (action === 'resend')   await resendInvite(driver);
+            else if (action === 'link')     await generateLink(driver);
             else if (action === 'delete')   await deleteDriver(driver);
         });
+
+        async function generateLink(driver) {
+            const redirectTo = window.location.origin
+                + window.location.pathname.replace(/\/admin\/.*$/, '/driver/index.html');
+            showAlert('Generating sign-in link...', false);
+            const { data, error } = await supabaseClient.functions.invoke('generate-signin-link', {
+                body: { driver_id: driver.id, redirect_to: redirectTo }
+            });
+            if (error || !data?.link) {
+                showAlert('Failed: ' + (error?.message || data?.error || 'unknown error'), true);
+                return;
+            }
+            showLinkModal(data.link, driver.whatsapp, driver.full_name);
+            await loadDrivers();
+        }
 
         async function deleteDriver(driver) {
             if (activeRentalsByDriverId[driver.id]) {
@@ -420,8 +458,13 @@
                 notes:          document.getElementById('driver-notes').value.trim() || null
             };
 
-            if (!payload.full_name || !payload.email) {
-                errBox.textContent = 'Full name and email are required.';
+            if (!payload.full_name) {
+                errBox.textContent = 'Full name is required.';
+                errBox.style.display = 'block';
+                return;
+            }
+            if (payload.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.email)) {
+                errBox.textContent = 'Please enter a valid email address (or leave it blank).';
                 errBox.style.display = 'block';
                 return;
             }
@@ -559,6 +602,34 @@
 
         document.getElementById('deposit-approve').addEventListener('click', function () { reviewDeposit('approved'); });
         document.getElementById('deposit-reject').addEventListener('click',  function () { reviewDeposit('rejected'); });
+
+        // ---------- Sign-in link share modal ----------
+        function showLinkModal(link, whatsappNumber, driverName) {
+            document.getElementById('link-url').value = link;
+            const waDigits = (whatsappNumber || '').replace(/[^0-9]/g, '');
+            const intl = waDigits.startsWith('0') ? '60' + waDigits.slice(1) : waDigits;
+            const greeting = driverName ? 'Hi ' + driverName + ',\n\n' : '';
+            const message = greeting + 'Here is your sign-in link for the GB Car Rental driver portal: ' + link
+                + '\n\nThe link is valid for 1 hour. Please open it on your phone to sign in.';
+            const waLink = intl
+                ? 'https://wa.me/' + intl + '?text=' + encodeURIComponent(message)
+                : 'https://wa.me/?text=' + encodeURIComponent(message);
+            document.getElementById('link-whatsapp').href = waLink;
+            linkModal.classList.add('open');
+        }
+        document.getElementById('link-close').addEventListener('click', function () { linkModal.classList.remove('open'); });
+        linkModal.addEventListener('click', function (e) { if (e.target === linkModal) linkModal.classList.remove('open'); });
+        document.getElementById('link-copy').addEventListener('click', async function () {
+            const input = document.getElementById('link-url');
+            input.select();
+            try {
+                await navigator.clipboard.writeText(input.value);
+                showAlert('Link copied to clipboard.', false);
+            } catch (e) {
+                document.execCommand('copy');
+                showAlert('Link copied.', false);
+            }
+        });
 
         async function reviewDeposit(decision) {
             if (!reviewingDriver) return;

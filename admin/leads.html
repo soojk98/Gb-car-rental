@@ -153,8 +153,8 @@
         <div class="modal">
             <h2>Convert lead to driver</h2>
             <p style="color: var(--text-muted); font-size: 13px; margin-top:-8px;">
-                This creates a driver record AND emails the driver a magic link so they can sign in to the
-                portal and start onboarding (documents + deposit).
+                Creates a driver record. If an email is provided, a magic-link invite is emailed.
+                If not, you'll get a copy-able sign-in link to share via WhatsApp.
             </p>
             <div id="convert-error" class="alert alert-error" style="display:none;"></div>
             <div class="form-group">
@@ -166,12 +166,32 @@
                 <input id="convert-whatsapp" type="tel" required>
             </div>
             <div class="form-group">
-                <label>Email * <span style="color: var(--text-muted); font-weight: normal;">(magic link will be sent here)</span></label>
-                <input id="convert-email" type="email" required>
+                <label>Email <span style="color: var(--text-muted); font-weight: normal;">(optional — leave blank if driver has none)</span></label>
+                <input id="convert-email" type="email">
             </div>
             <div class="modal-actions">
                 <button class="btn btn-secondary" id="convert-cancel">Cancel</button>
-                <button class="btn btn-primary" id="convert-confirm">Convert &amp; send invite</button>
+                <button class="btn btn-primary" id="convert-confirm">Convert</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sign-in link share modal (used after converting a no-email lead) -->
+    <div class="modal-backdrop" id="link-modal">
+        <div class="modal">
+            <h2>Sign-in link</h2>
+            <p style="color: var(--text-muted); font-size: 13px; margin-top:-8px;">
+                Send this link to the driver — when they open it, they will be signed in to the driver portal.
+                The link is valid for 1 hour and can only be used once.
+            </p>
+            <div class="form-group">
+                <label>Sign-in URL</label>
+                <input id="link-url" type="text" readonly style="font-family: monospace; font-size: 12px;">
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" id="link-close">Close</button>
+                <a class="btn btn-primary" id="link-whatsapp" target="_blank" rel="noopener">Share via WhatsApp</a>
+                <button class="btn btn-primary" id="link-copy">Copy link</button>
             </div>
         </div>
     </div>
@@ -370,13 +390,13 @@
             const btn      = document.getElementById('convert-confirm');
             errBox.style.display = 'none';
 
-            if (!name || !whatsapp || !email) {
-                errBox.textContent = 'Name, WhatsApp, and email are required.';
+            if (!name || !whatsapp) {
+                errBox.textContent = 'Name and WhatsApp are required.';
                 errBox.style.display = 'block';
                 return;
             }
-            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-                errBox.textContent = 'Please enter a valid email address.';
+            if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                errBox.textContent = 'Please enter a valid email address (or leave it blank).';
                 errBox.style.display = 'block';
                 return;
             }
@@ -384,63 +404,104 @@
             btn.disabled = true;
             btn.textContent = 'Working...';
 
-            // 1. Insert driver row (email used by trigger to auto-link the auth user later)
-            const { error: driverErr } = await supabaseClient
+            const redirectTo = window.location.origin
+                + window.location.pathname.replace(/\/admin\/.*$/, '/driver/index.html');
+
+            // 1. Insert driver row
+            const { data: newDriver, error: driverErr } = await supabaseClient
                 .from('drivers')
                 .insert({
                     full_name: name,
                     whatsapp: whatsapp,
-                    email: email,
+                    email: email || null,
                     lead_id: convertingLead.id,
                     status: 'active',
                     deposit_status: 'pending'
-                });
+                })
+                .select()
+                .single();
 
             if (driverErr) {
-                btn.disabled = false; btn.textContent = 'Convert & send invite';
+                btn.disabled = false; btn.textContent = 'Convert';
                 errBox.textContent = 'Failed to create driver: ' + driverErr.message;
                 errBox.style.display = 'block';
                 return;
             }
 
-            // 2. Send magic link (this also creates the auth.users row when they click)
-            const redirectTo = window.location.origin
-                + window.location.pathname.replace(/\/admin\/.*$/, '/driver/index.html');
-            const { error: otpErr } = await supabaseClient.auth.signInWithOtp({
-                email: email,
-                options: {
-                    shouldCreateUser: true,
-                    emailRedirectTo: redirectTo,
-                    data: { full_name: name }
+            // 2. Mark lead as converted (do this regardless of invite outcome)
+            await supabaseClient.from('leads').update({ status: 'converted' }).eq('id', convertingLead.id);
+
+            if (email) {
+                // Path A: email was provided — send via signInWithOtp (Supabase emails the link)
+                const { error: otpErr } = await supabaseClient.auth.signInWithOtp({
+                    email: email,
+                    options: {
+                        shouldCreateUser: true,
+                        emailRedirectTo: redirectTo,
+                        data: { full_name: name }
+                    }
+                });
+                btn.disabled = false; btn.textContent = 'Convert';
+
+                if (otpErr) {
+                    errBox.textContent = 'Driver created and lead marked converted, but failed to send email: '
+                        + otpErr.message + '. You can resend from the Drivers page.';
+                    errBox.style.display = 'block';
+                    await loadLeads();
+                    return;
                 }
-            });
-            if (otpErr) {
-                btn.disabled = false; btn.textContent = 'Convert & send invite';
-                errBox.textContent = 'Driver created, but failed to send invite: ' + otpErr.message
-                    + '. You can resend it from the Drivers page.';
-                errBox.style.display = 'block';
-                // Still mark lead converted
-                await supabaseClient.from('leads').update({ status: 'converted' }).eq('id', convertingLead.id);
+
+                convertModal.classList.remove('open');
+                showAlert('Lead converted and magic-link emailed to ' + email + '.', false);
                 await loadLeads();
-                return;
-            }
+            } else {
+                // Path B: no email — call edge function to generate a link, then show the share modal
+                const { data: fnData, error: fnErr } = await supabaseClient.functions.invoke(
+                    'generate-signin-link',
+                    { body: { driver_id: newDriver.id, redirect_to: redirectTo } }
+                );
+                btn.disabled = false; btn.textContent = 'Convert';
 
-            // 3. Mark lead as converted
-            const { error: leadErr } = await supabaseClient
-                .from('leads')
-                .update({ status: 'converted' })
-                .eq('id', convertingLead.id);
-            if (leadErr) {
-                btn.disabled = false; btn.textContent = 'Convert & send invite';
-                errBox.textContent = 'Invite sent but failed to mark lead converted: ' + leadErr.message;
-                errBox.style.display = 'block';
-                return;
-            }
+                if (fnErr || !fnData?.link) {
+                    errBox.textContent = 'Driver created, but failed to generate sign-in link: '
+                        + (fnErr?.message || fnData?.error || 'unknown error')
+                        + '. You can retry from the Drivers page.';
+                    errBox.style.display = 'block';
+                    await loadLeads();
+                    return;
+                }
 
-            convertModal.classList.remove('open');
-            btn.disabled = false; btn.textContent = 'Convert & send invite';
-            showAlert('Lead converted and magic-link invite sent to ' + email + '.', false);
-            await loadLeads();
+                convertModal.classList.remove('open');
+                showLinkModal(fnData.link, whatsapp);
+                await loadLeads();
+            }
+        });
+
+        // ---------- Sign-in link share modal ----------
+        const linkModal = document.getElementById('link-modal');
+        function showLinkModal(link, whatsappNumber) {
+            document.getElementById('link-url').value = link;
+            const waDigits = (whatsappNumber || '').replace(/[^0-9]/g, '');
+            const intl = waDigits.startsWith('0') ? '60' + waDigits.slice(1) : waDigits;
+            const message = 'Hello! Here is your sign-in link for the GB Car Rental driver portal: ' + link;
+            const waLink = intl
+                ? 'https://wa.me/' + intl + '?text=' + encodeURIComponent(message)
+                : 'https://wa.me/?text=' + encodeURIComponent(message);
+            document.getElementById('link-whatsapp').href = waLink;
+            linkModal.classList.add('open');
+        }
+        document.getElementById('link-close').addEventListener('click', function () { linkModal.classList.remove('open'); });
+        linkModal.addEventListener('click', function (e) { if (e.target === linkModal) linkModal.classList.remove('open'); });
+        document.getElementById('link-copy').addEventListener('click', async function () {
+            const input = document.getElementById('link-url');
+            input.select();
+            try {
+                await navigator.clipboard.writeText(input.value);
+                showAlert('Link copied to clipboard.', false);
+            } catch (e) {
+                document.execCommand('copy');
+                showAlert('Link copied.', false);
+            }
         });
 
         // Close modals on backdrop click
