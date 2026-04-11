@@ -383,8 +383,20 @@
             const redirectTo = window.location.origin
                 + window.location.pathname.replace(/\/admin\/.*$/, '/driver/index.html');
             showAlert('Generating sign-in link...', false);
+
+            // Explicitly attach the current session token. Supabase JS doesn't
+            // always inject it correctly into functions.invoke, and we need a
+            // user JWT (not the anon key) so the function can verify admin.
+            const { data: sessionData } = await supabaseClient.auth.getSession();
+            const accessToken = sessionData?.session?.access_token;
+            if (!accessToken) {
+                showAlert('Your session has expired. Please sign out and back in.', true);
+                return;
+            }
+
             const { data, error } = await supabaseClient.functions.invoke('generate-signin-link', {
-                body: { driver_id: driver.id, redirect_to: redirectTo }
+                body: { driver_id: driver.id, redirect_to: redirectTo },
+                headers: { Authorization: 'Bearer ' + accessToken }
             });
             if (error || !data?.link) {
                 const detail = await extractFunctionError(error, data);

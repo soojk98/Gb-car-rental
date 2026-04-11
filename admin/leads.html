@@ -456,9 +456,21 @@
                 await loadLeads();
             } else {
                 // Path B: no email — call edge function to generate a link, then show the share modal
+                // Explicitly attach the session token (Supabase JS doesn't always do this for functions.invoke)
+                const { data: sessionData } = await supabaseClient.auth.getSession();
+                const accessToken = sessionData?.session?.access_token;
+                if (!accessToken) {
+                    btn.disabled = false; btn.textContent = 'Convert';
+                    errBox.textContent = 'Your session has expired. Please sign out and back in.';
+                    errBox.style.display = 'block';
+                    return;
+                }
                 const { data: fnData, error: fnErr } = await supabaseClient.functions.invoke(
                     'generate-signin-link',
-                    { body: { driver_id: newDriver.id, redirect_to: redirectTo } }
+                    {
+                        body: { driver_id: newDriver.id, redirect_to: redirectTo },
+                        headers: { Authorization: 'Bearer ' + accessToken }
+                    }
                 );
                 btn.disabled = false; btn.textContent = 'Convert';
 

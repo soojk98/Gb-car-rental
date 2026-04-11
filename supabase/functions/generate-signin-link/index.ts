@@ -40,6 +40,19 @@ function jsonError(message: string, status: number) {
     });
 }
 
+// Decode a JWT payload without verification (for logging only).
+function decodeJwt(token: string): Record<string, unknown> | null {
+    try {
+        const parts = token.split(".");
+        if (parts.length !== 3) return null;
+        const padded = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+        const json = atob(padded + "=".repeat((4 - padded.length % 4) % 4));
+        return JSON.parse(json);
+    } catch (_e) {
+        return null;
+    }
+}
+
 Deno.serve(async (req) => {
     if (req.method === "OPTIONS") {
         return new Response("ok", { headers: corsHeaders });
@@ -54,24 +67,50 @@ Deno.serve(async (req) => {
         const authHeader = req.headers.get("Authorization");
         if (!authHeader) return jsonError("Missing authorization header", 401);
 
-        // Extract the raw JWT and pass it explicitly to getUser. The Edge
-        // runtime has no session storage, so getUser() with no argument
-        // can't find a session and falls through to the anon key, which
-        // is what causes "missing sub claim".
+        // Extract the raw JWT
         const jwt = authHeader.replace(/^Bearer\s+/i, "").trim();
         if (!jwt) return jsonError("Empty authorization token", 401);
+
+        // Inspect the JWT (debug) — what role is the caller using?
+        const decoded = decodeJwt(jwt);
+        console.log("incoming JWT:", {
+            role: decoded?.role,
+            has_sub: Boolean(decoded?.sub),
+            sub_prefix: typeof decoded?.sub === "string"
+                ? (decoded.sub as string).slice(0, 8)
+                : null,
+            aud: decoded?.aud,
+        });
+
+        if (!decoded?.sub) {
+            return jsonError(
+                "JWT has no sub claim — the front-end is sending the anon key instead of the user session token. Make sure you are signed in as admin and that the front-end passes session.access_token in the Authorization header.",
+                401,
+            );
+        }
 
         const userClient = createClient(SUPABASE_URL, ANON_KEY, {
             global: { headers: { Authorization: `Bearer ${jwt}` } },
         });
 
-        const { data: userData, error: userErr } = await userClient.auth.getUser(jwt);
+        // Pass the JWT explicitly to bypass session storage lookup
+        const { data: userData, error: userErr } = await userClient.auth.getUser(
+            jwt,
+        );
         if (userErr || !userData?.user) {
             console.error("getUser failed:", userErr);
-            return jsonError("Not authenticated: " + (userErr?.message || "no user"), 401);
+            return jsonError(
+                "Not authenticated: " + (userErr?.message || "no user"),
+                401,
+            );
         }
 
-        const { data: callerProfile, error: profileErr } = await userClient
+        // Use service-role to read profile (avoids RLS edge cases on the auth header path)
+        const adminClient = createClient(SUPABASE_URL, SERVICE_ROLE, {
+            auth: { autoRefreshToken: false, persistSession: false },
+        });
+
+        const { data: callerProfile, error: profileErr } = await adminClient
             .from("profiles")
             .select("role")
             .eq("id", userData.user.id)
@@ -89,10 +128,7 @@ Deno.serve(async (req) => {
         if (!driver_id) return jsonError("driver_id required", 400);
         if (!redirect_to) return jsonError("redirect_to required", 400);
 
-        // ---------- 3. Service-role client for admin operations ----------
-        const adminClient = createClient(SUPABASE_URL, SERVICE_ROLE, {
-            auth: { autoRefreshToken: false, persistSession: false },
-        });
+        // ---------- 3. (admin client already created above) ----------
 
         // ---------- 4. Look up the driver ----------
         const { data: driver, error: dErr } = await adminClient
