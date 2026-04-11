@@ -69,8 +69,8 @@
 
         <form id="login-form">
             <div class="form-group">
-                <label for="email">Email</label>
-                <input id="email" type="email" autocomplete="email" required>
+                <label for="login-id">Phone or email</label>
+                <input id="login-id" type="text" autocomplete="username" required placeholder="012-3456789 or you@example.com">
             </div>
             <div class="form-group">
                 <label for="password">Password</label>
@@ -78,6 +78,10 @@
             </div>
             <button id="login-btn" type="submit" class="btn btn-primary">Sign in</button>
         </form>
+
+        <p style="text-align: center; margin-top: 16px; font-size: 12px; color: var(--text-muted);">
+            Drivers: enter your phone number, and your IC number as the password.
+        </p>
 
         <a href="index.html" class="login-back">← Back to website</a>
     </div>
@@ -104,10 +108,10 @@
                 btn.disabled = true;
                 btn.textContent = 'Signing in...';
 
-                const email = document.getElementById('email').value.trim();
+                const loginId = document.getElementById('login-id').value.trim();
                 const password = document.getElementById('password').value;
 
-                const result = await signIn(email, password);
+                const result = await signIn(loginId, password);
 
                 if (result.error) {
                     alertBox.textContent = result.error;

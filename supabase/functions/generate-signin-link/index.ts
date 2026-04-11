@@ -1,14 +1,19 @@
 // =====================================================================
 // Supabase Edge Function: generate-signin-link
 // =====================================================================
-// Generates a one-time magic-link sign-in URL for a driver, without
-// sending an email. Used by admin to invite drivers who have no email
-// (admin copies the link and shares it via WhatsApp).
+// Sets up a driver's auth account and returns BOTH:
+//   1. A one-time magic-link sign-in URL (auto-login when clicked)
+//   2. Manual credentials (phone + NRIC password) the driver can type
+//      into login.html if the magic link doesn't work for them
 //
-// For drivers with no real email on file, a synthetic email is used:
-//   driver-<short-uuid>@noreply.example.com
-// example.com is reserved by RFC 2606 for documentation/examples and is
-// guaranteed never to receive real mail.
+// The auth user uses a phone-based synthetic email:
+//   <whatsapp-digits>@phone.example.com
+// (example.com is RFC 2606 reserved and never receives real mail.)
+// The password is set to the driver's NRIC (ic_number).
+//
+// If an auth user already exists for this driver (driver.profile_id is
+// set), we update its email + password in place. Otherwise we create a
+// new one. Either way the driver row's profile_id ends up linked.
 //
 // Auth: caller must be an admin (verified via the public.profiles table).
 // Body: { driver_id: string, redirect_to: string, user_jwt: string }
@@ -55,6 +60,14 @@ function decodeJwt(token: string): Record<string, unknown> | null {
     } catch (_e) {
         return null;
     }
+}
+
+// Convert a Malaysian-style phone number to a stable synthetic email.
+// "012-3456789" -> "60123456789@phone.example.com"
+function phoneToSyntheticEmail(phone: string): string {
+    let digits = (phone || "").replace(/\D/g, "");
+    if (digits.startsWith("0")) digits = "60" + digits.slice(1);
+    return `${digits}@phone.example.com`;
 }
 
 Deno.serve(async (req) => {
@@ -124,7 +137,7 @@ Deno.serve(async (req) => {
         // ---------- 3. Look up the driver ----------
         const { data: driver, error: dErr } = await adminClient
             .from("drivers")
-            .select("id, full_name, email")
+            .select("id, full_name, whatsapp, ic_number, profile_id")
             .eq("id", driver_id)
             .single();
 
@@ -133,42 +146,141 @@ Deno.serve(async (req) => {
             return jsonError("Driver not found", 404);
         }
 
-        // ---------- 5. Determine the email to use ----------
-        const driverIdShort = driver.id.replace(/-/g, "").slice(0, 12);
-        const email = driver.email ||
-            `driver-${driverIdShort}@noreply.example.com`;
-        const isSynthetic = !driver.email;
-
-        console.log(
-            "generate-signin-link: using email",
-            email,
-            "synthetic:",
-            isSynthetic,
-        );
-
-        // ---------- 6. Ensure the auth user exists ----------
-        const { error: createErr } = await adminClient.auth.admin.createUser({
-            email,
-            email_confirm: true,
-            user_metadata: { full_name: driver.full_name },
-        });
-        if (createErr) {
-            const msg = createErr.message || "";
-            const alreadyExists = /already (registered|exists|been)/i.test(msg) ||
-                /duplicate/i.test(msg) ||
-                createErr.status === 422;
-            if (!alreadyExists) {
-                console.error("createUser failed:", createErr);
-                return jsonError("createUser failed: " + msg, 500);
-            }
-            console.log("createUser: user already exists, continuing");
+        // ---------- 4. Validate phone + NRIC are present ----------
+        if (!driver.whatsapp) {
+            return jsonError(
+                "Driver has no phone number. Please add a WhatsApp number first (Edit driver).",
+                400,
+            );
+        }
+        if (!driver.ic_number) {
+            return jsonError(
+                "Driver has no NRIC. NRIC is used as the login password — please add it first (Edit driver).",
+                400,
+            );
         }
 
-        // ---------- 7. Generate the magic link ----------
+        // ---------- 5. Determine login credentials ----------
+        const loginEmail = phoneToSyntheticEmail(driver.whatsapp);
+        const loginPassword = driver.ic_number;
+
+        console.log(
+            "generate-signin-link: driver",
+            driver.id,
+            "loginEmail",
+            loginEmail,
+        );
+
+        // ---------- 6. Create or update the auth user ----------
+        let userId: string | undefined;
+
+        if (driver.profile_id) {
+            // Existing auth user — update email + password in place
+            const { error: updErr } = await adminClient.auth.admin.updateUserById(
+                driver.profile_id,
+                {
+                    email: loginEmail,
+                    password: loginPassword,
+                    email_confirm: true,
+                    user_metadata: { full_name: driver.full_name },
+                },
+            );
+            if (updErr) {
+                console.error("updateUserById failed:", updErr);
+                return jsonError(
+                    "updateUserById failed: " + updErr.message,
+                    500,
+                );
+            }
+            userId = driver.profile_id;
+            console.log("updated existing auth user", userId);
+        } else {
+            // New auth user
+            const { data: createData, error: createErr } = await adminClient.auth
+                .admin.createUser({
+                    email: loginEmail,
+                    password: loginPassword,
+                    email_confirm: true,
+                    user_metadata: { full_name: driver.full_name },
+                });
+
+            if (createData?.user) {
+                userId = createData.user.id;
+                console.log("created new auth user", userId);
+            } else if (createErr) {
+                const msg = createErr.message || "";
+                const exists = /already (registered|exists|been)/i.test(msg) ||
+                    createErr.status === 422 ||
+                    /duplicate/i.test(msg);
+                if (!exists) {
+                    console.error("createUser failed:", createErr);
+                    return jsonError("createUser failed: " + msg, 500);
+                }
+
+                // Synthetic email collision — another driver shares this phone.
+                // Find that user and reset password to this driver's NRIC. The
+                // driver row will then be linked to the same auth user.
+                let existing: { id: string } | undefined;
+                let page = 1;
+                while (true) {
+                    const { data: listData, error: listErr } = await adminClient
+                        .auth.admin.listUsers({ page, perPage: 1000 });
+                    if (listErr) {
+                        return jsonError(
+                            "listUsers failed: " + listErr.message,
+                            500,
+                        );
+                    }
+                    existing = listData.users.find((u: { email?: string }) =>
+                        u.email === loginEmail
+                    );
+                    if (existing) break;
+                    if (!listData.users || listData.users.length < 1000) break;
+                    page++;
+                    if (page > 50) break;
+                }
+                if (!existing) {
+                    return jsonError(
+                        "createUser said exists but user not found via listUsers",
+                        500,
+                    );
+                }
+                const { error: updErr } = await adminClient.auth.admin
+                    .updateUserById(existing.id, {
+                        password: loginPassword,
+                        email_confirm: true,
+                        user_metadata: { full_name: driver.full_name },
+                    });
+                if (updErr) {
+                    return jsonError(
+                        "updateUserById (after collision) failed: " +
+                            updErr.message,
+                        500,
+                    );
+                }
+                userId = existing.id;
+                console.log("re-used existing auth user", userId);
+            }
+        }
+
+        // ---------- 7. Make sure profile row exists, link driver row ----------
+        if (userId) {
+            await adminClient.from("profiles").upsert({
+                id: userId,
+                role: "driver",
+                full_name: driver.full_name,
+            });
+            await adminClient
+                .from("drivers")
+                .update({ profile_id: userId })
+                .eq("id", driver_id);
+        }
+
+        // ---------- 8. Generate the magic link (still useful as 1-click login) ----------
         const { data: linkData, error: linkErr } = await adminClient.auth.admin
             .generateLink({
                 type: "magiclink",
-                email,
+                email: loginEmail,
                 options: {
                     redirectTo: redirect_to,
                 },
@@ -183,21 +295,13 @@ Deno.serve(async (req) => {
             return jsonError("No link returned by Supabase", 500);
         }
 
-        // ---------- 8. Link the auth user to the driver row ----------
-        const userId = linkData?.user?.id;
-        if (userId) {
-            await adminClient
-                .from("drivers")
-                .update({ profile_id: userId })
-                .eq("id", driver_id);
-        }
-
         // ---------- 9. Return ----------
         return new Response(
             JSON.stringify({
                 link: linkData.properties.action_link,
-                email,
-                is_synthetic_email: isSynthetic,
+                login_email: loginEmail,
+                login_phone: driver.whatsapp,
+                login_password: loginPassword,
             }),
             {
                 headers: { ...corsHeaders, "Content-Type": "application/json" },

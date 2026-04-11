@@ -199,22 +199,41 @@
         </div>
     </div>
 
-    <!-- Sign-in link share modal -->
+    <!-- Sign-in details modal -->
     <div class="modal-backdrop" id="link-modal">
         <div class="modal">
-            <h2>Sign-in link</h2>
+            <h2>Sign-in details</h2>
             <p style="color: var(--text-muted); font-size: 13px; margin-top:-8px;">
-                Share this link with the driver. When they open it, they will be signed in to the driver portal.
-                The link is valid for 1 hour and can only be used once.
+                Share these details with the driver. They can either click the magic link below for one-tap sign-in,
+                or open the login URL and type their phone number + IC number manually.
             </p>
+
+            <h3 style="margin-top: 18px; font-size: 14px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Manual login</h3>
+            <div class="form-group" style="margin-bottom: 10px;">
+                <label>Login URL</label>
+                <input id="link-loginurl" type="text" readonly style="font-family: monospace; font-size: 12px;">
+            </div>
+            <div class="form-row">
+                <div class="form-group" style="margin-bottom: 10px;">
+                    <label>Phone (login ID)</label>
+                    <input id="link-phone" type="text" readonly style="font-family: monospace;">
+                </div>
+                <div class="form-group" style="margin-bottom: 10px;">
+                    <label>Password (IC number)</label>
+                    <input id="link-password" type="text" readonly style="font-family: monospace;">
+                </div>
+            </div>
+
+            <h3 style="margin-top: 18px; font-size: 14px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Or one-tap magic link</h3>
             <div class="form-group">
-                <label>Sign-in URL</label>
+                <label>Magic link (1-hour, single-use)</label>
                 <input id="link-url" type="text" readonly style="font-family: monospace; font-size: 12px;">
             </div>
+
             <div class="modal-actions">
                 <button class="btn btn-secondary" id="link-close">Close</button>
                 <a class="btn btn-primary" id="link-whatsapp" target="_blank" rel="noopener">Share via WhatsApp</a>
-                <button class="btn btn-primary" id="link-copy">Copy link</button>
+                <button class="btn btn-primary" id="link-copy">Copy magic link</button>
             </div>
         </div>
     </div>
@@ -382,7 +401,7 @@
         async function generateLink(driver) {
             const redirectTo = window.location.origin
                 + window.location.pathname.replace(/\/admin\/.*$/, '/driver/index.html');
-            showAlert('Generating sign-in link...', false);
+            showAlert('Generating sign-in details...', false);
 
             const result = await invokeEdgeFunction('generate-signin-link', {
                 driver_id: driver.id,
@@ -392,7 +411,7 @@
                 showAlert('Failed: ' + result.error, true);
                 return;
             }
-            showLinkModal(result.data.link, driver.whatsapp, driver.full_name);
+            showLinkModal(result.data, driver);
             await loadDrivers();
         }
 
@@ -636,14 +655,30 @@
         document.getElementById('deposit-approve').addEventListener('click', function () { reviewDeposit('approved'); });
         document.getElementById('deposit-reject').addEventListener('click',  function () { reviewDeposit('rejected'); });
 
-        // ---------- Sign-in link share modal ----------
-        function showLinkModal(link, whatsappNumber, driverName) {
-            document.getElementById('link-url').value = link;
-            const waDigits = (whatsappNumber || '').replace(/[^0-9]/g, '');
+        // ---------- Sign-in details modal ----------
+        // Builds the login URL (login.html on this site) so the driver can
+        // sign in manually by typing phone + NRIC.
+        function buildLoginUrl() {
+            return window.location.origin
+                + window.location.pathname.replace(/\/admin\/.*$/, '/login.html');
+        }
+
+        function showLinkModal(result, driver) {
+            const loginUrl = buildLoginUrl();
+            document.getElementById('link-url').value      = result.link || '';
+            document.getElementById('link-loginurl').value = loginUrl;
+            document.getElementById('link-phone').value    = result.login_phone || driver.whatsapp || '';
+            document.getElementById('link-password').value = result.login_password || '';
+
+            const waDigits = (driver.whatsapp || '').replace(/[^0-9]/g, '');
             const intl = waDigits.startsWith('0') ? '60' + waDigits.slice(1) : waDigits;
-            const greeting = driverName ? 'Hi ' + driverName + ',\n\n' : '';
-            const message = greeting + 'Here is your sign-in link for the GB Car Rental driver portal: ' + link
-                + '\n\nThe link is valid for 1 hour. Please open it on your phone to sign in.';
+            const greeting = driver.full_name ? 'Hi ' + driver.full_name + ',\n\n' : '';
+            const message = greeting
+                + 'Here are your GB Car Rental driver portal login details:\n\n'
+                + 'Login URL: ' + loginUrl + '\n'
+                + 'Phone: ' + (result.login_phone || driver.whatsapp || '') + '\n'
+                + 'Password: ' + (result.login_password || '') + '\n\n'
+                + 'Or click this link to sign in directly (valid for 1 hour):\n' + (result.link || '');
             const waLink = intl
                 ? 'https://wa.me/' + intl + '?text=' + encodeURIComponent(message)
                 : 'https://wa.me/?text=' + encodeURIComponent(message);
@@ -657,10 +692,10 @@
             input.select();
             try {
                 await navigator.clipboard.writeText(input.value);
-                showAlert('Link copied to clipboard.', false);
+                showAlert('Magic link copied to clipboard.', false);
             } catch (e) {
                 document.execCommand('copy');
-                showAlert('Link copied.', false);
+                showAlert('Magic link copied.', false);
             }
         });
 

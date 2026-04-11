@@ -49,9 +49,17 @@ async function requireRole(requiredRole) {
     return profile;
 }
 
-// Sign in with email + password.
+// Sign in with phone-or-email + password.
+//   - If `loginInput` contains '@', it is used as an email directly (admin).
+//   - Otherwise it is treated as a phone number and converted to the same
+//     synthetic email format the create-login edge function uses.
 // Returns { profile } on success or { error } on failure.
-async function signIn(email, password) {
+async function signIn(loginInput, password) {
+    const trimmed = (loginInput || '').trim();
+    const email = trimmed.includes('@')
+        ? trimmed.toLowerCase()
+        : phoneToSyntheticEmail(trimmed);
+
     const { error: signInError } = await supabaseClient.auth.signInWithPassword({
         email: email,
         password: password
@@ -62,6 +70,14 @@ async function signIn(email, password) {
     if (!profile) return { error: 'Logged in but profile not found. Contact admin.' };
 
     return { profile };
+}
+
+// Convert a Malaysian-style phone number into the synthetic login email.
+// Must match the same logic in supabase/functions/generate-signin-link.
+function phoneToSyntheticEmail(phone) {
+    let digits = (phone || '').replace(/\D/g, '');
+    if (digits.startsWith('0')) digits = '60' + digits.slice(1);
+    return digits + '@phone.example.com';
 }
 
 // Sign out and send the user back to login.
