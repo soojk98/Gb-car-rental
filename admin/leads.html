@@ -456,54 +456,55 @@
                 await loadLeads();
             } else {
                 // Path B: no email — call edge function to generate a link, then show the share modal
-                // Explicitly attach the session token (Supabase JS doesn't always do this for functions.invoke)
-                const { data: sessionData } = await supabaseClient.auth.getSession();
-                const accessToken = sessionData?.session?.access_token;
-                if (!accessToken) {
-                    btn.disabled = false; btn.textContent = 'Convert';
-                    errBox.textContent = 'Your session has expired. Please sign out and back in.';
-                    errBox.style.display = 'block';
-                    return;
-                }
-                const { data: fnData, error: fnErr } = await supabaseClient.functions.invoke(
-                    'generate-signin-link',
-                    {
-                        body: { driver_id: newDriver.id, redirect_to: redirectTo },
-                        headers: { Authorization: 'Bearer ' + accessToken }
-                    }
-                );
+                const result = await invokeEdgeFunction('generate-signin-link', {
+                    driver_id: newDriver.id,
+                    redirect_to: redirectTo
+                });
                 btn.disabled = false; btn.textContent = 'Convert';
 
-                if (fnErr || !fnData?.link) {
-                    const detail = await extractFunctionError(fnErr, fnData);
+                if (result.error) {
                     errBox.textContent = 'Driver created, but failed to generate sign-in link: '
-                        + detail + '. You can retry from the Drivers page.';
+                        + result.error + '. You can retry from the Drivers page.';
                     errBox.style.display = 'block';
                     await loadLeads();
                     return;
                 }
 
                 convertModal.classList.remove('open');
-                showLinkModal(fnData.link, whatsapp);
+                showLinkModal(result.data.link, whatsapp);
                 await loadLeads();
             }
         });
 
-        // Pull the JSON error body out of a failed Supabase Functions invocation.
-        async function extractFunctionError(error, data) {
-            if (data?.error) return data.error;
-            if (!error) return 'unknown error';
+        // Call a Supabase Edge Function via raw fetch so we have full control
+        // of the Authorization header. supabaseClient.functions.invoke() pins
+        // the anon key as Authorization at client construction and does not
+        // reliably let callers override it.
+        async function invokeEdgeFunction(name, body) {
+            const { data: sessionData } = await supabaseClient.auth.getSession();
+            const accessToken = sessionData?.session?.access_token;
+            if (!accessToken) {
+                return { error: 'Your session has expired. Please sign out and back in.' };
+            }
             try {
-                if (error.context && typeof error.context.json === 'function') {
-                    const body = await error.context.json();
-                    if (body?.error) return body.error;
+                const resp = await fetch(SUPABASE_URL + '/functions/v1/' + name, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': 'Bearer ' + accessToken
+                    },
+                    body: JSON.stringify(body)
+                });
+                let json = null;
+                try { json = await resp.json(); } catch (_) { /* may not be JSON */ }
+                if (!resp.ok) {
+                    return { error: (json && json.error) || ('HTTP ' + resp.status) };
                 }
-                if (error.context && typeof error.context.text === 'function') {
-                    const txt = await error.context.text();
-                    if (txt) return txt;
-                }
-            } catch (e) { /* fall through */ }
-            return error.message || 'unknown error';
+                return { data: json };
+            } catch (e) {
+                return { error: 'Network error: ' + (e.message || String(e)) };
+            }
         }
 
         // ---------- Sign-in link share modal ----------
