@@ -19,9 +19,24 @@
         .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 100; padding: 20px; }
         .modal-backdrop.open { display: flex; }
         .modal { background: white; border-radius: 10px; padding: 28px; width: 100%; max-width: 640px; max-height: 90vh; overflow-y: auto; }
+        .modal.modal-lg { max-width: 800px; }
         .modal h2 { margin: 0 0 18px 0; font-size: 20px; color: var(--dark-bg); }
+        .modal h3 { margin: 20px 0 10px 0; font-size: 15px; color: var(--dark-bg); }
         .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
-        .help-text { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+
+        .doc-list { list-style: none; padding: 0; margin: 0; }
+        .doc-list li {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; margin-bottom: 8px;
+            background: var(--light-bg);
+        }
+        .doc-list .doc-info { font-size: 13px; }
+        .doc-list .doc-info strong { display: block; color: var(--dark-bg); margin-bottom: 2px; }
+        .doc-list .doc-info span { color: var(--text-muted); font-size: 12px; }
+
+        .badge-submitted { background: #fff3e0; color: #e65100; }
+        .badge-approved  { background: #e8f5e9; color: #2e7d32; }
+        .badge-pending   { background: #eceff1; color: #546e7a; }
     </style>
 </head>
 <body>
@@ -67,12 +82,12 @@
                                 <thead>
                                     <tr>
                                         <th>Name</th>
+                                        <th>Email</th>
                                         <th>WhatsApp</th>
                                         <th>NRIC</th>
-                                        <th>License</th>
-                                        <th>PSV</th>
                                         <th>Status</th>
-                                        <th>Login linked</th>
+                                        <th>Login</th>
+                                        <th>Deposit</th>
                                         <th>Current car</th>
                                         <th>Actions</th>
                                     </tr>
@@ -90,7 +105,7 @@
         </div>
     </div>
 
-    <!-- Add / Edit modal -->
+    <!-- Add / Edit driver modal -->
     <div class="modal-backdrop" id="driver-modal">
         <div class="modal">
             <h2 id="driver-modal-title">Add driver</h2>
@@ -103,32 +118,31 @@
 
             <div class="form-row">
                 <div class="form-group">
+                    <label>Email * <span style="color:var(--text-muted); font-weight:normal;">(used to send sign-in link)</span></label>
+                    <input id="driver-email" type="email" required>
+                </div>
+                <div class="form-group">
                     <label>WhatsApp</label>
                     <input id="driver-whatsapp" type="tel" placeholder="012-3456789">
                 </div>
+            </div>
+
+            <div class="form-row">
                 <div class="form-group">
                     <label>NRIC</label>
                     <input id="driver-ic" type="text" placeholder="990101-14-1234">
                 </div>
-            </div>
-
-            <div class="form-row">
                 <div class="form-group">
                     <label>Driving license number</label>
                     <input id="driver-license" type="text">
                 </div>
+            </div>
+
+            <div class="form-row">
                 <div class="form-group">
                     <label>PSV license number</label>
                     <input id="driver-psv" type="text">
                 </div>
-            </div>
-
-            <div class="form-group">
-                <label>Address</label>
-                <textarea id="driver-address" rows="2"></textarea>
-            </div>
-
-            <div class="form-row">
                 <div class="form-group">
                     <label>Status</label>
                     <select id="driver-status">
@@ -137,11 +151,11 @@
                         <option value="blacklisted">Blacklisted</option>
                     </select>
                 </div>
-                <div class="form-group">
-                    <label>Login user ID</label>
-                    <input id="driver-profile-id" type="text" placeholder="(optional) UUID from Supabase Auth">
-                    <div class="help-text">After the driver creates their account at the login page, paste their user ID here so they can see their rental.</div>
-                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Address</label>
+                <textarea id="driver-address" rows="2"></textarea>
             </div>
 
             <div class="form-group">
@@ -152,6 +166,56 @@
             <div class="modal-actions">
                 <button class="btn btn-secondary" id="driver-cancel">Cancel</button>
                 <button class="btn btn-primary" id="driver-save">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Documents modal -->
+    <div class="modal-backdrop" id="docs-modal">
+        <div class="modal modal-lg">
+            <h2 id="docs-title">Driver documents</h2>
+            <div id="docs-error" class="alert alert-error" style="display:none;"></div>
+            <div id="docs-list"></div>
+            <h3>Upload on behalf of driver</h3>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Document type</label>
+                    <select id="docs-upload-type">
+                        <option value="nric">NRIC</option>
+                        <option value="license">Driving License</option>
+                        <option value="psv">PSV License</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>File</label>
+                    <input id="docs-upload-file" type="file" accept="image/*,application/pdf">
+                </div>
+            </div>
+            <button class="btn btn-primary btn-sm" id="docs-upload-btn">Upload</button>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" id="docs-close">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Review deposit modal -->
+    <div class="modal-backdrop" id="deposit-modal">
+        <div class="modal">
+            <h2>Review deposit</h2>
+            <div id="deposit-error" class="alert alert-error" style="display:none;"></div>
+
+            <div id="deposit-info"></div>
+
+            <div class="form-group">
+                <label>Notes <span style="color:var(--text-muted); font-weight:normal;">(reason if rejecting)</span></label>
+                <textarea id="deposit-notes" rows="3"></textarea>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn btn-secondary" id="deposit-cancel">Cancel</button>
+                <button class="btn btn-danger" id="deposit-reject">Reject</button>
+                <button class="btn btn-primary" id="deposit-approve">Approve</button>
             </div>
         </div>
     </div>
@@ -171,17 +235,20 @@
         const tableEl = document.getElementById('drivers-table');
         const emptyEl = document.getElementById('empty');
         const pageAlert = document.getElementById('page-alert');
-        const driverModal = document.getElementById('driver-modal');
+        const driverModal  = document.getElementById('driver-modal');
+        const docsModal    = document.getElementById('docs-modal');
+        const depositModal = document.getElementById('deposit-modal');
 
         let allDrivers = [];
-        let activeRentalsByDriverId = {};   // driver_id -> { car_plate, car_model }
+        let activeRentalsByDriverId = {};
         let currentFilter = 'all';
         let editingId = null;
+        let viewingDocsDriver = null;
+        let reviewingDriver = null;
 
-        function escapeHtml(s) {
-            if (s == null) return '';
-            return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-        }
+        function escapeHtml(s) { if (s == null) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+        function fmtDate(s) { return s ? new Date(s).toLocaleString('en-MY') : '—'; }
+        function fmtRM(n)   { return 'RM ' + Number(n || 0).toFixed(2); }
         function showAlert(msg, isError) {
             pageAlert.innerHTML = '';
             const div = document.createElement('div');
@@ -206,7 +273,6 @@
             }
             allDrivers = driversResp.data || [];
 
-            // Active rentals to find each driver's current car
             const rentalsResp = await supabaseClient
                 .from('rentals')
                 .select('driver_id, cars(plate_number, model)')
@@ -242,18 +308,22 @@
             tbody.innerHTML = filtered.map(function (driver) {
                 const currentCar = activeRentalsByDriverId[driver.id];
                 const wa = (driver.whatsapp || '').replace(/[^0-9]/g, '');
+                const depositStatus = driver.deposit_status || 'pending';
                 return '<tr>'
                     + '<td><strong>' + escapeHtml(driver.full_name) + '</strong></td>'
+                    + '<td>' + escapeHtml(driver.email || '-') + '</td>'
                     + '<td>' + (wa ? '<a href="https://wa.me/' + escapeHtml(wa) + '" target="_blank">' + escapeHtml(driver.whatsapp) + '</a>' : '<span style="color:var(--text-muted);">—</span>') + '</td>'
                     + '<td>' + escapeHtml(driver.ic_number || '-') + '</td>'
-                    + '<td>' + escapeHtml(driver.license_number || '-') + '</td>'
-                    + '<td>' + escapeHtml(driver.psv_number || '-') + '</td>'
                     + '<td><span class="badge badge-' + escapeHtml(driver.status) + '">' + escapeHtml(driver.status) + '</span></td>'
-                    + '<td>' + (driver.profile_id ? '<span style="color:var(--success);">✓ Yes</span>' : '<span style="color:var(--text-muted);">—</span>') + '</td>'
+                    + '<td>' + (driver.profile_id ? '<span style="color:var(--success);">✓ Linked</span>' : '<span style="color:var(--text-muted);">Pending</span>') + '</td>'
+                    + '<td><span class="badge badge-' + escapeHtml(depositStatus) + '">' + escapeHtml(depositStatus) + '</span></td>'
                     + '<td>' + (currentCar ? escapeHtml(currentCar) : '<span style="color:var(--text-muted);">—</span>') + '</td>'
                     + '<td class="actions-cell">'
-                        + '<button class="btn btn-sm btn-secondary" data-action="edit" data-id="' + driver.id + '">Edit</button>'
-                        + '<button class="btn btn-sm btn-danger" data-action="delete" data-id="' + driver.id + '">Delete</button>'
+                        + '<button class="btn btn-sm btn-secondary" data-action="edit"     data-id="' + driver.id + '">Edit</button>'
+                        + '<button class="btn btn-sm btn-secondary" data-action="docs"     data-id="' + driver.id + '">Documents</button>'
+                        + (depositStatus === 'submitted' ? '<button class="btn btn-sm btn-primary" data-action="deposit"  data-id="' + driver.id + '">Review deposit</button>' : '')
+                        + (driver.email && !driver.profile_id ? '<button class="btn btn-sm btn-secondary" data-action="resend"   data-id="' + driver.id + '">Resend invite</button>' : '')
+                        + '<button class="btn btn-sm btn-danger"    data-action="delete"   data-id="' + driver.id + '">Delete</button>'
                     + '</td>'
                 + '</tr>';
             }).join('');
@@ -278,32 +348,54 @@
             const driver = allDrivers.find(function (d) { return d.id === id; });
             if (!driver) return;
 
-            if (target.dataset.action === 'edit') {
-                openModal(driver);
-            } else if (target.dataset.action === 'delete') {
-                if (activeRentalsByDriverId[driver.id]) {
-                    alert('Cannot delete: this driver has an active rental. End the rental first.');
-                    return;
-                }
-                if (!confirm('Delete driver ' + driver.full_name + '? This cannot be undone.')) return;
-                const { error } = await supabaseClient.from('drivers').delete().eq('id', id);
-                if (error) { showAlert('Delete failed: ' + error.message, true); return; }
-                showAlert('Driver deleted.', false);
-                await loadDrivers();
-            }
+            const action = target.dataset.action;
+            if (action === 'edit')          openModal(driver);
+            else if (action === 'docs')     openDocsModal(driver);
+            else if (action === 'deposit')  openDepositModal(driver);
+            else if (action === 'resend')   await resendInvite(driver);
+            else if (action === 'delete')   await deleteDriver(driver);
         });
 
+        async function deleteDriver(driver) {
+            if (activeRentalsByDriverId[driver.id]) {
+                alert('Cannot delete: this driver has an active rental. End the rental first.');
+                return;
+            }
+            if (!confirm('Delete driver ' + driver.full_name + '? This cannot be undone.')) return;
+            const { error } = await supabaseClient.from('drivers').delete().eq('id', driver.id);
+            if (error) { showAlert('Delete failed: ' + error.message, true); return; }
+            showAlert('Driver deleted.', false);
+            await loadDrivers();
+        }
+
+        async function resendInvite(driver) {
+            if (!driver.email) { showAlert('Driver has no email on file.', true); return; }
+            const redirectTo = window.location.origin
+                + window.location.pathname.replace(/\/admin\/.*$/, '/driver/index.html');
+            const { error } = await supabaseClient.auth.signInWithOtp({
+                email: driver.email,
+                options: {
+                    shouldCreateUser: true,
+                    emailRedirectTo: redirectTo,
+                    data: { full_name: driver.full_name }
+                }
+            });
+            if (error) { showAlert('Failed to resend: ' + error.message, true); return; }
+            showAlert('Invite re-sent to ' + driver.email + '.', false);
+        }
+
+        // ---------- Edit driver modal ----------
         function openModal(driver) {
             editingId = driver ? driver.id : null;
             document.getElementById('driver-modal-title').textContent = driver ? 'Edit driver' : 'Add driver';
             document.getElementById('driver-name').value      = driver ? (driver.full_name || '') : '';
+            document.getElementById('driver-email').value     = driver ? (driver.email || '') : '';
             document.getElementById('driver-whatsapp').value  = driver ? (driver.whatsapp || '') : '';
             document.getElementById('driver-ic').value        = driver ? (driver.ic_number || '') : '';
             document.getElementById('driver-license').value   = driver ? (driver.license_number || '') : '';
             document.getElementById('driver-psv').value       = driver ? (driver.psv_number || '') : '';
             document.getElementById('driver-address').value   = driver ? (driver.address || '') : '';
             document.getElementById('driver-status').value    = driver ? (driver.status || 'active') : 'active';
-            document.getElementById('driver-profile-id').value= driver ? (driver.profile_id || '') : '';
             document.getElementById('driver-notes').value     = driver ? (driver.notes || '') : '';
             document.getElementById('driver-error').style.display = 'none';
             driverModal.classList.add('open');
@@ -316,29 +408,20 @@
             const errBox = document.getElementById('driver-error');
             errBox.style.display = 'none';
 
-            const profileIdRaw = document.getElementById('driver-profile-id').value.trim();
-
             const payload = {
                 full_name:      document.getElementById('driver-name').value.trim(),
+                email:          document.getElementById('driver-email').value.trim().toLowerCase() || null,
                 whatsapp:       document.getElementById('driver-whatsapp').value.trim() || null,
                 ic_number:      document.getElementById('driver-ic').value.trim() || null,
                 license_number: document.getElementById('driver-license').value.trim() || null,
                 psv_number:     document.getElementById('driver-psv').value.trim() || null,
                 address:        document.getElementById('driver-address').value.trim() || null,
                 status:         document.getElementById('driver-status').value,
-                profile_id:     profileIdRaw || null,
                 notes:          document.getElementById('driver-notes').value.trim() || null
             };
 
-            if (!payload.full_name) {
-                errBox.textContent = 'Full name is required.';
-                errBox.style.display = 'block';
-                return;
-            }
-
-            // Loose UUID format check (don't be strict, just catch typos)
-            if (payload.profile_id && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(payload.profile_id)) {
-                errBox.textContent = 'Login user ID does not look like a valid UUID.';
+            if (!payload.full_name || !payload.email) {
+                errBox.textContent = 'Full name and email are required.';
                 errBox.style.display = 'block';
                 return;
             }
@@ -355,9 +438,155 @@
                 return;
             }
             driverModal.classList.remove('open');
-            showAlert(editingId ? 'Driver updated.' : 'Driver added.', false);
+            showAlert(editingId ? 'Driver updated.' : 'Driver added. Click "Resend invite" to send the magic link.', false);
             await loadDrivers();
         });
+
+        // ---------- Documents modal ----------
+        async function openDocsModal(driver) {
+            viewingDocsDriver = driver;
+            document.getElementById('docs-title').textContent = 'Documents — ' + driver.full_name;
+            document.getElementById('docs-error').style.display = 'none';
+            document.getElementById('docs-upload-file').value = '';
+            docsModal.classList.add('open');
+            await loadDocsList();
+        }
+
+        async function loadDocsList() {
+            const listEl = document.getElementById('docs-list');
+            listEl.innerHTML = '<p style="color:var(--text-muted);">Loading...</p>';
+            const { data, error } = await supabaseClient
+                .from('documents')
+                .select('*')
+                .eq('driver_id', viewingDocsDriver.id)
+                .order('uploaded_at', { ascending: false });
+            if (error) { listEl.innerHTML = '<div class="alert alert-error">' + escapeHtml(error.message) + '</div>'; return; }
+            if (!data || data.length === 0) {
+                listEl.innerHTML = '<p style="color:var(--text-muted);">No documents uploaded yet.</p>';
+                return;
+            }
+            const items = await Promise.all(data.map(async function (d) {
+                const { data: urlData } = await supabaseClient.storage
+                    .from('driver-documents')
+                    .createSignedUrl(d.file_path, 3600);
+                const url = urlData ? urlData.signedUrl : '#';
+                const filename = d.file_path.split('/').pop();
+                return '<li>'
+                    + '<div class="doc-info">'
+                        + '<strong>' + escapeHtml(d.type.toUpperCase()) + '</strong>'
+                        + '<span>' + escapeHtml(filename) + ' · uploaded ' + fmtDate(d.uploaded_at) + '</span>'
+                    + '</div>'
+                    + '<div>'
+                        + '<a class="btn btn-sm btn-secondary" href="' + escapeHtml(url) + '" target="_blank">View</a> '
+                        + '<button class="btn btn-sm btn-danger" data-doc-id="' + d.id + '" data-doc-path="' + escapeHtml(d.file_path) + '">Delete</button>'
+                    + '</div>'
+                    + '</li>';
+            }));
+            listEl.innerHTML = '<ul class="doc-list">' + items.join('') + '</ul>';
+        }
+
+        document.getElementById('docs-list').addEventListener('click', async function (event) {
+            const target = event.target.closest('button[data-doc-id]');
+            if (!target) return;
+            if (!confirm('Delete this document? This cannot be undone.')) return;
+            const docId = target.dataset.docId;
+            const docPath = target.dataset.docPath;
+
+            const { error: storageErr } = await supabaseClient.storage.from('driver-documents').remove([docPath]);
+            if (storageErr) console.warn('Storage delete failed:', storageErr);
+
+            const { error: dbErr } = await supabaseClient.from('documents').delete().eq('id', docId);
+            if (dbErr) {
+                document.getElementById('docs-error').textContent = dbErr.message;
+                document.getElementById('docs-error').style.display = 'block';
+                return;
+            }
+            await loadDocsList();
+        });
+
+        document.getElementById('docs-upload-btn').addEventListener('click', async function () {
+            const errBox = document.getElementById('docs-error');
+            errBox.style.display = 'none';
+            const type = document.getElementById('docs-upload-type').value;
+            const file = document.getElementById('docs-upload-file').files[0];
+            if (!file) { errBox.textContent = 'Please choose a file.'; errBox.style.display = 'block'; return; }
+
+            const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+            const path = viewingDocsDriver.id + '/' + type + '_' + Date.now() + '_' + safeName;
+
+            const upResp = await supabaseClient.storage.from('driver-documents').upload(path, file);
+            if (upResp.error) { errBox.textContent = 'Upload failed: ' + upResp.error.message; errBox.style.display = 'block'; return; }
+
+            const insResp = await supabaseClient.from('documents').insert({
+                driver_id: viewingDocsDriver.id,
+                type: type,
+                file_path: path
+            });
+            if (insResp.error) { errBox.textContent = 'Upload OK but record failed: ' + insResp.error.message; errBox.style.display = 'block'; return; }
+
+            document.getElementById('docs-upload-file').value = '';
+            await loadDocsList();
+        });
+
+        document.getElementById('docs-close').addEventListener('click', function () { docsModal.classList.remove('open'); });
+        docsModal.addEventListener('click', function (e) { if (e.target === docsModal) docsModal.classList.remove('open'); });
+
+        // ---------- Review deposit modal ----------
+        async function openDepositModal(driver) {
+            reviewingDriver = driver;
+            document.getElementById('deposit-error').style.display = 'none';
+            document.getElementById('deposit-notes').value = driver.deposit_notes || '';
+
+            let slipLink = '';
+            if (driver.deposit_slip_path) {
+                const { data: urlData } = await supabaseClient.storage
+                    .from('driver-documents')
+                    .createSignedUrl(driver.deposit_slip_path, 3600);
+                if (urlData) slipLink = '<a href="' + urlData.signedUrl + '" target="_blank">View bank slip</a>';
+            }
+
+            document.getElementById('deposit-info').innerHTML =
+                '<p><strong>Driver:</strong> ' + escapeHtml(driver.full_name) + '</p>'
+                + '<p><strong>Amount paid:</strong> ' + fmtRM(driver.deposit_amount_paid) + '</p>'
+                + '<p><strong>Submitted:</strong> ' + (driver.deposit_paid_at ? fmtDate(driver.deposit_paid_at) : '—') + '</p>'
+                + '<p>' + (slipLink || '<em>No slip uploaded.</em>') + '</p>';
+
+            depositModal.classList.add('open');
+        }
+
+        document.getElementById('deposit-cancel').addEventListener('click', function () { depositModal.classList.remove('open'); });
+        depositModal.addEventListener('click', function (e) { if (e.target === depositModal) depositModal.classList.remove('open'); });
+
+        document.getElementById('deposit-approve').addEventListener('click', function () { reviewDeposit('approved'); });
+        document.getElementById('deposit-reject').addEventListener('click',  function () { reviewDeposit('rejected'); });
+
+        async function reviewDeposit(decision) {
+            if (!reviewingDriver) return;
+            const errBox = document.getElementById('deposit-error');
+            errBox.style.display = 'none';
+            const notes = document.getElementById('deposit-notes').value.trim() || null;
+
+            if (decision === 'rejected' && !notes) {
+                errBox.textContent = 'Please provide a reason for rejection in the notes field.';
+                errBox.style.display = 'block';
+                return;
+            }
+
+            const { error } = await supabaseClient
+                .from('drivers')
+                .update({
+                    deposit_status: decision,
+                    deposit_notes: notes
+                })
+                .eq('id', reviewingDriver.id);
+
+            if (error) { errBox.textContent = error.message; errBox.style.display = 'block'; return; }
+
+            depositModal.classList.remove('open');
+            showAlert('Deposit ' + decision + '.', false);
+            reviewingDriver = null;
+            await loadDrivers();
+        }
 
         await loadDrivers();
     })();

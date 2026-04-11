@@ -290,6 +290,10 @@
                     <input id="lead-whatsapp" name="whatsapp" type="tel" placeholder="e.g., 012-3456789" required>
                 </div>
                 <div class="form-group">
+                    <label for="lead-email">Email</label>
+                    <input id="lead-email" name="email" type="email" placeholder="you@example.com" required>
+                </div>
+                <div class="form-group">
                     <label for="lead-car">Which car do you want?</label>
                     <select id="lead-car" name="preferred_car" required>
                         <option value="" disabled selected>Select Preferred Car...</option>
@@ -389,6 +393,7 @@
                 const payload = {
                     full_name: document.getElementById('lead-name').value.trim(),
                     whatsapp: document.getElementById('lead-whatsapp').value.trim(),
+                    email: document.getElementById('lead-email').value.trim(),
                     preferred_car: document.getElementById('lead-car').value
                 };
 

@@ -254,6 +254,62 @@ table.data tbody tr:hover { background: #fafbfc; }
 .alert-success  { background: #e6f4ea; color: #0a4f32; border: 1px solid #a8d5b9; }
 .alert-info     { background: #e3f2fd; color: #0d47a1; border: 1px solid #90caf9; }
 
+/* ---------- Onboarding stepper ---------- */
+.stepper {
+    display: flex;
+    align-items: stretch;
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+    margin-bottom: 20px;
+    overflow-x: auto;
+}
+.stepper .step {
+    flex: 1;
+    min-width: 140px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: relative;
+}
+.stepper .step:not(:last-child)::after {
+    content: '';
+    flex: 1;
+    height: 3px;
+    background: var(--border);
+    margin: 0 12px;
+    border-radius: 2px;
+}
+.stepper .step.done:not(:last-child)::after { background: var(--success); }
+.stepper .step .circle {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700;
+    flex-shrink: 0;
+    background: var(--border);
+    color: var(--text-muted);
+    border: 2px solid var(--border);
+}
+.stepper .step.done .circle    { background: var(--success); color: white; border-color: var(--success); }
+.stepper .step.current .circle { background: white; color: var(--primary-green); border-color: var(--primary-green); }
+.stepper .step .step-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+    line-height: 1.2;
+}
+.stepper .step.done .step-label,
+.stepper .step.current .step-label { color: var(--text); }
+.stepper .step .step-sub { font-size: 11px; color: var(--text-muted); font-weight: 500; }
+
+@media (max-width: 700px) {
+    .stepper { flex-direction: column; gap: 8px; }
+    .stepper .step:not(:last-child)::after { display: none; }
+    .stepper .step { padding: 6px 0; }
+}
+
 /* ---------- Empty state ---------- */
 .empty-state {
     text-align: center;

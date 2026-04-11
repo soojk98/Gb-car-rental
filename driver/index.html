@@ -3,14 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Rental | GB Car Rental</title>
+    <title>Driver Portal | GB Car Rental</title>
     <link rel="stylesheet" href="../css/app.css">
     <style>
         .info-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
             gap: 16px;
-            margin-bottom: 8px;
         }
         .info-box {
             background: var(--light-bg);
@@ -24,23 +23,19 @@
 
         .expiry-list { list-style: none; padding: 0; margin: 0; }
         .expiry-list li {
-            display: flex;
-            justify-content: space-between;
-            padding: 10px 0;
-            border-bottom: 1px solid var(--border);
+            display: flex; justify-content: space-between;
+            padding: 10px 0; border-bottom: 1px solid var(--border);
         }
         .expiry-list li:last-child { border-bottom: none; }
         .expiry-list .name { font-weight: 600; }
         .expiry-list .meta { font-size: 13px; color: var(--text-muted); }
-        .expiry-list .status-ok { color: var(--success); font-weight: 600; }
-        .expiry-list .status-warn { color: var(--warning); font-weight: 600; }
-        .expiry-list .status-bad { color: var(--danger); font-weight: 600; }
+        .status-ok   { color: var(--success); font-weight: 600; }
+        .status-warn { color: var(--warning); font-weight: 600; }
+        .status-bad  { color: var(--danger); font-weight: 600; }
 
         .due-banner {
-            padding: 16px 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            font-weight: 600;
+            padding: 16px 20px; border-radius: 8px;
+            margin-bottom: 20px; font-weight: 600;
         }
         .due-banner.ok      { background: #e6f4ea; color: #0a4f32; border: 1px solid #a8d5b9; }
         .due-banner.overdue { background: #fdecea; color: #a61b1b; border: 1px solid #f5c2c0; }
@@ -53,8 +48,9 @@
                 <div class="sidebar-brand"><span>GB</span> Driver</div>
                 <nav class="sidebar-nav">
                     <a href="index.html" class="active">My Rental</a>
-                    <a href="payments.html">Payments</a>
                     <a href="documents.html">Documents</a>
+                    <a href="deposit.html">Deposit</a>
+                    <a href="payments.html">Payments</a>
                     <a href="logs.html">Logs</a>
                 </nav>
                 <div class="sidebar-footer">
@@ -65,7 +61,7 @@
 
             <main class="main">
                 <div class="topbar">
-                    <h1>My Rental</h1>
+                    <h1 id="page-title">My Rental</h1>
                 </div>
                 <div class="content" id="content"></div>
             </main>
@@ -85,100 +81,152 @@
 
         const content = document.getElementById('content');
 
-        function escapeHtml(s) {
-            if (s == null) return '';
-            return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-        }
+        function escapeHtml(s) { if (s == null) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
         function fmtDate(s) { return s ? new Date(s).toLocaleDateString('en-MY', { year:'numeric', month:'short', day:'numeric' }) : '—'; }
         function fmtRM(n)   { return 'RM ' + Number(n || 0).toFixed(2); }
-        function daysUntil(date) {
-            if (!date) return null;
-            const diff = (new Date(date) - new Date()) / (1000*60*60*24);
-            return Math.ceil(diff);
-        }
+        function daysUntil(d) { if (!d) return null; return Math.ceil((new Date(d) - new Date()) / (1000*60*60*24)); }
 
         const ctx = await getDriverContext();
         if (ctx.error) {
             content.innerHTML = '<div class="alert alert-error">' + escapeHtml(ctx.error) + '</div>';
             return;
         }
+        const driver = ctx.driver;
 
-        if (!ctx.rental || !ctx.car) {
-            content.innerHTML =
-                '<div class="card"><div class="card-header"><h2>No active rental</h2></div>'
-                + '<p>You don\'t currently have an active rental. Once admin assigns a car to you, the details will appear here.</p>'
+        // Load documents to figure out onboarding step
+        const { data: docs } = await supabaseClient
+            .from('documents')
+            .select('type')
+            .eq('driver_id', driver.id);
+        const uploadedTypes = new Set((docs || []).map(function (d) { return d.type; }));
+        const requiredDocs = ['nric', 'license', 'psv'];
+        const docsComplete = requiredDocs.every(function (t) { return uploadedTypes.has(t); });
+        const depositApproved = driver.deposit_status === 'approved';
+
+        // Step indices: 0=Account, 1=Documents, 2=Deposit, 3=Ready
+        let currentStep;
+        if (!docsComplete)        currentStep = 1;
+        else if (!depositApproved) currentStep = 2;
+        else                       currentStep = 3;
+
+        const stepperHtml = renderStepper(currentStep, driver.deposit_status);
+
+        // Onboarding-specific guidance
+        let onboardingCard = '';
+        if (currentStep === 1) {
+            const missing = requiredDocs.filter(function (t) { return !uploadedTypes.has(t); });
+            const labels = { nric: 'NRIC', license: 'Driving License', psv: 'PSV License' };
+            onboardingCard =
+                '<div class="card">'
+                + '<div class="card-header"><h2>Step 1 — Submit your documents</h2></div>'
+                + '<p>Please upload these documents to continue:</p>'
+                + '<ul>' + missing.map(function (t) { return '<li>' + labels[t] + '</li>'; }).join('') + '</ul>'
+                + '<a href="documents.html" class="btn btn-primary">Upload documents</a>'
                 + '</div>';
-            return;
+        } else if (currentStep === 2) {
+            const dep = driver.deposit_status;
+            let statusLine;
+            if (dep === 'submitted') {
+                statusLine = '<div class="alert alert-info">Your deposit slip has been submitted and is awaiting admin approval. We will notify you once it is approved.</div>';
+            } else if (dep === 'rejected') {
+                statusLine = '<div class="alert alert-error">Your deposit was rejected'
+                    + (driver.deposit_notes ? ': ' + escapeHtml(driver.deposit_notes) : '.')
+                    + ' Please re-submit.</div>';
+            } else {
+                statusLine = '<p>Please pay the deposit and upload the bank-in slip.</p>';
+            }
+            onboardingCard =
+                '<div class="card">'
+                + '<div class="card-header"><h2>Step 2 — Pay your deposit</h2></div>'
+                + statusLine
+                + (dep !== 'submitted' ? '<a href="deposit.html" class="btn btn-primary">Pay deposit</a>' : '')
+                + '</div>';
         }
 
-        const car = ctx.car;
-        const rental = ctx.rental;
-
-        // Compute total paid + due
-        const payResp = await supabaseClient.from('payments').select('amount, paid_at').eq('rental_id', rental.id);
-        const totalPaid = (payResp.data || []).reduce(function (sum, p) { return sum + Number(p.amount || 0); }, 0);
-        const start = new Date(rental.start_date);
-        const weeksElapsed = Math.max(0, Math.floor((new Date() - start) / (1000*60*60*24*7)));
-        const dueSoFar = weeksElapsed * Number(rental.weekly_rate || 0);
-        const balance = dueSoFar - totalPaid;
-
-        let dueBanner;
-        if (balance > 0.01) {
-            dueBanner = '<div class="due-banner overdue">⚠ You have an outstanding balance of ' + fmtRM(balance) + '. Please pay as soon as possible.</div>';
-        } else if (balance < -0.01) {
-            dueBanner = '<div class="due-banner ok">✓ Your account is in credit by ' + fmtRM(-balance) + '. Thank you!</div>';
-        } else {
-            dueBanner = '<div class="due-banner ok">✓ Your payments are up to date. Thank you!</div>';
+        // After onboarding: show rental or "waiting for assignment"
+        let mainContent = '';
+        if (currentStep === 3) {
+            if (!ctx.rental || !ctx.car) {
+                mainContent =
+                    '<div class="card">'
+                    + '<div class="card-header"><h2>Onboarding complete!</h2></div>'
+                    + '<p>Your account is fully onboarded. Once admin assigns a car to you, your rental details will appear here.</p>'
+                    + '</div>';
+            } else {
+                mainContent = await renderRentalCard(ctx.rental, ctx.car);
+            }
         }
 
-        // Fetch insurance / road tax / puspakom for the car
-        const [insuranceResp, roadTaxResp, puspakomResp] = await Promise.all([
-            supabaseClient.from('insurance_policies').select('*').eq('car_id', car.id).order('end_date', { ascending: false }).limit(1).maybeSingle(),
-            supabaseClient.from('road_tax').select('*').eq('car_id', car.id).order('end_date', { ascending: false }).limit(1).maybeSingle(),
-            supabaseClient.from('puspakom_inspections').select('*').eq('car_id', car.id).order('expiry_date', { ascending: false }).limit(1).maybeSingle()
-        ]);
+        content.innerHTML = stepperHtml + onboardingCard + mainContent;
 
-        function statusFor(record, dateField) {
-            if (!record || !record[dateField]) return { cls: 'status-bad', text: 'Not on record' };
-            const days = daysUntil(record[dateField]);
-            if (days < 0)  return { cls: 'status-bad',  text: 'Expired' };
-            if (days < 30) return { cls: 'status-warn', text: days + ' days left' };
-            return { cls: 'status-ok', text: 'Valid until ' + fmtDate(record[dateField]) };
+        // -----------------------------------------------------------------
+        function renderStepper(step, depositStatus) {
+            const steps = [
+                { label: 'Account', sub: 'Verified' },
+                { label: 'Documents', sub: 'NRIC, License, PSV' },
+                { label: 'Deposit', sub: depositStatus === 'submitted' ? 'Pending review' : (depositStatus === 'rejected' ? 'Rejected' : 'Required') },
+                { label: 'Ready', sub: 'Start renting' }
+            ];
+            return '<div class="stepper">'
+                + steps.map(function (s, i) {
+                    const cls = i < step ? 'done' : (i === step ? 'current' : '');
+                    const inner = i < step ? '✓' : (i + 1);
+                    return '<div class="step ' + cls + '">'
+                        + '<div class="circle">' + inner + '</div>'
+                        + '<div><div class="step-label">' + s.label + '</div><div class="step-sub">' + s.sub + '</div></div>'
+                        + '</div>';
+                }).join('')
+                + '</div>';
         }
 
-        const insStatus = statusFor(insuranceResp.data, 'end_date');
-        const taxStatus = statusFor(roadTaxResp.data, 'end_date');
-        const pusStatus = statusFor(puspakomResp.data, 'expiry_date');
+        async function renderRentalCard(rental, car) {
+            const payResp = await supabaseClient.from('payments').select('amount').eq('rental_id', rental.id);
+            const totalPaid = (payResp.data || []).reduce(function (s, p) { return s + Number(p.amount || 0); }, 0);
+            const weeksElapsed = Math.max(0, Math.floor((new Date() - new Date(rental.start_date)) / (1000*60*60*24*7)));
+            const dueSoFar = weeksElapsed * Number(rental.weekly_rate || 0);
+            const balance = dueSoFar - totalPaid;
 
-        content.innerHTML =
-            dueBanner
-            + '<div class="card">'
-                + '<div class="card-header"><h2>' + escapeHtml(car.plate_number) + ' — ' + escapeHtml(car.model) + '</h2></div>'
-                + '<div class="info-grid">'
-                    + '<div class="info-box"><div class="label">Year / Color</div><div class="value">' + escapeHtml((car.year || '-') + ' / ' + (car.color || '-')) + '</div></div>'
-                    + '<div class="info-box"><div class="label">Weekly rate</div><div class="value">' + fmtRM(rental.weekly_rate) + '</div></div>'
-                    + '<div class="info-box"><div class="label">Rental started</div><div class="value">' + fmtDate(rental.start_date) + '</div><div class="sub">' + weeksElapsed + ' weeks ago</div></div>'
-                    + '<div class="info-box"><div class="label">Deposit</div><div class="value">' + fmtRM(rental.deposit_amount) + '</div></div>'
-                    + '<div class="info-box"><div class="label">Total paid</div><div class="value">' + fmtRM(totalPaid) + '</div></div>'
-                    + '<div class="info-box"><div class="label">Current mileage</div><div class="value">' + (car.current_mileage != null ? Number(car.current_mileage).toLocaleString() + ' km' : '—') + '</div></div>'
+            let dueBanner;
+            if (balance > 0.01)       dueBanner = '<div class="due-banner overdue">⚠ You have an outstanding balance of ' + fmtRM(balance) + '. Please pay as soon as possible.</div>';
+            else if (balance < -0.01) dueBanner = '<div class="due-banner ok">✓ Your account is in credit by ' + fmtRM(-balance) + '. Thank you!</div>';
+            else                      dueBanner = '<div class="due-banner ok">✓ Your payments are up to date. Thank you!</div>';
+
+            const [insResp, taxResp, pusResp] = await Promise.all([
+                supabaseClient.from('insurance_policies').select('*').eq('car_id', car.id).order('end_date', { ascending: false }).limit(1).maybeSingle(),
+                supabaseClient.from('road_tax').select('*').eq('car_id', car.id).order('end_date', { ascending: false }).limit(1).maybeSingle(),
+                supabaseClient.from('puspakom_inspections').select('*').eq('car_id', car.id).order('expiry_date', { ascending: false }).limit(1).maybeSingle()
+            ]);
+            function statusFor(rec, field) {
+                if (!rec || !rec[field]) return { cls: 'status-bad', text: 'Not on record' };
+                const d = daysUntil(rec[field]);
+                if (d < 0)  return { cls: 'status-bad',  text: 'Expired' };
+                if (d < 30) return { cls: 'status-warn', text: d + ' days left' };
+                return { cls: 'status-ok', text: 'Valid until ' + fmtDate(rec[field]) };
+            }
+            const insStatus = statusFor(insResp.data, 'end_date');
+            const taxStatus = statusFor(taxResp.data, 'end_date');
+            const pusStatus = statusFor(pusResp.data, 'expiry_date');
+
+            return dueBanner
+                + '<div class="card">'
+                    + '<div class="card-header"><h2>' + escapeHtml(car.plate_number) + ' — ' + escapeHtml(car.model) + '</h2></div>'
+                    + '<div class="info-grid">'
+                        + '<div class="info-box"><div class="label">Year / Color</div><div class="value">' + escapeHtml((car.year || '-') + ' / ' + (car.color || '-')) + '</div></div>'
+                        + '<div class="info-box"><div class="label">Weekly rate</div><div class="value">' + fmtRM(rental.weekly_rate) + '</div></div>'
+                        + '<div class="info-box"><div class="label">Rental started</div><div class="value">' + fmtDate(rental.start_date) + '</div><div class="sub">' + weeksElapsed + ' weeks ago</div></div>'
+                        + '<div class="info-box"><div class="label">Total paid</div><div class="value">' + fmtRM(totalPaid) + '</div></div>'
+                        + '<div class="info-box"><div class="label">Current mileage</div><div class="value">' + (car.current_mileage != null ? Number(car.current_mileage).toLocaleString() + ' km' : '—') + '</div></div>'
+                    + '</div>'
                 + '</div>'
-            + '</div>'
-
-            + '<div class="card">'
-                + '<div class="card-header"><h2>Vehicle compliance</h2></div>'
-                + '<ul class="expiry-list">'
-                    + '<li><div><div class="name">Insurance</div><div class="meta">' + (insuranceResp.data ? escapeHtml(insuranceResp.data.provider || '') : '') + '</div></div><div class="' + insStatus.cls + '">' + insStatus.text + '</div></li>'
-                    + '<li><div><div class="name">Road tax</div></div><div class="' + taxStatus.cls + '">' + taxStatus.text + '</div></li>'
-                    + '<li><div><div class="name">Puspakom inspection</div></div><div class="' + pusStatus.cls + '">' + pusStatus.text + '</div></li>'
-                + '</ul>'
-            + '</div>'
-
-            + '<div class="card">'
-                + '<div class="card-header"><h2>Quick actions</h2></div>'
-                + '<a href="logs.html" class="btn btn-primary" style="margin-right:8px;">Log mileage / maintenance</a>'
-                + '<a href="payments.html" class="btn btn-secondary" style="margin-right:8px;">View payments</a>'
-                + '<a href="documents.html" class="btn btn-secondary">Manage documents</a>'
-            + '</div>';
+                + '<div class="card">'
+                    + '<div class="card-header"><h2>Vehicle compliance</h2></div>'
+                    + '<ul class="expiry-list">'
+                        + '<li><div><div class="name">Insurance</div><div class="meta">' + (insResp.data ? escapeHtml(insResp.data.provider || '') : '') + '</div></div><div class="' + insStatus.cls + '">' + insStatus.text + '</div></li>'
+                        + '<li><div><div class="name">Road tax</div></div><div class="' + taxStatus.cls + '">' + taxStatus.text + '</div></li>'
+                        + '<li><div><div class="name">Puspakom inspection</div></div><div class="' + pusStatus.cls + '">' + pusStatus.text + '</div></li>'
+                    + '</ul>'
+                + '</div>';
+        }
     })();
     </script>
 </body>

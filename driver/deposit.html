@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deposit | GB Car Rental</title>
+    <link rel="stylesheet" href="../css/app.css">
+</head>
+<body>
+    <div id="app" style="display:none;">
+        <div class="app-shell">
+            <aside class="sidebar">
+                <div class="sidebar-brand"><span>GB</span> Driver</div>
+                <nav class="sidebar-nav">
+                    <a href="index.html">My Rental</a>
+                    <a href="documents.html">Documents</a>
+                    <a href="deposit.html" class="active">Deposit</a>
+                    <a href="payments.html">Payments</a>
+                    <a href="logs.html">Logs</a>
+                </nav>
+                <div class="sidebar-footer">
+                    <div class="user-name" id="user-name"></div>
+                    <a href="#" id="logout" style="color:#cbd1d8;">Sign out</a>
+                </div>
+            </aside>
+
+            <main class="main">
+                <div class="topbar"><h1>Deposit</h1></div>
+                <div class="content">
+                    <div id="page-alert"></div>
+                    <div id="content"></div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../js/supabase.js"></script>
+    <script src="../js/auth.js"></script>
+    <script>
+    (async function () {
+        const profile = await requireRole('driver');
+        if (!profile) return;
+        document.getElementById('user-name').textContent = profile.full_name || 'Driver';
+        document.getElementById('app').style.display = 'block';
+        document.getElementById('logout').addEventListener('click', function (e) { e.preventDefault(); signOut(); });
+
+        const content = document.getElementById('content');
+        const pageAlert = document.getElementById('page-alert');
+
+        function escapeHtml(s) { if (s == null) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+        function fmtDate(s) { return s ? new Date(s).toLocaleString('en-MY') : '—'; }
+        function fmtRM(n)   { return 'RM ' + Number(n || 0).toFixed(2); }
+        function showAlert(msg, isError) {
+            pageAlert.innerHTML = '';
+            const div = document.createElement('div');
+            div.className = 'alert ' + (isError ? 'alert-error' : 'alert-success');
+            div.textContent = msg;
+            pageAlert.appendChild(div);
+            setTimeout(function () { div.remove(); }, 5000);
+        }
+
+        const ctx = await getDriverContext();
+        if (ctx.error) { content.innerHTML = '<div class="alert alert-error">' + escapeHtml(ctx.error) + '</div>'; return; }
+        const driver = ctx.driver;
+
+        await render();
+
+        async function render() {
+            const status = driver.deposit_status || 'pending';
+            let slipLink = '';
+            if (driver.deposit_slip_path) {
+                const { data: urlData } = await supabaseClient.storage
+                    .from('driver-documents')
+                    .createSignedUrl(driver.deposit_slip_path, 3600);
+                if (urlData) {
+                    slipLink = '<a href="' + escapeHtml(urlData.signedUrl) + '" target="_blank">View uploaded slip</a>';
+                }
+            }
+
+            let statusBox;
+            if (status === 'approved') {
+                statusBox = '<div class="alert alert-success">✓ Your deposit has been approved. Amount: ' + fmtRM(driver.deposit_amount_paid) + '</div>';
+            } else if (status === 'submitted') {
+                statusBox = '<div class="alert alert-info">⏳ Your deposit slip has been submitted and is pending admin approval.<br>'
+                    + 'Amount: ' + fmtRM(driver.deposit_amount_paid)
+                    + (slipLink ? ' · ' + slipLink : '') + '</div>';
+            } else if (status === 'rejected') {
+                statusBox = '<div class="alert alert-error">✗ Your previous deposit was rejected'
+                    + (driver.deposit_notes ? ': ' + escapeHtml(driver.deposit_notes) : '.')
+                    + ' Please re-submit below.</div>';
+            } else {
+                statusBox = '<div class="alert alert-info">Please pay the deposit and upload the bank-in slip below.</div>';
+            }
+
+            const showForm = status !== 'approved' && status !== 'submitted';
+
+            content.innerHTML = statusBox
+                + (showForm ?
+                      '<div class="card">'
+                    + '<div class="card-header"><h2>Submit deposit</h2></div>'
+                    + '<div class="form-group">'
+                        + '<label>Deposit amount (RM) *</label>'
+                        + '<input id="dep-amount" type="number" min="0" step="0.01" required>'
+                    + '</div>'
+                    + '<div class="form-group">'
+                        + '<label>Bank-in slip * <span style="color:var(--text-muted); font-weight:normal;">(image or PDF)</span></label>'
+                        + '<input id="dep-file" type="file" accept="image/*,application/pdf" required>'
+                    + '</div>'
+                    + '<div class="form-group">'
+                        + '<label>Notes</label>'
+                        + '<textarea id="dep-notes" rows="2" placeholder="Reference number, bank, etc."></textarea>'
+                    + '</div>'
+                    + '<button class="btn btn-primary" id="dep-submit">Submit deposit</button>'
+                    + '</div>'
+                : '<div class="card"><div class="card-header"><h2>Deposit details</h2></div>'
+                    + '<p><strong>Amount:</strong> ' + fmtRM(driver.deposit_amount_paid) + '</p>'
+                    + '<p><strong>Submitted:</strong> ' + (driver.deposit_paid_at ? fmtDate(driver.deposit_paid_at) : '—') + '</p>'
+                    + (slipLink ? '<p>' + slipLink + '</p>' : '')
+                    + '</div>');
+
+            const submitBtn = document.getElementById('dep-submit');
+            if (!submitBtn) return;
+
+            submitBtn.addEventListener('click', async function () {
+                const amount = parseFloat(document.getElementById('dep-amount').value);
+                const file   = document.getElementById('dep-file').files[0];
+                const notes  = document.getElementById('dep-notes').value.trim();
+
+                if (isNaN(amount) || amount <= 0) { showAlert('Please enter a valid deposit amount.', true); return; }
+                if (!file) { showAlert('Please upload your bank-in slip.', true); return; }
+
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Uploading...';
+
+                // Upload slip
+                const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+                const path = driver.id + '/deposit/' + Date.now() + '_' + safeName;
+                const upResp = await supabaseClient.storage
+                    .from('driver-documents')
+                    .upload(path, file);
+                if (upResp.error) {
+                    submitBtn.disabled = false; submitBtn.textContent = 'Submit deposit';
+                    showAlert('Upload failed: ' + upResp.error.message, true);
+                    return;
+                }
+
+                // Update driver row
+                const { error: updateErr } = await supabaseClient
+                    .from('drivers')
+                    .update({
+                        deposit_amount_paid: amount,
+                        deposit_paid_at: new Date().toISOString(),
+                        deposit_slip_path: path,
+                        deposit_status: 'submitted',
+                        deposit_notes: notes || null
+                    })
+                    .eq('id', driver.id);
+
+                if (updateErr) {
+                    submitBtn.disabled = false; submitBtn.textContent = 'Submit deposit';
+                    showAlert('Failed to save: ' + updateErr.message, true);
+                    return;
+                }
+
+                showAlert('Deposit submitted! Awaiting admin approval.', false);
+                // Reload driver row & re-render
+                const refreshed = await getDriverContext();
+                if (refreshed.driver) Object.assign(driver, refreshed.driver);
+                await render();
+            });
+        }
+    })();
+    </script>
+</body>
+</html>
