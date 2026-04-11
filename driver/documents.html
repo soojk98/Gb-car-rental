@@ -72,10 +72,11 @@
 
         const driverId = ctx.driver.id;
         const docTypes = [
-            { type: 'nric',    title: 'NRIC (Identity Card)' },
-            { type: 'license', title: 'Driving License (CDL)' },
-            { type: 'psv',     title: 'PSV License' },
-            { type: 'other',   title: 'Other documents' }
+            { type: 'nric',          title: 'NRIC (Identity Card)' },
+            { type: 'license',       title: 'Driving License (CDL)' },
+            { type: 'psv',           title: 'PSV License' },
+            { type: 'electric_bill', title: 'Electric Bill' },
+            { type: 'water_bill',    title: 'Water Bill' }
         ];
 
         async function loadDocuments() {
