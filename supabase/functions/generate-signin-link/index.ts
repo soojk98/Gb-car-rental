@@ -6,9 +6,9 @@
 // (admin copies the link and shares it via WhatsApp).
 //
 // For drivers with no real email on file, a synthetic email is used:
-//   driver-<short-uuid>@gbcr.invite
-// The .invite TLD does not exist on the public internet, so the address
-// can never receive (or accidentally send) real mail.
+//   driver-<short-uuid>@noreply.example.com
+// example.com is reserved by RFC 2606 for documentation/examples and is
+// guaranteed never to receive real mail.
 //
 // Auth: caller must be an admin (verified via the public.profiles table).
 // Body: { driver_id: string, redirect_to: string }
@@ -95,18 +95,30 @@ serve(async (req) => {
 
         // ---------- 5. Determine the email to use ----------
         const driverIdShort = driver.id.replace(/-/g, "").slice(0, 12);
-        const email = driver.email || `driver-${driverIdShort}@gbcr.invite`;
+        const email = driver.email || `driver-${driverIdShort}@noreply.example.com`;
         const isSynthetic = !driver.email;
 
-        // ---------- 6. Ensure the auth user exists (idempotent) ----------
-        // Try createUser. If user already exists, ignore the error.
-        await adminClient.auth.admin.createUser({
+        console.log("generate-signin-link: using email", email, "synthetic:", isSynthetic);
+
+        // ---------- 6. Ensure the auth user exists ----------
+        // createUser is idempotent for our purposes — if the user already exists,
+        // we treat that as success. Any OTHER error must be reported.
+        const { error: createErr } = await adminClient.auth.admin.createUser({
             email,
             email_confirm: true,
             user_metadata: { full_name: driver.full_name },
-        }).catch(() => {
-            // User likely exists, that's fine
         });
+        if (createErr) {
+            const msg = createErr.message || "";
+            const alreadyExists = /already (registered|exists|been)/i.test(msg)
+                || /duplicate/i.test(msg)
+                || createErr.status === 422;
+            if (!alreadyExists) {
+                console.error("createUser failed:", createErr);
+                return jsonError("createUser failed: " + msg, 500);
+            }
+            console.log("createUser: user already exists, continuing");
+        }
 
         // ---------- 7. Generate the magic link ----------
         const { data: linkData, error: linkErr } = await adminClient.auth.admin
@@ -119,9 +131,11 @@ serve(async (req) => {
             });
 
         if (linkErr) {
-            return jsonError("Failed to generate link: " + linkErr.message, 500);
+            console.error("generateLink failed:", linkErr);
+            return jsonError("generateLink failed: " + linkErr.message, 500);
         }
         if (!linkData?.properties?.action_link) {
+            console.error("generateLink returned no link:", linkData);
             return jsonError("No link returned by Supabase", 500);
         }
 

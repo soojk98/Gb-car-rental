@@ -463,9 +463,9 @@
                 btn.disabled = false; btn.textContent = 'Convert';
 
                 if (fnErr || !fnData?.link) {
+                    const detail = await extractFunctionError(fnErr, fnData);
                     errBox.textContent = 'Driver created, but failed to generate sign-in link: '
-                        + (fnErr?.message || fnData?.error || 'unknown error')
-                        + '. You can retry from the Drivers page.';
+                        + detail + '. You can retry from the Drivers page.';
                     errBox.style.display = 'block';
                     await loadLeads();
                     return;
@@ -476,6 +476,23 @@
                 await loadLeads();
             }
         });
+
+        // Pull the JSON error body out of a failed Supabase Functions invocation.
+        async function extractFunctionError(error, data) {
+            if (data?.error) return data.error;
+            if (!error) return 'unknown error';
+            try {
+                if (error.context && typeof error.context.json === 'function') {
+                    const body = await error.context.json();
+                    if (body?.error) return body.error;
+                }
+                if (error.context && typeof error.context.text === 'function') {
+                    const txt = await error.context.text();
+                    if (txt) return txt;
+                }
+            } catch (e) { /* fall through */ }
+            return error.message || 'unknown error';
+        }
 
         // ---------- Sign-in link share modal ----------
         const linkModal = document.getElementById('link-modal');

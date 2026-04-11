@@ -387,11 +387,31 @@
                 body: { driver_id: driver.id, redirect_to: redirectTo }
             });
             if (error || !data?.link) {
-                showAlert('Failed: ' + (error?.message || data?.error || 'unknown error'), true);
+                const detail = await extractFunctionError(error, data);
+                showAlert('Failed: ' + detail, true);
                 return;
             }
             showLinkModal(data.link, driver.whatsapp, driver.full_name);
             await loadDrivers();
+        }
+
+        // Pull the JSON error body out of a failed Supabase Functions invocation.
+        // The default error.message is a generic "non-2xx" string; the real error
+        // is in the response body returned by our function (jsonError helper).
+        async function extractFunctionError(error, data) {
+            if (data?.error) return data.error;
+            if (!error) return 'unknown error';
+            try {
+                if (error.context && typeof error.context.json === 'function') {
+                    const body = await error.context.json();
+                    if (body?.error) return body.error;
+                }
+                if (error.context && typeof error.context.text === 'function') {
+                    const txt = await error.context.text();
+                    if (txt) return txt;
+                }
+            } catch (e) { /* fall through */ }
+            return error.message || 'unknown error';
         }
 
         async function deleteDriver(driver) {
