@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rental Agreement | GB Car Rental</title>
+    <link rel="stylesheet" href="../css/app.css">
+</head>
+<body>
+    <div id="app" style="display:none;">
+        <div class="app-shell">
+            <aside class="sidebar">
+                <div class="sidebar-brand"><span>GB</span> Driver</div>
+                <nav class="sidebar-nav">
+                    <a href="index.html">My Rental</a>
+                    <a href="documents.html">Documents</a>
+                    <a href="deposit.html">Deposit</a>
+                    <a href="agreement.html" class="active">Agreement</a>
+                    <a href="payments.html">Payments</a>
+                    <a href="logs.html">Logs</a>
+                </nav>
+                <div class="sidebar-footer">
+                    <div class="user-name" id="user-name"></div>
+                    <a href="#" id="logout" style="color:#cbd1d8;">Sign out</a>
+                </div>
+            </aside>
+
+            <main class="main">
+                <div class="topbar"><h1>Rental Agreement</h1></div>
+                <div class="content">
+                    <div id="page-alert"></div>
+                    <div id="content"></div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../js/supabase.js"></script>
+    <script src="../js/auth.js"></script>
+    <script>
+    (async function () {
+        const profile = await requireRole('driver');
+        if (!profile) return;
+        document.getElementById('user-name').textContent = profile.full_name || 'Driver';
+        document.getElementById('app').style.display = 'block';
+        document.getElementById('logout').addEventListener('click', function (e) { e.preventDefault(); signOut(); });
+
+        const content = document.getElementById('content');
+        const pageAlert = document.getElementById('page-alert');
+
+        function escapeHtml(s) { if (s == null) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+        function fmtDate(s) { return s ? new Date(s).toLocaleString('en-MY') : '—'; }
+        function showAlert(msg, isError) {
+            pageAlert.innerHTML = '';
+            const div = document.createElement('div');
+            div.className = 'alert ' + (isError ? 'alert-error' : 'alert-success');
+            div.textContent = msg;
+            pageAlert.appendChild(div);
+            setTimeout(function () { div.remove(); }, 5000);
+        }
+
+        const ctx = await getDriverContext();
+        if (ctx.error) { content.innerHTML = '<div class="alert alert-error">' + escapeHtml(ctx.error) + '</div>'; return; }
+        const driver = ctx.driver;
+
+        await render();
+
+        async function render() {
+            if (!driver.agreement_file_path) {
+                content.innerHTML =
+                    '<div class="card">'
+                    + '<div class="card-header"><h2>Rental agreement</h2></div>'
+                    + '<p>Admin has not uploaded your rental agreement yet. Please check back later or contact admin.</p>'
+                    + '</div>';
+                return;
+            }
+
+            // Get a signed URL to view the file
+            const { data: urlData, error: urlErr } = await supabaseClient.storage
+                .from('driver-documents')
+                .createSignedUrl(driver.agreement_file_path, 3600);
+            if (urlErr) {
+                content.innerHTML = '<div class="alert alert-error">Failed to load agreement: ' + escapeHtml(urlErr.message) + '</div>';
+                return;
+            }
+            const url = urlData.signedUrl;
+
+            const acknowledged = !!driver.agreement_acknowledged_at;
+
+            content.innerHTML =
+                '<div class="card">'
+                    + '<div class="card-header"><h2>Your rental agreement</h2></div>'
+                    + '<p>Admin uploaded your car rental agreement on ' + escapeHtml(fmtDate(driver.agreement_uploaded_at)) + '.'
+                        + ' Please open and read the agreement carefully before accepting.</p>'
+                    + '<p><a class="btn btn-primary" href="' + escapeHtml(url) + '" target="_blank" rel="noopener">View agreement</a></p>'
+                + '</div>'
+                + '<div class="card">'
+                    + '<div class="card-header"><h2>Acknowledgement</h2></div>'
+                    + (acknowledged
+                        ? '<div class="alert alert-success">✓ You acknowledged this agreement on ' + escapeHtml(fmtDate(driver.agreement_acknowledged_at)) + '.</div>'
+                        : '<p>By clicking the button below you confirm that you have read, understood, and agreed to the terms of the rental agreement.</p>'
+                          + '<button id="ack-btn" class="btn btn-primary">I have read and agree</button>'
+                      )
+                + '</div>';
+
+            const ackBtn = document.getElementById('ack-btn');
+            if (ackBtn) {
+                ackBtn.addEventListener('click', async function () {
+                    if (!confirm('Confirm: I have read and agree to the rental agreement.')) return;
+                    ackBtn.disabled = true;
+                    ackBtn.textContent = 'Saving...';
+                    const { error } = await supabaseClient
+                        .from('drivers')
+                        .update({ agreement_acknowledged_at: new Date().toISOString() })
+                        .eq('id', driver.id);
+                    if (error) {
+                        showAlert('Failed to save: ' + error.message, true);
+                        ackBtn.disabled = false;
+                        ackBtn.textContent = 'I have read and agree';
+                        return;
+                    }
+                    showAlert('Thank you! Your acknowledgement has been recorded.', false);
+                    const refreshed = await getDriverContext();
+                    if (refreshed.driver) Object.assign(driver, refreshed.driver);
+                    await render();
+                });
+            }
+        }
+    })();
+    </script>
+</body>
+</html>

@@ -239,6 +239,26 @@
         </div>
     </div>
 
+    <!-- Rental agreement modal -->
+    <div class="modal-backdrop" id="agreement-modal">
+        <div class="modal">
+            <h2 id="agreement-title">Rental agreement</h2>
+            <div id="agreement-error" class="alert alert-error" style="display:none;"></div>
+            <div id="agreement-info"></div>
+
+            <h3>Upload / replace agreement</h3>
+            <div class="form-group">
+                <label>Agreement file <span style="color:var(--text-muted); font-weight:normal;">(PDF or image)</span></label>
+                <input id="agreement-file" type="file" accept="image/*,application/pdf">
+            </div>
+            <button class="btn btn-primary btn-sm" id="agreement-upload-btn">Upload</button>
+
+            <div class="modal-actions">
+                <button class="btn btn-secondary" id="agreement-close">Close</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Review deposit modal -->
     <div class="modal-backdrop" id="deposit-modal">
         <div class="modal">
@@ -275,10 +295,11 @@
         const tableEl = document.getElementById('drivers-table');
         const emptyEl = document.getElementById('empty');
         const pageAlert = document.getElementById('page-alert');
-        const driverModal  = document.getElementById('driver-modal');
-        const docsModal    = document.getElementById('docs-modal');
-        const depositModal = document.getElementById('deposit-modal');
-        const linkModal    = document.getElementById('link-modal');
+        const driverModal    = document.getElementById('driver-modal');
+        const docsModal      = document.getElementById('docs-modal');
+        const depositModal   = document.getElementById('deposit-modal');
+        const linkModal      = document.getElementById('link-modal');
+        const agreementModal = document.getElementById('agreement-modal');
 
         let allDrivers = [];
         let activeRentalsByDriverId = {};
@@ -360,12 +381,13 @@
                     + '<td><span class="badge badge-' + escapeHtml(depositStatus) + '">' + escapeHtml(depositStatus) + '</span></td>'
                     + '<td>' + (currentCar ? escapeHtml(currentCar) : '<span style="color:var(--text-muted);">—</span>') + '</td>'
                     + '<td class="actions-cell">'
-                        + '<button class="btn btn-sm btn-secondary" data-action="edit"     data-id="' + driver.id + '">Edit</button>'
-                        + '<button class="btn btn-sm btn-secondary" data-action="docs"     data-id="' + driver.id + '">Documents</button>'
+                        + '<button class="btn btn-sm btn-secondary" data-action="edit"      data-id="' + driver.id + '">Edit</button>'
+                        + '<button class="btn btn-sm btn-secondary" data-action="docs"      data-id="' + driver.id + '">Documents</button>'
+                        + '<button class="btn btn-sm btn-secondary" data-action="agreement" data-id="' + driver.id + '">Agreement</button>'
                         + (depositStatus === 'submitted' ? '<button class="btn btn-sm btn-primary" data-action="deposit"  data-id="' + driver.id + '">Review deposit</button>' : '')
                         + (driver.email ? '<button class="btn btn-sm btn-secondary" data-action="resend"   data-id="' + driver.id + '">Email invite</button>' : '')
-                        + '<button class="btn btn-sm btn-secondary" data-action="link"     data-id="' + driver.id + '">Sign-in link</button>'
-                        + '<button class="btn btn-sm btn-danger"    data-action="delete"   data-id="' + driver.id + '">Delete</button>'
+                        + '<button class="btn btn-sm btn-secondary" data-action="link"      data-id="' + driver.id + '">Sign-in link</button>'
+                        + '<button class="btn btn-sm btn-danger"    data-action="delete"    data-id="' + driver.id + '">Delete</button>'
                     + '</td>'
                 + '</tr>';
             }).join('');
@@ -391,12 +413,13 @@
             if (!driver) return;
 
             const action = target.dataset.action;
-            if (action === 'edit')          openModal(driver);
-            else if (action === 'docs')     openDocsModal(driver);
-            else if (action === 'deposit')  openDepositModal(driver);
-            else if (action === 'resend')   await resendInvite(driver);
-            else if (action === 'link')     await generateLink(driver);
-            else if (action === 'delete')   await deleteDriver(driver);
+            if (action === 'edit')           openModal(driver);
+            else if (action === 'docs')      openDocsModal(driver);
+            else if (action === 'agreement') openAgreementModal(driver);
+            else if (action === 'deposit')   openDepositModal(driver);
+            else if (action === 'resend')    await resendInvite(driver);
+            else if (action === 'link')      await generateLink(driver);
+            else if (action === 'delete')    await deleteDriver(driver);
         });
 
         async function generateLink(driver) {
@@ -700,6 +723,67 @@
                 document.execCommand('copy');
                 showAlert('Magic link copied.', false);
             }
+        });
+
+        // ---------- Rental agreement modal ----------
+        let viewingAgreementDriver = null;
+
+        async function openAgreementModal(driver) {
+            viewingAgreementDriver = driver;
+            document.getElementById('agreement-title').textContent = 'Rental agreement — ' + driver.full_name;
+            document.getElementById('agreement-error').style.display = 'none';
+            document.getElementById('agreement-file').value = '';
+
+            // Build current status display
+            const infoEl = document.getElementById('agreement-info');
+            if (driver.agreement_file_path) {
+                const { data: urlData } = await supabaseClient.storage
+                    .from('driver-documents')
+                    .createSignedUrl(driver.agreement_file_path, 3600);
+                const url = urlData ? urlData.signedUrl : '#';
+                const ackHtml = driver.agreement_acknowledged_at
+                    ? '<p style="color:var(--success);">✓ Driver acknowledged on ' + fmtDate(driver.agreement_acknowledged_at) + '</p>'
+                    : '<p style="color:var(--warning);">⏳ Awaiting driver acknowledgement</p>';
+                infoEl.innerHTML =
+                    '<div class="alert alert-success" style="margin-bottom:8px;">'
+                    + 'Current agreement uploaded ' + fmtDate(driver.agreement_uploaded_at) + ' · '
+                    + '<a href="' + escapeHtml(url) + '" target="_blank">View file</a>'
+                    + '</div>'
+                    + ackHtml;
+            } else {
+                infoEl.innerHTML = '<p style="color:var(--text-muted);">No agreement uploaded yet.</p>';
+            }
+
+            agreementModal.classList.add('open');
+        }
+
+        document.getElementById('agreement-close').addEventListener('click', function () { agreementModal.classList.remove('open'); });
+        agreementModal.addEventListener('click', function (e) { if (e.target === agreementModal) agreementModal.classList.remove('open'); });
+
+        document.getElementById('agreement-upload-btn').addEventListener('click', async function () {
+            if (!viewingAgreementDriver) return;
+            const errBox = document.getElementById('agreement-error');
+            errBox.style.display = 'none';
+            const file = document.getElementById('agreement-file').files[0];
+            if (!file) { errBox.textContent = 'Please choose a file.'; errBox.style.display = 'block'; return; }
+
+            const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+            const path = viewingAgreementDriver.id + '/agreement_' + Date.now() + '_' + safeName;
+
+            const upResp = await supabaseClient.storage.from('driver-documents').upload(path, file);
+            if (upResp.error) { errBox.textContent = 'Upload failed: ' + upResp.error.message; errBox.style.display = 'block'; return; }
+
+            // Update driver row — reset acknowledgement when a new agreement is uploaded
+            const { error: updErr } = await supabaseClient.from('drivers').update({
+                agreement_file_path: path,
+                agreement_uploaded_at: new Date().toISOString(),
+                agreement_acknowledged_at: null
+            }).eq('id', viewingAgreementDriver.id);
+            if (updErr) { errBox.textContent = 'Upload OK but record failed: ' + updErr.message; errBox.style.display = 'block'; return; }
+
+            agreementModal.classList.remove('open');
+            showAlert('Agreement uploaded.', false);
+            await loadDrivers();
         });
 
         async function reviewDeposit(decision) {

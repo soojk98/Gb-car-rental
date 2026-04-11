@@ -50,6 +50,7 @@
                     <a href="index.html" class="active">My Rental</a>
                     <a href="documents.html">Documents</a>
                     <a href="deposit.html">Deposit</a>
+                    <a href="agreement.html">Agreement</a>
                     <a href="payments.html">Payments</a>
                     <a href="logs.html">Logs</a>
                 </nav>
@@ -102,14 +103,18 @@
         const requiredDocs = ['nric', 'license', 'psv', 'electric_bill', 'water_bill'];
         const docsComplete = requiredDocs.every(function (t) { return uploadedTypes.has(t); });
         const depositApproved = driver.deposit_status === 'approved';
+        const agreementUploaded = !!driver.agreement_file_path;
+        const agreementAcknowledged = !!driver.agreement_acknowledged_at;
+        const agreementReady = agreementUploaded && agreementAcknowledged;
 
-        // Step indices: 0=Account, 1=Documents, 2=Deposit, 3=Ready
+        // Step indices: 0=Account, 1=Documents, 2=Deposit, 3=Agreement, 4=Ready
         let currentStep;
-        if (!docsComplete)        currentStep = 1;
-        else if (!depositApproved) currentStep = 2;
-        else                       currentStep = 3;
+        if (!docsComplete)             currentStep = 1;
+        else if (!depositApproved)     currentStep = 2;
+        else if (!agreementReady)      currentStep = 3;
+        else                           currentStep = 4;
 
-        const stepperHtml = renderStepper(currentStep, driver.deposit_status);
+        const stepperHtml = renderStepper(currentStep, driver.deposit_status, agreementUploaded, agreementAcknowledged);
 
         // Onboarding-specific guidance
         let onboardingCard = '';
@@ -147,11 +152,25 @@
                 + statusLine
                 + (dep !== 'submitted' ? '<a href="deposit.html" class="btn btn-primary">Pay deposit</a>' : '')
                 + '</div>';
+        } else if (currentStep === 3) {
+            let line, action;
+            if (!agreementUploaded) {
+                line = '<div class="alert alert-info">Admin has not uploaded your rental agreement yet. Please check back later or contact admin.</div>';
+                action = '';
+            } else {
+                line = '<p>Please open and read your rental agreement, then click <strong>I have read and agree</strong> to complete onboarding.</p>';
+                action = '<a href="agreement.html" class="btn btn-primary">View agreement</a>';
+            }
+            onboardingCard =
+                '<div class="card">'
+                + '<div class="card-header"><h2>Step 3 — Rental agreement</h2></div>'
+                + line + action
+                + '</div>';
         }
 
         // After onboarding: show rental or "waiting for assignment"
         let mainContent = '';
-        if (currentStep === 3) {
+        if (currentStep === 4) {
             if (!ctx.rental || !ctx.car) {
                 mainContent =
                     '<div class="card">'
@@ -166,11 +185,17 @@
         content.innerHTML = stepperHtml + onboardingCard + mainContent;
 
         // -----------------------------------------------------------------
-        function renderStepper(step, depositStatus) {
+        function renderStepper(step, depositStatus, agrUploaded, agrAcknowledged) {
+            let agreementSub;
+            if (!agrUploaded)        agreementSub = 'Awaiting upload';
+            else if (!agrAcknowledged) agreementSub = 'Acknowledge';
+            else                     agreementSub = 'Acknowledged';
+
             const steps = [
                 { label: 'Account', sub: 'Verified' },
-                { label: 'Documents', sub: 'NRIC, License, PSV' },
+                { label: 'Documents', sub: 'NRIC, License, PSV, bills' },
                 { label: 'Deposit', sub: depositStatus === 'submitted' ? 'Pending review' : (depositStatus === 'rejected' ? 'Rejected' : 'Required') },
+                { label: 'Agreement', sub: agreementSub },
                 { label: 'Ready', sub: 'Start renting' }
             ];
             return '<div class="stepper">'
