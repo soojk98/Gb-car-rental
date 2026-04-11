@@ -54,14 +54,21 @@ Deno.serve(async (req) => {
         const authHeader = req.headers.get("Authorization");
         if (!authHeader) return jsonError("Missing authorization header", 401);
 
+        // Extract the raw JWT and pass it explicitly to getUser. The Edge
+        // runtime has no session storage, so getUser() with no argument
+        // can't find a session and falls through to the anon key, which
+        // is what causes "missing sub claim".
+        const jwt = authHeader.replace(/^Bearer\s+/i, "").trim();
+        if (!jwt) return jsonError("Empty authorization token", 401);
+
         const userClient = createClient(SUPABASE_URL, ANON_KEY, {
-            global: { headers: { Authorization: authHeader } },
+            global: { headers: { Authorization: `Bearer ${jwt}` } },
         });
 
-        const { data: userData, error: userErr } = await userClient.auth.getUser();
+        const { data: userData, error: userErr } = await userClient.auth.getUser(jwt);
         if (userErr || !userData?.user) {
             console.error("getUser failed:", userErr);
-            return jsonError("Not authenticated", 401);
+            return jsonError("Not authenticated: " + (userErr?.message || "no user"), 401);
         }
 
         const { data: callerProfile, error: profileErr } = await userClient
