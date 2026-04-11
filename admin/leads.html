@@ -476,10 +476,10 @@
             }
         });
 
-        // Call a Supabase Edge Function via raw fetch so we have full control
-        // of the Authorization header. supabaseClient.functions.invoke() pins
-        // the anon key as Authorization at client construction and does not
-        // reliably let callers override it.
+        // Call a Supabase Edge Function via raw fetch.
+        // Authorization header carries the anon key (which the gateway always
+        // accepts); the admin's user JWT is passed in the body as user_jwt.
+        // The function validates user_jwt server-side via auth.getUser().
         async function invokeEdgeFunction(name, body) {
             const { data: sessionData } = await supabaseClient.auth.getSession();
             const accessToken = sessionData?.session?.access_token;
@@ -492,9 +492,9 @@
                     headers: {
                         'Content-Type': 'application/json',
                         'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': 'Bearer ' + accessToken
+                        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
                     },
-                    body: JSON.stringify(body)
+                    body: JSON.stringify({ ...body, user_jwt: accessToken })
                 });
                 let json = null;
                 try { json = await resp.json(); } catch (_) { /* may not be JSON */ }

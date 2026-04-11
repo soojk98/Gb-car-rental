@@ -11,7 +11,11 @@
 // guaranteed never to receive real mail.
 //
 // Auth: caller must be an admin (verified via the public.profiles table).
-// Body: { driver_id: string, redirect_to: string }
+// Body: { driver_id: string, redirect_to: string, user_jwt: string }
+//   - user_jwt is the admin's session.access_token. We pass it in the body
+//     instead of the Authorization header because Supabase Edge Functions'
+//     gateway sometimes rejects user JWTs at the verify_jwt layer; the
+//     Authorization header still carries the anon key for gateway pass-through.
 // Returns: { link: string, email: string, is_synthetic_email: boolean }
 //
 // Deploy:
@@ -63,39 +67,40 @@ Deno.serve(async (req) => {
         const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
         const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-        // ---------- 1. Verify caller is an admin ----------
-        const authHeader = req.headers.get("Authorization");
-        if (!authHeader) return jsonError("Missing authorization header", 401);
+        // ---------- 1. Parse body (contains the admin's user JWT) ----------
+        const body = await req.json();
+        const driver_id: string | undefined = body?.driver_id;
+        const redirect_to: string | undefined = body?.redirect_to;
+        const userJwt: string | undefined = body?.user_jwt;
 
-        // Extract the raw JWT
-        const jwt = authHeader.replace(/^Bearer\s+/i, "").trim();
-        if (!jwt) return jsonError("Empty authorization token", 401);
+        if (!driver_id) return jsonError("driver_id required", 400);
+        if (!redirect_to) return jsonError("redirect_to required", 400);
+        if (!userJwt) return jsonError("user_jwt required in body", 401);
 
-        // Inspect the JWT (debug) — what role is the caller using?
-        const decoded = decodeJwt(jwt);
-        console.log("incoming JWT:", {
+        // ---------- 2. Verify caller is an admin ----------
+        const decoded = decodeJwt(userJwt);
+        console.log("user JWT:", {
             role: decoded?.role,
             has_sub: Boolean(decoded?.sub),
             sub_prefix: typeof decoded?.sub === "string"
                 ? (decoded.sub as string).slice(0, 8)
                 : null,
-            aud: decoded?.aud,
         });
 
         if (!decoded?.sub) {
             return jsonError(
-                "JWT has no sub claim — the front-end is sending the anon key instead of the user session token. Make sure you are signed in as admin and that the front-end passes session.access_token in the Authorization header.",
+                "user_jwt has no sub claim — caller is not signed in",
                 401,
             );
         }
 
-        const userClient = createClient(SUPABASE_URL, ANON_KEY, {
-            global: { headers: { Authorization: `Bearer ${jwt}` } },
+        const adminClient = createClient(SUPABASE_URL, SERVICE_ROLE, {
+            auth: { autoRefreshToken: false, persistSession: false },
         });
 
-        // Pass the JWT explicitly to bypass session storage lookup
-        const { data: userData, error: userErr } = await userClient.auth.getUser(
-            jwt,
+        // Validate the JWT against the auth API and resolve the user
+        const { data: userData, error: userErr } = await adminClient.auth.getUser(
+            userJwt,
         );
         if (userErr || !userData?.user) {
             console.error("getUser failed:", userErr);
@@ -104,11 +109,6 @@ Deno.serve(async (req) => {
                 401,
             );
         }
-
-        // Use service-role to read profile (avoids RLS edge cases on the auth header path)
-        const adminClient = createClient(SUPABASE_URL, SERVICE_ROLE, {
-            auth: { autoRefreshToken: false, persistSession: false },
-        });
 
         const { data: callerProfile, error: profileErr } = await adminClient
             .from("profiles")
@@ -121,16 +121,7 @@ Deno.serve(async (req) => {
             return jsonError("Admin only", 403);
         }
 
-        // ---------- 2. Parse + validate input ----------
-        const body = await req.json();
-        const driver_id: string | undefined = body?.driver_id;
-        const redirect_to: string | undefined = body?.redirect_to;
-        if (!driver_id) return jsonError("driver_id required", 400);
-        if (!redirect_to) return jsonError("redirect_to required", 400);
-
-        // ---------- 3. (admin client already created above) ----------
-
-        // ---------- 4. Look up the driver ----------
+        // ---------- 3. Look up the driver ----------
         const { data: driver, error: dErr } = await adminClient
             .from("drivers")
             .select("id, full_name, email")
