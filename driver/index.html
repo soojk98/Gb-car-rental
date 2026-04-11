@@ -99,7 +99,7 @@
             .select('type')
             .eq('driver_id', driver.id);
         const uploadedTypes = new Set((docs || []).map(function (d) { return d.type; }));
-        const requiredDocs = ['nric', 'license', 'psv'];
+        const requiredDocs = ['nric', 'license', 'psv', 'electric_bill', 'water_bill'];
         const docsComplete = requiredDocs.every(function (t) { return uploadedTypes.has(t); });
         const depositApproved = driver.deposit_status === 'approved';
 
@@ -115,7 +115,13 @@
         let onboardingCard = '';
         if (currentStep === 1) {
             const missing = requiredDocs.filter(function (t) { return !uploadedTypes.has(t); });
-            const labels = { nric: 'NRIC', license: 'Driving License', psv: 'PSV License' };
+            const labels = {
+                nric: 'NRIC',
+                license: 'Driving License',
+                psv: 'PSV License',
+                electric_bill: 'Electric Bill',
+                water_bill: 'Water Bill'
+            };
             onboardingCard =
                 '<div class="card">'
                 + '<div class="card-header"><h2>Step 1 — Submit your documents</h2></div>'
