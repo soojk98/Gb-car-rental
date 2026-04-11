@@ -196,7 +196,7 @@
                     <input id="link-phone" type="text" readonly style="font-family: monospace;">
                 </div>
                 <div class="form-group" style="margin-bottom: 10px;">
-                    <label>Password (IC number)</label>
+                    <label>NRIC (password)</label>
                     <input id="link-password" type="text" readonly style="font-family: monospace;">
                 </div>
             </div>
@@ -548,7 +548,7 @@
                 + 'Here are your GB Car Rental driver portal login details:\n\n'
                 + 'Login URL: ' + loginUrl + '\n'
                 + 'Phone: ' + (result.login_phone || driver.whatsapp || '') + '\n'
-                + 'Password: ' + (result.login_password || '') + '\n\n'
+                + 'NRIC (password): ' + (result.login_password || '') + '\n\n'
                 + 'Or click this link to sign in directly (valid for 1 hour):\n' + (result.link || '');
             const waLink = intl
                 ? 'https://wa.me/' + intl + '?text=' + encodeURIComponent(message)
