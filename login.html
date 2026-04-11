@@ -114,7 +114,8 @@
                 const result = await signIn(loginId, password);
 
                 if (result.error) {
-                    alertBox.textContent = result.error;
+                    alertBox.innerHTML = result.error
+                        + (result.attemptedEmail ? '<br><span style="font-size:11px; opacity:0.7;">tried email: ' + result.attemptedEmail + '</span>' : '');
                     alertBox.style.display = 'block';
                     btn.disabled = false;
                     btn.textContent = 'Sign in';

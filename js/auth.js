@@ -53,21 +53,23 @@ async function requireRole(requiredRole) {
 //   - If `loginInput` contains '@', it is used as an email directly (admin).
 //   - Otherwise it is treated as a phone number and converted to the same
 //     synthetic email format the create-login edge function uses.
-// Returns { profile } on success or { error } on failure.
+// Returns { profile } on success or { error, attemptedEmail } on failure.
 async function signIn(loginInput, password) {
     const trimmed = (loginInput || '').trim();
     const email = trimmed.includes('@')
         ? trimmed.toLowerCase()
         : phoneToSyntheticEmail(trimmed);
 
+    console.log('signIn attempting with email:', email);
+
     const { error: signInError } = await supabaseClient.auth.signInWithPassword({
         email: email,
         password: password
     });
-    if (signInError) return { error: signInError.message };
+    if (signInError) return { error: signInError.message, attemptedEmail: email };
 
     const profile = await getCurrentProfile();
-    if (!profile) return { error: 'Logged in but profile not found. Contact admin.' };
+    if (!profile) return { error: 'Logged in but profile not found. Contact admin.', attemptedEmail: email };
 
     return { profile };
 }
