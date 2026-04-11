@@ -539,7 +539,8 @@
             document.getElementById('link-url').value      = result.link || '';
             document.getElementById('link-loginurl').value = loginUrl;
             document.getElementById('link-phone').value    = result.login_phone || driver.whatsapp || '';
-            document.getElementById('link-password').value = result.login_password || '';
+            // Fall back to driver.ic_number if older edge function didn't include it
+            document.getElementById('link-password').value = result.login_password || driver.ic_number || '';
 
             const waDigits = (driver.whatsapp || '').replace(/[^0-9]/g, '');
             const intl = waDigits.startsWith('0') ? '60' + waDigits.slice(1) : waDigits;
@@ -548,7 +549,7 @@
                 + 'Here are your GB Car Rental driver portal login details:\n\n'
                 + 'Login URL: ' + loginUrl + '\n'
                 + 'Phone: ' + (result.login_phone || driver.whatsapp || '') + '\n'
-                + 'NRIC (password): ' + (result.login_password || '') + '\n\n'
+                + 'NRIC (password): ' + (result.login_password || driver.ic_number || '') + '\n\n'
                 + 'Or click this link to sign in directly (valid for 1 hour):\n' + (result.link || '');
             const waLink = intl
                 ? 'https://wa.me/' + intl + '?text=' + encodeURIComponent(message)
