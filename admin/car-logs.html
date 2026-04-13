@@ -175,12 +175,16 @@
                                     <label>Oil quantity (litres)</label>
                                     <input id="ma-oil-qty" type="number" min="0" step="0.1">
                                 </div>
+                                <div class="form-group">
+                                    <label>Invoice / receipt <span style="color:var(--text-muted); font-weight:normal;">(image or PDF, optional)</span></label>
+                                    <input id="ma-file" type="file" accept="image/*,application/pdf">
+                                </div>
                                 <button class="btn btn-primary" id="ma-save">Save</button>
                             </div>
                             <div class="card" style="padding:0;">
                                 <div class="table-wrap">
                                     <table class="data">
-                                        <thead><tr><th>Date</th><th>Type</th><th>Workshop</th><th>Description</th><th>Cost</th><th></th></tr></thead>
+                                        <thead><tr><th>Date</th><th>Type</th><th>Workshop</th><th>Description</th><th>Cost</th><th>Invoice</th><th></th></tr></thead>
                                         <tbody id="ma-tbody"></tbody>
                                     </table>
                                 </div>
@@ -229,12 +233,16 @@
                                     <label>Notes</label>
                                     <textarea id="s-notes" rows="2"></textarea>
                                 </div>
+                                <div class="form-group">
+                                    <label>Summons document <span style="color:var(--text-muted); font-weight:normal;">(image or PDF, optional)</span></label>
+                                    <input id="s-file" type="file" accept="image/*,application/pdf">
+                                </div>
                                 <button class="btn btn-primary" id="s-save">Save</button>
                             </div>
                             <div class="card" style="padding:0;">
                                 <div class="table-wrap">
                                     <table class="data">
-                                        <thead><tr><th>Date</th><th>Offense</th><th>Location</th><th>Fine</th><th>Status</th><th></th></tr></thead>
+                                        <thead><tr><th>Date</th><th>Offense</th><th>Location</th><th>Fine</th><th>Status</th><th>Document</th><th></th></tr></thead>
                                         <tbody id="s-tbody"></tbody>
                                     </table>
                                 </div>
@@ -287,12 +295,22 @@
                                         <input id="a-cost" type="number" min="0" step="0.01">
                                     </div>
                                 </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>Police report <span style="color:var(--text-muted); font-weight:normal;">(image or PDF, optional)</span></label>
+                                        <input id="a-police-file" type="file" accept="image/*,application/pdf">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Insurance report <span style="color:var(--text-muted); font-weight:normal;">(image or PDF, optional)</span></label>
+                                        <input id="a-insurance-file" type="file" accept="image/*,application/pdf">
+                                    </div>
+                                </div>
                                 <button class="btn btn-primary" id="a-save">Save</button>
                             </div>
                             <div class="card" style="padding:0;">
                                 <div class="table-wrap">
                                     <table class="data">
-                                        <thead><tr><th>Date</th><th>Severity</th><th>Location</th><th>Description</th><th>Status</th><th></th></tr></thead>
+                                        <thead><tr><th>Date</th><th>Severity</th><th>Location</th><th>Description</th><th>Status</th><th>Police</th><th>Insurance</th><th></th></tr></thead>
                                         <tbody id="a-tbody"></tbody>
                                     </table>
                                 </div>
@@ -329,6 +347,33 @@
             setTimeout(function () { div.remove(); }, 4000);
         }
         function today() { return new Date().toISOString().slice(0, 10); }
+
+        async function uploadAttachment(file, prefix) {
+            if (!file) return null;
+            const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+            const path = carId + '/' + prefix + '/' + Date.now() + '_' + safeName;
+            const up = await supabaseClient.storage.from('car-logs').upload(path, file);
+            if (up.error) throw new Error('Upload failed: ' + up.error.message);
+            return path;
+        }
+
+        async function openAttachment(path) {
+            if (!path) return;
+            const { data, error } = await supabaseClient.storage.from('car-logs').createSignedUrl(path, 3600);
+            if (error || !data) { showAlert('Could not open file.', true); return; }
+            window.open(data.signedUrl, '_blank');
+        }
+
+        function viewBtn(path, label) {
+            return path
+                ? '<button class="btn btn-sm btn-secondary" data-view-attach="' + escapeHtml(path) + '">' + (label || 'View') + '</button>'
+                : '<span style="color:var(--text-muted);">—</span>';
+        }
+
+        document.getElementById('logs-app').addEventListener('click', function (e) {
+            const btn = e.target.closest('button[data-view-attach]');
+            if (btn) openAttachment(btn.dataset.viewAttach);
+        });
 
         // Get car_id from URL
         const params = new URLSearchParams(window.location.search);
@@ -413,16 +458,20 @@
             const { data, error } = await supabaseClient
                 .from('maintenance_records').select('*').eq('car_id', carId).order('service_date', { ascending: false }).limit(100);
             const tbody = document.getElementById('ma-tbody');
-            if (error) { tbody.innerHTML = '<tr><td colspan="6" style="color:var(--danger);">' + escapeHtml(error.message) + '</td></tr>'; return; }
-            if (!data || data.length === 0) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:20px;">No entries yet.</td></tr>'; return; }
+            if (error) { tbody.innerHTML = '<tr><td colspan="7" style="color:var(--danger);">' + escapeHtml(error.message) + '</td></tr>'; return; }
+            if (!data || data.length === 0) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-muted); padding:20px;">No entries yet.</td></tr>'; return; }
             tbody.innerHTML = data.map(function (r) {
                 return '<tr><td>' + fmtDate(r.service_date) + '</td><td>' + escapeHtml(r.type) + '</td><td>' + escapeHtml(r.workshop || '-') + '</td><td>' + escapeHtml(r.description || r.parts_used || '-') + '</td><td>' + (r.cost ? fmtRM(r.cost) : '-') + '</td>'
+                    + '<td>' + viewBtn(r.attachment_path) + '</td>'
                     + '<td><button class="btn btn-sm btn-danger" data-del-maintenance="' + r.id + '">Delete</button></td></tr>';
             }).join('');
         }
         document.getElementById('ma-save').addEventListener('click', async function () {
             const date = document.getElementById('ma-date').value;
             if (!date) { showAlert('Service date is required.', true); return; }
+            let attachPath = null;
+            try { attachPath = await uploadAttachment(document.getElementById('ma-file').files[0], 'maintenance'); }
+            catch (err) { showAlert(err.message, true); return; }
             const payload = {
                 car_id: carId,
                 type: document.getElementById('ma-type').value,
@@ -433,11 +482,12 @@
                 cost: parseFloat(document.getElementById('ma-cost').value) || null,
                 oil_brand: document.getElementById('ma-oil-brand').value.trim() || null,
                 oil_quantity_litres: parseFloat(document.getElementById('ma-oil-qty').value) || null,
+                attachment_path: attachPath,
                 logged_by: profile.id
             };
             const { error } = await supabaseClient.from('maintenance_records').insert(payload);
             if (error) { showAlert(error.message, true); return; }
-            ['ma-workshop','ma-mileage','ma-desc','ma-cost','ma-oil-brand','ma-oil-qty'].forEach(function (id) { document.getElementById(id).value = ''; });
+            ['ma-workshop','ma-mileage','ma-desc','ma-cost','ma-oil-brand','ma-oil-qty','ma-file'].forEach(function (id) { document.getElementById(id).value = ''; });
             showAlert('Maintenance logged.', false);
             await loadMaintenance();
         });
@@ -455,16 +505,20 @@
             const { data, error } = await supabaseClient
                 .from('summons').select('*').eq('car_id', carId).order('summon_date', { ascending: false }).limit(100);
             const tbody = document.getElementById('s-tbody');
-            if (error) { tbody.innerHTML = '<tr><td colspan="6" style="color:var(--danger);">' + escapeHtml(error.message) + '</td></tr>'; return; }
-            if (!data || data.length === 0) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:20px;">No entries yet.</td></tr>'; return; }
+            if (error) { tbody.innerHTML = '<tr><td colspan="7" style="color:var(--danger);">' + escapeHtml(error.message) + '</td></tr>'; return; }
+            if (!data || data.length === 0) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-muted); padding:20px;">No entries yet.</td></tr>'; return; }
             tbody.innerHTML = data.map(function (r) {
                 return '<tr><td>' + fmtDate(r.summon_date) + '</td><td>' + escapeHtml(r.offense || '-') + '</td><td>' + escapeHtml(r.location || '-') + '</td><td>' + (r.fine_amount ? fmtRM(r.fine_amount) : '-') + '</td><td><span class="badge badge-' + escapeHtml(r.status) + '">' + escapeHtml(r.status) + '</span></td>'
+                    + '<td>' + viewBtn(r.attachment_path) + '</td>'
                     + '<td><button class="btn btn-sm btn-danger" data-del-summons="' + r.id + '">Delete</button></td></tr>';
             }).join('');
         }
         document.getElementById('s-save').addEventListener('click', async function () {
             const date = document.getElementById('s-date').value;
             if (!date) { showAlert('Summons date is required.', true); return; }
+            let attachPath = null;
+            try { attachPath = await uploadAttachment(document.getElementById('s-file').files[0], 'summons'); }
+            catch (err) { showAlert(err.message, true); return; }
             const payload = {
                 car_id: carId,
                 summon_number: document.getElementById('s-number').value.trim() || null,
@@ -474,11 +528,12 @@
                 fine_amount: parseFloat(document.getElementById('s-fine').value) || null,
                 status: document.getElementById('s-status').value,
                 notes: document.getElementById('s-notes').value.trim() || null,
+                attachment_path: attachPath,
                 logged_by: profile.id
             };
             const { error } = await supabaseClient.from('summons').insert(payload);
             if (error) { showAlert(error.message, true); return; }
-            ['s-number','s-offense','s-location','s-fine','s-notes'].forEach(function (id) { document.getElementById(id).value = ''; });
+            ['s-number','s-offense','s-location','s-fine','s-notes','s-file'].forEach(function (id) { document.getElementById(id).value = ''; });
             showAlert('Summons logged.', false);
             await loadSummons();
         });
@@ -496,10 +551,12 @@
             const { data, error } = await supabaseClient
                 .from('accidents').select('*').eq('car_id', carId).order('incident_date', { ascending: false }).limit(100);
             const tbody = document.getElementById('a-tbody');
-            if (error) { tbody.innerHTML = '<tr><td colspan="6" style="color:var(--danger);">' + escapeHtml(error.message) + '</td></tr>'; return; }
-            if (!data || data.length === 0) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:20px;">No entries yet.</td></tr>'; return; }
+            if (error) { tbody.innerHTML = '<tr><td colspan="8" style="color:var(--danger);">' + escapeHtml(error.message) + '</td></tr>'; return; }
+            if (!data || data.length === 0) { tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:var(--text-muted); padding:20px;">No entries yet.</td></tr>'; return; }
             tbody.innerHTML = data.map(function (r) {
                 return '<tr><td>' + fmtDate(r.incident_date) + '</td><td>' + escapeHtml(r.severity || '-') + '</td><td>' + escapeHtml(r.location || '-') + '</td><td style="max-width:300px;">' + escapeHtml(r.description || '-') + '</td><td>' + escapeHtml(r.status) + '</td>'
+                    + '<td>' + viewBtn(r.police_report_path) + '</td>'
+                    + '<td>' + viewBtn(r.insurance_report_path) + '</td>'
                     + '<td><button class="btn btn-sm btn-danger" data-del-accident="' + r.id + '">Delete</button></td></tr>';
             }).join('');
         }
@@ -507,6 +564,11 @@
             const date = document.getElementById('a-date').value;
             const desc = document.getElementById('a-desc').value.trim();
             if (!date || !desc) { showAlert('Incident date and description are required.', true); return; }
+            let policePath = null, insurancePath = null;
+            try {
+                policePath    = await uploadAttachment(document.getElementById('a-police-file').files[0],    'accidents/police');
+                insurancePath = await uploadAttachment(document.getElementById('a-insurance-file').files[0], 'accidents/insurance');
+            } catch (err) { showAlert(err.message, true); return; }
             const payload = {
                 car_id: carId,
                 incident_date: date,
@@ -516,11 +578,13 @@
                 damage_description: document.getElementById('a-damage').value.trim() || null,
                 status: document.getElementById('a-status').value,
                 repair_cost: parseFloat(document.getElementById('a-cost').value) || null,
+                police_report_path: policePath,
+                insurance_report_path: insurancePath,
                 logged_by: profile.id
             };
             const { error } = await supabaseClient.from('accidents').insert(payload);
             if (error) { showAlert(error.message, true); return; }
-            ['a-location','a-desc','a-damage','a-cost'].forEach(function (id) { document.getElementById(id).value = ''; });
+            ['a-location','a-desc','a-damage','a-cost','a-police-file','a-insurance-file'].forEach(function (id) { document.getElementById(id).value = ''; });
             showAlert('Accident logged.', false);
             await loadAccidents();
         });
