@@ -591,6 +591,29 @@
         });
 
         // ---------- Payments modal ----------
+        // Given a YYYY-MM-DD paid date, fill period start (Monday) and end (Sunday).
+        function autoFillPeriod(paidDateStr) {
+            const startEl = document.getElementById('pay-period-start');
+            const endEl   = document.getElementById('pay-period-end');
+            if (!paidDateStr) { startEl.value = ''; endEl.value = ''; return; }
+            const [y, m, d] = paidDateStr.split('-').map(Number);
+            const date = new Date(y, m - 1, d);
+            const dow = date.getDay(); // 0=Sun..6=Sat
+            const toMonday = (dow === 0 ? -6 : 1 - dow);
+            const monday = new Date(y, m - 1, d + toMonday);
+            const sunday = new Date(y, m - 1, d + toMonday + 6);
+            const fmt = function (dt) {
+                return dt.getFullYear() + '-'
+                    + String(dt.getMonth() + 1).padStart(2, '0') + '-'
+                    + String(dt.getDate()).padStart(2, '0');
+            };
+            startEl.value = fmt(monday);
+            endEl.value   = fmt(sunday);
+        }
+        document.getElementById('pay-date').addEventListener('change', function () {
+            autoFillPeriod(this.value);
+        });
+
         async function openPaymentsModal(rental) {
             paymentsRental = rental;
             document.getElementById('payments-error').style.display = 'none';
@@ -602,9 +625,9 @@
 
             // Reset form
             document.getElementById('pay-amount').value = rental.weekly_rate;
-            document.getElementById('pay-date').value = new Date().toISOString().slice(0, 10);
-            document.getElementById('pay-period-start').value = '';
-            document.getElementById('pay-period-end').value = '';
+            const today = new Date().toISOString().slice(0, 10);
+            document.getElementById('pay-date').value = today;
+            autoFillPeriod(today);
             document.getElementById('pay-method').value = 'cash';
             document.getElementById('pay-notes').value = '';
 
@@ -690,8 +713,7 @@
 
             // Reset amount + notes for next entry
             document.getElementById('pay-notes').value = '';
-            document.getElementById('pay-period-start').value = '';
-            document.getElementById('pay-period-end').value = '';
+            autoFillPeriod(document.getElementById('pay-date').value);
 
             await loadPayments();
             await loadRentals();
