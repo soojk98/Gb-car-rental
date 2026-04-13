@@ -24,6 +24,20 @@
         .toc { background: var(--light-bg); border: 1px solid var(--border); border-radius: 8px; padding: 16px 20px; margin-bottom: 28px; }
         .toc h3 { margin-top: 0; }
         .toc a { display: block; padding: 3px 0; color: var(--primary-green); }
+
+        @media print {
+            body { background: white; }
+            .sidebar, .topbar .topbar-user, .topbar button, #print-btn { display: none !important; }
+            .app-shell, .main { display: block !important; }
+            .topbar { border: none; box-shadow: none; padding: 0 0 10px 0; }
+            .content { padding: 0; }
+            .guide { max-width: 100%; font-size: 13px; line-height: 1.5; }
+            .guide h2 { page-break-after: avoid; margin-top: 24px; }
+            .guide h3 { page-break-after: avoid; }
+            .toc { page-break-after: always; }
+            .tip, .warn { page-break-inside: avoid; }
+            a { color: #222; text-decoration: none; }
+        }
     </style>
 </head>
 <body>
@@ -51,7 +65,10 @@
             </aside>
 
             <main class="main">
-                <div class="topbar"><h1>User guide</h1></div>
+                <div class="topbar">
+                    <h1>User guide</h1>
+                    <button id="print-btn" class="btn btn-secondary btn-sm" onclick="window.print()">🖨️ Print</button>
+                </div>
                 <div class="content">
                     <div class="guide">
 
