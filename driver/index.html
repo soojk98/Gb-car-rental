@@ -222,21 +222,23 @@
             else if (balance < -0.01) dueBanner = '<div class="due-banner ok">✓ Your account is in credit by ' + fmtRM(-balance) + '. Thank you!</div>';
             else                      dueBanner = '<div class="due-banner ok">✓ Your payments are up to date. Thank you!</div>';
 
-            const [insResp, taxResp, pusResp] = await Promise.all([
-                supabaseClient.from('insurance_policies').select('*').eq('car_id', car.id).order('end_date', { ascending: false }).limit(1).maybeSingle(),
-                supabaseClient.from('road_tax').select('*').eq('car_id', car.id).order('end_date', { ascending: false }).limit(1).maybeSingle(),
-                supabaseClient.from('puspakom_inspections').select('*').eq('car_id', car.id).order('expiry_date', { ascending: false }).limit(1).maybeSingle()
-            ]);
-            function statusFor(rec, field) {
-                if (!rec || !rec[field]) return { cls: 'status-bad', text: 'Not on record' };
-                const d = daysUntil(rec[field]);
-                if (d < 0)  return { cls: 'status-bad',  text: 'Expired' };
-                if (d < 30) return { cls: 'status-warn', text: d + ' days left' };
-                return { cls: 'status-ok', text: 'Valid until ' + fmtDate(rec[field]) };
+            const docsResp = await supabaseClient
+                .from('car_documents')
+                .select('type, uploaded_at')
+                .eq('car_id', car.id)
+                .order('uploaded_at', { ascending: false });
+            const latestByType = {};
+            (docsResp.data || []).forEach(function (d) {
+                if (!latestByType[d.type]) latestByType[d.type] = d;
+            });
+            function statusFor(type) {
+                const rec = latestByType[type];
+                if (!rec) return { cls: 'status-bad', text: 'Not on record' };
+                return { cls: 'status-ok', text: 'Uploaded · ' + fmtDate(rec.uploaded_at) };
             }
-            const insStatus = statusFor(insResp.data, 'end_date');
-            const taxStatus = statusFor(taxResp.data, 'end_date');
-            const pusStatus = statusFor(pusResp.data, 'expiry_date');
+            const insStatus = statusFor('insurance');
+            const taxStatus = statusFor('road_tax');
+            const pusStatus = statusFor('puspakom');
 
             return dueBanner
                 + '<div class="card">'
@@ -252,7 +254,7 @@
                 + '<div class="card">'
                     + '<div class="card-header"><h2>Vehicle compliance</h2></div>'
                     + '<ul class="expiry-list">'
-                        + '<li><div><div class="name">Insurance</div><div class="meta">' + (insResp.data ? escapeHtml(insResp.data.provider || '') : '') + '</div></div><div class="' + insStatus.cls + '">' + insStatus.text + '</div></li>'
+                        + '<li><div><div class="name">Insurance</div></div><div class="' + insStatus.cls + '">' + insStatus.text + '</div></li>'
                         + '<li><div><div class="name">Road tax</div></div><div class="' + taxStatus.cls + '">' + taxStatus.text + '</div></li>'
                         + '<li><div><div class="name">Puspakom inspection</div></div><div class="' + pusStatus.cls + '">' + pusStatus.text + '</div></li>'
                     + '</ul>'
