@@ -148,9 +148,11 @@
                         return;
                     }
 
-                    // Replace any existing document of this type
+                    // Replace any existing non-rejected document of this type.
+                    // Rejected uploads are kept as history.
                     const existing = await supabaseClient.from('documents')
-                        .select('id, file_path').eq('driver_id', driverId).eq('type', docType);
+                        .select('id, file_path').eq('driver_id', driverId).eq('type', docType)
+                        .neq('status', 'rejected');
                     if (existing.data && existing.data.length > 0) {
                         const oldPaths = existing.data.map(function (e) { return e.file_path; }).filter(Boolean);
                         if (oldPaths.length > 0) {

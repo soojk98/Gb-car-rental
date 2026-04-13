@@ -690,9 +690,11 @@
             const upResp = await supabaseClient.storage.from('driver-documents').upload(path, file);
             if (upResp.error) { errBox.textContent = 'Upload failed: ' + upResp.error.message; errBox.style.display = 'block'; return; }
 
-            // Replace any existing document of this type for this driver
+            // Replace any existing non-rejected document of this type.
+            // Rejected uploads are kept as history.
             const existing = await supabaseClient.from('documents')
-                .select('id, file_path').eq('driver_id', viewingDocsDriver.id).eq('type', type);
+                .select('id, file_path').eq('driver_id', viewingDocsDriver.id).eq('type', type)
+                .neq('status', 'rejected');
             if (existing.data && existing.data.length > 0) {
                 const oldPaths = existing.data.map(function (e) { return e.file_path; }).filter(Boolean);
                 if (oldPaths.length > 0) {
