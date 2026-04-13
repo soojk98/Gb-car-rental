@@ -164,7 +164,8 @@
             async function slipLinkHtml(p) {
                 if (!p.slip_path) return '';
                 if (!signedUrlCache[p.slip_path]) {
-                    const { data } = await supabaseClient.storage.from('driver-documents').createSignedUrl(p.slip_path, 3600);
+                    const bucket = p.slip_bucket || 'driver-documents';
+                    const { data } = await supabaseClient.storage.from(bucket).createSignedUrl(p.slip_path, 3600);
                     signedUrlCache[p.slip_path] = data ? data.signedUrl : null;
                 }
                 const url = signedUrlCache[p.slip_path];

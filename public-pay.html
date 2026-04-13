@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Submit Rental Payment | GB Car Rental</title>
+    <link rel="stylesheet" href="css/app.css">
+    <style>
+        body { background: var(--light-bg, #f5f5f5); padding: 20px; }
+        .wrap { max-width: 560px; margin: 40px auto; }
+        .brand { text-align: center; font-weight: 800; font-size: 22px; margin-bottom: 20px; color: var(--dark-bg, #111); }
+        .brand span { color: var(--primary, #d00); }
+        .card { background: #fff; }
+    </style>
+</head>
+<body>
+    <div class="wrap">
+        <div class="brand"><span>GB</span> Car Rental</div>
+
+        <div id="alert"></div>
+
+        <div class="card" id="form-card">
+            <div class="card-header"><h2>Submit rental payment</h2></div>
+            <p style="color: var(--text-muted); font-size: 13px; margin-top: -4px;">
+                Enter your car plate number and upload the bank-in slip. Your payment will be pending until admin reviews it.
+            </p>
+
+            <div class="form-group">
+                <label>Car plate number *</label>
+                <input id="f-plate" type="text" placeholder="e.g. ABC1234" required style="text-transform: uppercase;">
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Amount (RM) *</label>
+                    <input id="f-amount" type="number" min="0" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label>Paid on *</label>
+                    <input id="f-date" type="date" required>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Period start</label>
+                    <input id="f-period-start" type="date">
+                </div>
+                <div class="form-group">
+                    <label>Period end</label>
+                    <input id="f-period-end" type="date">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Method</label>
+                    <select id="f-method">
+                        <option value="transfer">Transfer</option>
+                        <option value="cash">Cash</option>
+                        <option value="cheque">Cheque</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Proof of payment * <span style="color: var(--text-muted); font-weight: normal;">(image or PDF)</span></label>
+                    <input id="f-file" type="file" accept="image/*,application/pdf" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Notes</label>
+                <input id="f-notes" type="text" placeholder="Reference number, bank, etc.">
+            </div>
+
+            <button class="btn btn-primary" id="f-submit" style="width: 100%;">Submit payment</button>
+        </div>
+
+        <div class="card" id="success-card" style="display: none; text-align: center;">
+            <h2 style="color: var(--success, #0a7);">✓ Payment submitted</h2>
+            <p>Your payment is pending admin review. You can close this page.</p>
+        </div>
+
+        <p style="text-align: center; color: var(--text-muted); font-size: 12px; margin-top: 20px;">
+            Need help? Contact GB Car Rental at 016-365 2235.
+        </p>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase.js"></script>
+    <script>
+    (function () {
+        const alertBox = document.getElementById('alert');
+        function showAlert(msg, isError) {
+            alertBox.innerHTML = '';
+            const div = document.createElement('div');
+            div.className = 'alert ' + (isError ? 'alert-error' : 'alert-success');
+            div.textContent = msg;
+            alertBox.appendChild(div);
+            if (!isError) setTimeout(function () { div.remove(); }, 5000);
+        }
+
+        function computePeriod(paidDateStr) {
+            if (!paidDateStr) return { start: '', end: '' };
+            const [y, m, d] = paidDateStr.split('-').map(Number);
+            const date = new Date(y, m - 1, d);
+            const dow = date.getDay();
+            const toMonday = (dow === 0 ? -6 : 1 - dow);
+            const monday = new Date(y, m - 1, d + toMonday);
+            const sunday = new Date(y, m - 1, d + toMonday + 6);
+            const fmt = function (dt) {
+                return dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0');
+            };
+            return { start: fmt(monday), end: fmt(sunday) };
+        }
+
+        // Prefill from ?plate=XXX
+        const params = new URLSearchParams(location.search);
+        if (params.get('plate')) document.getElementById('f-plate').value = params.get('plate').toUpperCase();
+
+        const today = new Date().toISOString().slice(0, 10);
+        document.getElementById('f-date').value = today;
+        const p0 = computePeriod(today);
+        document.getElementById('f-period-start').value = p0.start;
+        document.getElementById('f-period-end').value   = p0.end;
+
+        document.getElementById('f-date').addEventListener('change', function () {
+            const p = computePeriod(this.value);
+            document.getElementById('f-period-start').value = p.start;
+            document.getElementById('f-period-end').value   = p.end;
+        });
+
+        document.getElementById('f-submit').addEventListener('click', async function () {
+            const btn = this;
+            const plate  = document.getElementById('f-plate').value.trim().toUpperCase();
+            const amount = parseFloat(document.getElementById('f-amount').value);
+            const paidAt = document.getElementById('f-date').value;
+            const pStart = document.getElementById('f-period-start').value || null;
+            const pEnd   = document.getElementById('f-period-end').value || null;
+            const method = document.getElementById('f-method').value;
+            const notes  = document.getElementById('f-notes').value.trim() || null;
+            const file   = document.getElementById('f-file').files[0];
+
+            if (!plate) { showAlert('Plate number is required.', true); return; }
+            if (isNaN(amount) || amount <= 0) { showAlert('Enter a valid amount.', true); return; }
+            if (!paidAt) { showAlert('Paid-on date is required.', true); return; }
+            if (!file)   { showAlert('Please attach a proof of payment.', true); return; }
+
+            btn.disabled = true;
+            btn.textContent = 'Uploading...';
+
+            const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+            const path = plate.replace(/[^A-Z0-9]/g, '') + '/' + Date.now() + '_' + safeName;
+            const up = await supabaseClient.storage.from('payment-slips').upload(path, file);
+            if (up.error) {
+                btn.disabled = false; btn.textContent = 'Submit payment';
+                showAlert('Upload failed: ' + up.error.message, true);
+                return;
+            }
+
+            const rpc = await supabaseClient.rpc('submit_public_payment', {
+                p_plate: plate,
+                p_amount: amount,
+                p_paid_at: paidAt,
+                p_period_start: pStart,
+                p_period_end: pEnd,
+                p_method: method,
+                p_notes: notes,
+                p_slip_path: path
+            });
+            if (rpc.error) {
+                btn.disabled = false; btn.textContent = 'Submit payment';
+                showAlert(rpc.error.message || 'Failed to submit payment.', true);
+                return;
+            }
+
+            document.getElementById('form-card').style.display = 'none';
+            document.getElementById('success-card').style.display = 'block';
+        });
+    })();
+    </script>
+</body>
+</html>
