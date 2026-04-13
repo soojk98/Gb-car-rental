@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory | GB Car Rental</title>
+    <link rel="stylesheet" href="../css/app.css">
+    <style>
+        .filter-bar { display:flex; gap:8px; margin-bottom:18px; flex-wrap:wrap; }
+        .filter-bar button {
+            padding: 8px 16px; background: white; border: 1px solid var(--border);
+            border-radius: 5px; font-size: 13px; font-weight: 600; color: var(--text); cursor: pointer;
+        }
+        .filter-bar button.active { background: var(--primary-green); color: white; border-color: var(--primary-green); }
+        .actions-cell { white-space: nowrap; }
+        .actions-cell .btn { margin-right: 4px; margin-bottom: 2px; }
+
+        .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 100; padding: 20px; }
+        .modal-backdrop.open { display: flex; }
+        .modal { background: white; border-radius: 10px; padding: 28px; width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto; }
+        .modal h2 { margin: 0 0 18px 0; font-size: 20px; color: var(--dark-bg); }
+        .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+
+        .stock-low { color: var(--danger, #c00); font-weight: 700; }
+        .stock-ok  { color: var(--success, #0a7); font-weight: 700; }
+        .summary-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 16px; }
+        .summary-box { background: var(--light-bg); padding: 14px; border-radius: 6px; border: 1px solid var(--border); }
+        .summary-box .label { font-size: 11px; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px; }
+        .summary-box .value { font-size: 18px; font-weight: 700; color: var(--dark-bg); margin-top: 4px; }
+    </style>
+</head>
+<body>
+    <div id="app" style="display:none;">
+        <div class="app-shell">
+            <aside class="sidebar">
+                <div class="sidebar-brand"><span>GB</span> Admin</div>
+                <nav class="sidebar-nav">
+                    <a href="index.html">Dashboard</a>
+                    <a href="leads.html">Leads</a>
+                    <a href="cars.html">Cars</a>
+                    <a href="drivers.html">Drivers</a>
+                    <a href="rentals.html">Rentals</a>
+                    <a href="payment-link.html">Payment Link</a>
+                    <a href="inventory.html" class="active">Inventory</a>
+                </nav>
+                <div class="sidebar-footer">
+                    <div class="user-name" id="user-name"></div>
+                    <a href="#" id="logout" style="color:#cbd1d8;">Sign out</a>
+                </div>
+            </aside>
+
+            <main class="main">
+                <div class="topbar">
+                    <h1>Inventory</h1>
+                    <div>
+                        <button class="btn btn-secondary" id="new-item-btn">+ Item</button>
+                        <button class="btn btn-primary" id="new-move-btn">+ Movement</button>
+                    </div>
+                </div>
+
+                <div class="content">
+                    <div id="page-alert"></div>
+
+                    <div class="summary-row">
+                        <div class="summary-box"><div class="label">Items</div><div class="value" id="sum-items">—</div></div>
+                        <div class="summary-box"><div class="label">Low stock</div><div class="value" id="sum-low">—</div></div>
+                        <div class="summary-box"><div class="label">Total purchase value (90d)</div><div class="value" id="sum-spend">—</div></div>
+                    </div>
+
+                    <div class="filter-bar">
+                        <button class="active" data-tab="items">Items</button>
+                        <button data-tab="movements">Movements</button>
+                    </div>
+
+                    <div id="tab-items">
+                        <div class="card" style="padding:0;">
+                            <div class="table-wrap">
+                                <table class="data">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>SKU</th>
+                                            <th>Category</th>
+                                            <th>Stock</th>
+                                            <th>Reorder at</th>
+                                            <th>Unit</th>
+                                            <th>Notes</th>
+                                            <th></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="items-tbody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="tab-movements" style="display:none;">
+                        <div class="card" style="padding:0;">
+                            <div class="table-wrap">
+                                <table class="data">
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Type</th>
+                                            <th>Item</th>
+                                            <th>Qty</th>
+                                            <th>Unit cost</th>
+                                            <th>Total</th>
+                                            <th>Supplier / Car</th>
+                                            <th>Bill</th>
+                                            <th>Notes</th>
+                                            <th></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="moves-tbody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Item modal -->
+    <div class="modal-backdrop" id="item-modal">
+        <div class="modal">
+            <h2 id="item-title">Add item</h2>
+            <div id="item-error" class="alert alert-error" style="display:none;"></div>
+
+            <div class="form-group">
+                <label>Name *</label>
+                <input id="it-name" type="text" required>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label>SKU</label><input id="it-sku" type="text"></div>
+                <div class="form-group"><label>Category</label>
+                    <input id="it-category" type="text" list="category-list" placeholder="e.g. oil filter, spare part">
+                    <datalist id="category-list"></datalist>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label>Unit</label><input id="it-unit" type="text" value="pcs"></div>
+                <div class="form-group"><label>Reorder level</label><input id="it-reorder" type="number" min="0" step="0.01" value="0"></div>
+            </div>
+            <div class="form-group"><label>Notes</label><textarea id="it-notes" rows="2"></textarea></div>
+
+            <div class="modal-actions">
+                <button class="btn btn-secondary" id="it-cancel">Cancel</button>
+                <button class="btn btn-primary" id="it-save">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Movement modal -->
+    <div class="modal-backdrop" id="move-modal">
+        <div class="modal">
+            <h2 id="move-title">Record stock movement</h2>
+            <div id="move-error" class="alert alert-error" style="display:none;"></div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Type *</label>
+                    <select id="mv-type">
+                        <option value="in">Stock in (purchase)</option>
+                        <option value="out">Stock out (used)</option>
+                        <option value="adjust">Adjustment</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Date *</label>
+                    <input id="mv-date" type="date" required>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Item *</label>
+                <select id="mv-item" required><option value="">Select item...</option></select>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Quantity *</label>
+                    <input id="mv-qty" type="number" step="0.01" required>
+                    <div id="mv-qty-hint" style="color: var(--text-muted); font-size: 12px; margin-top: 4px;"></div>
+                </div>
+                <div class="form-group" id="mv-unitcost-wrap">
+                    <label>Unit cost (RM)</label>
+                    <input id="mv-unitcost" type="number" min="0" step="0.01">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group" id="mv-total-wrap">
+                    <label>Total cost (RM)</label>
+                    <input id="mv-total" type="number" min="0" step="0.01">
+                </div>
+                <div class="form-group" id="mv-supplier-wrap">
+                    <label>Supplier</label>
+                    <input id="mv-supplier" type="text">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group" id="mv-car-wrap" style="display:none;">
+                    <label>Car (optional)</label>
+                    <select id="mv-car"><option value="">— None —</option></select>
+                </div>
+                <div class="form-group">
+                    <label>Reference</label>
+                    <input id="mv-reference" type="text" placeholder="PO / invoice no.">
+                </div>
+            </div>
+
+            <div class="form-group" id="mv-bill-wrap">
+                <label>Bill / receipt <span style="color:var(--text-muted); font-weight:normal;">(image or PDF, optional)</span></label>
+                <input id="mv-bill" type="file" accept="image/*,application/pdf">
+            </div>
+
+            <div class="form-group">
+                <label>Notes</label>
+                <textarea id="mv-notes" rows="2"></textarea>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn btn-secondary" id="mv-cancel">Cancel</button>
+                <button class="btn btn-primary" id="mv-save">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../js/supabase.js"></script>
+    <script src="../js/auth.js"></script>
+    <script>
+    (async function () {
+        const profile = await requireRole('admin');
+        if (!profile) return;
+        document.getElementById('user-name').textContent = profile.full_name || 'Admin';
+        document.getElementById('app').style.display = 'block';
+        document.getElementById('logout').addEventListener('click', function (e) { e.preventDefault(); signOut(); });
+
+        const pageAlert = document.getElementById('page-alert');
+        function escapeHtml(s) { if (s == null) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+        function fmtDate(s) { return s ? new Date(s).toLocaleDateString('en-MY', { year:'numeric', month:'short', day:'numeric' }) : '—'; }
+        function fmtRM(n)   { return n == null ? '—' : 'RM ' + Number(n).toFixed(2); }
+        function showAlert(msg, isError) {
+            pageAlert.innerHTML = '';
+            const div = document.createElement('div');
+            div.className = 'alert ' + (isError ? 'alert-error' : 'alert-success');
+            div.textContent = msg;
+            pageAlert.appendChild(div);
+            setTimeout(function () { div.remove(); }, 4000);
+        }
+
+        let stock = [];      // from inventory_stock view
+        let moves = [];      // inventory_movements with item joined
+        let cars = [];
+        let editingItemId = null;
+
+        const itemModal = document.getElementById('item-modal');
+        const moveModal = document.getElementById('move-modal');
+
+        document.querySelectorAll('.filter-bar button[data-tab]').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                document.querySelectorAll('.filter-bar button[data-tab]').forEach(function (b) { b.classList.remove('active'); });
+                btn.classList.add('active');
+                const tab = btn.dataset.tab;
+                document.getElementById('tab-items').style.display     = tab === 'items' ? 'block' : 'none';
+                document.getElementById('tab-movements').style.display = tab === 'movements' ? 'block' : 'none';
+            });
+        });
+
+        async function loadAll() {
+            const [stockResp, movesResp, carsResp] = await Promise.all([
+                supabaseClient.from('inventory_stock').select('*').order('name'),
+                supabaseClient.from('inventory_movements').select('*, inventory_items(name, unit), cars(plate_number)').order('moved_at', { ascending: false }).order('created_at', { ascending: false }),
+                supabaseClient.from('cars').select('id, plate_number, model').order('plate_number')
+            ]);
+            if (stockResp.error) { showAlert(stockResp.error.message, true); return; }
+            if (movesResp.error) { showAlert(movesResp.error.message, true); return; }
+            stock = stockResp.data || [];
+            moves = movesResp.data || [];
+            cars  = carsResp.data || [];
+            render();
+        }
+
+        function render() {
+            // Summary
+            document.getElementById('sum-items').textContent = stock.length;
+            const low = stock.filter(function (s) { return Number(s.stock) <= Number(s.reorder_level); }).length;
+            document.getElementById('sum-low').textContent = low;
+            const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 90);
+            const spend = moves
+                .filter(function (m) { return m.movement_type === 'in' && new Date(m.moved_at) >= cutoff; })
+                .reduce(function (s, m) { return s + Number(m.total_cost || 0); }, 0);
+            document.getElementById('sum-spend').textContent = fmtRM(spend);
+
+            // Items table
+            const itemsTbody = document.getElementById('items-tbody');
+            if (stock.length === 0) {
+                itemsTbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:var(--text-muted); padding:30px;">No items yet. Click "+ Item" to add one.</td></tr>';
+            } else {
+                itemsTbody.innerHTML = stock.map(function (s) {
+                    const low = Number(s.stock) <= Number(s.reorder_level);
+                    return '<tr>'
+                        + '<td><strong>' + escapeHtml(s.name) + '</strong></td>'
+                        + '<td>' + escapeHtml(s.sku || '-') + '</td>'
+                        + '<td>' + escapeHtml(s.category || '-') + '</td>'
+                        + '<td class="' + (low ? 'stock-low' : 'stock-ok') + '">' + Number(s.stock).toFixed(2) + (low ? ' ⚠' : '') + '</td>'
+                        + '<td>' + Number(s.reorder_level).toFixed(2) + '</td>'
+                        + '<td>' + escapeHtml(s.unit || '-') + '</td>'
+                        + '<td style="color:var(--text-muted);">' + escapeHtml(s.notes || '') + '</td>'
+                        + '<td class="actions-cell">'
+                            + '<button class="btn btn-sm btn-secondary" data-action="edit-item" data-id="' + s.id + '">Edit</button>'
+                            + '<button class="btn btn-sm btn-primary"   data-action="move-item" data-id="' + s.id + '">+ Move</button>'
+                            + '<button class="btn btn-sm btn-danger"    data-action="del-item"  data-id="' + s.id + '">Delete</button>'
+                        + '</td>'
+                    + '</tr>';
+                }).join('');
+            }
+
+            // Movements table
+            const movesTbody = document.getElementById('moves-tbody');
+            if (moves.length === 0) {
+                movesTbody.innerHTML = '<tr><td colspan="10" style="text-align:center; color:var(--text-muted); padding:30px;">No movements yet.</td></tr>';
+            } else {
+                movesTbody.innerHTML = moves.map(function (m) {
+                    const sign = m.movement_type === 'out' ? '-' : (m.movement_type === 'adjust' && Number(m.quantity) < 0 ? '' : '+');
+                    const qty  = Math.abs(Number(m.quantity)).toFixed(2);
+                    const typeLabel = m.movement_type === 'in' ? 'IN' : m.movement_type === 'out' ? 'OUT' : 'ADJ';
+                    const typeColor = m.movement_type === 'in' ? 'var(--success)' : m.movement_type === 'out' ? 'var(--danger)' : 'var(--text-muted)';
+                    const itemName = m.inventory_items ? m.inventory_items.name : '(deleted)';
+                    const unit     = m.inventory_items ? m.inventory_items.unit : '';
+                    const supplierOrCar = m.movement_type === 'in'
+                        ? (m.supplier || '—')
+                        : (m.cars ? m.cars.plate_number : (m.notes && m.movement_type === 'out' ? '—' : '—'));
+                    const billCell = m.bill_path
+                        ? '<button class="btn btn-sm btn-secondary" data-action="view-bill" data-path="' + escapeHtml(m.bill_path) + '" data-bucket="' + escapeHtml(m.bill_bucket || 'inventory-bills') + '">View</button>'
+                        : '—';
+                    return '<tr>'
+                        + '<td>' + fmtDate(m.moved_at) + '</td>'
+                        + '<td><strong style="color:' + typeColor + ';">' + typeLabel + '</strong></td>'
+                        + '<td>' + escapeHtml(itemName) + '</td>'
+                        + '<td>' + sign + qty + ' ' + escapeHtml(unit) + '</td>'
+                        + '<td>' + fmtRM(m.unit_cost) + '</td>'
+                        + '<td>' + fmtRM(m.total_cost) + '</td>'
+                        + '<td>' + escapeHtml(supplierOrCar) + '</td>'
+                        + '<td>' + billCell + '</td>'
+                        + '<td style="color:var(--text-muted);">' + escapeHtml(m.notes || '') + '</td>'
+                        + '<td class="actions-cell"><button class="btn btn-sm btn-danger" data-action="del-move" data-id="' + m.id + '">Delete</button></td>'
+                    + '</tr>';
+                }).join('');
+            }
+
+            // Category datalist
+            const cats = Array.from(new Set(stock.map(function (s) { return s.category; }).filter(Boolean)));
+            document.getElementById('category-list').innerHTML = cats.map(function (c) { return '<option value="' + escapeHtml(c) + '">'; }).join('');
+        }
+
+        // ---------- Item modal ----------
+        document.getElementById('new-item-btn').addEventListener('click', function () { openItemModal(null); });
+        function openItemModal(item) {
+            editingItemId = item ? item.id : null;
+            document.getElementById('item-title').textContent = item ? 'Edit item' : 'Add item';
+            document.getElementById('item-error').style.display = 'none';
+            document.getElementById('it-name').value     = item ? (item.name || '') : '';
+            document.getElementById('it-sku').value      = item ? (item.sku || '') : '';
+            document.getElementById('it-category').value = item ? (item.category || '') : '';
+            document.getElementById('it-unit').value     = item ? (item.unit || 'pcs') : 'pcs';
+            document.getElementById('it-reorder').value  = item ? (item.reorder_level || 0) : 0;
+            document.getElementById('it-notes').value    = item ? (item.notes || '') : '';
+            itemModal.classList.add('open');
+        }
+        document.getElementById('it-cancel').addEventListener('click', function () { itemModal.classList.remove('open'); });
+        itemModal.addEventListener('click', function (e) { if (e.target === itemModal) itemModal.classList.remove('open'); });
+
+        document.getElementById('it-save').addEventListener('click', async function () {
+            const errBox = document.getElementById('item-error');
+            errBox.style.display = 'none';
+            const payload = {
+                name:          document.getElementById('it-name').value.trim(),
+                sku:           document.getElementById('it-sku').value.trim() || null,
+                category:      document.getElementById('it-category').value.trim() || null,
+                unit:          document.getElementById('it-unit').value.trim() || 'pcs',
+                reorder_level: parseFloat(document.getElementById('it-reorder').value) || 0,
+                notes:         document.getElementById('it-notes').value.trim() || null
+            };
+            if (!payload.name) { errBox.textContent = 'Name is required.'; errBox.style.display = 'block'; return; }
+            const resp = editingItemId
+                ? await supabaseClient.from('inventory_items').update(payload).eq('id', editingItemId)
+                : await supabaseClient.from('inventory_items').insert(payload);
+            if (resp.error) { errBox.textContent = resp.error.message; errBox.style.display = 'block'; return; }
+            itemModal.classList.remove('open');
+            showAlert('Item saved.', false);
+            await loadAll();
+        });
+
+        // ---------- Movement modal ----------
+        document.getElementById('new-move-btn').addEventListener('click', function () { openMoveModal(null); });
+        function openMoveModal(preItemId) {
+            document.getElementById('move-error').style.display = 'none';
+            document.getElementById('mv-type').value = 'in';
+            document.getElementById('mv-date').value = new Date().toISOString().slice(0, 10);
+            document.getElementById('mv-qty').value = '';
+            document.getElementById('mv-unitcost').value = '';
+            document.getElementById('mv-total').value = '';
+            document.getElementById('mv-supplier').value = '';
+            document.getElementById('mv-reference').value = '';
+            document.getElementById('mv-notes').value = '';
+            document.getElementById('mv-bill').value = '';
+
+            const itemSel = document.getElementById('mv-item');
+            itemSel.innerHTML = '<option value="">Select item...</option>'
+                + stock.map(function (s) { return '<option value="' + s.id + '">' + escapeHtml(s.name) + ' (stock: ' + Number(s.stock).toFixed(2) + ' ' + escapeHtml(s.unit) + ')</option>'; }).join('');
+            if (preItemId) itemSel.value = preItemId;
+
+            const carSel = document.getElementById('mv-car');
+            carSel.innerHTML = '<option value="">— None —</option>'
+                + cars.map(function (c) { return '<option value="' + c.id + '">' + escapeHtml(c.plate_number + ' — ' + c.model) + '</option>'; }).join('');
+
+            updateMoveFields();
+            moveModal.classList.add('open');
+        }
+        function updateMoveFields() {
+            const t = document.getElementById('mv-type').value;
+            document.getElementById('mv-unitcost-wrap').style.display = (t === 'in') ? '' : 'none';
+            document.getElementById('mv-total-wrap').style.display    = (t === 'in') ? '' : 'none';
+            document.getElementById('mv-supplier-wrap').style.display = (t === 'in') ? '' : 'none';
+            document.getElementById('mv-bill-wrap').style.display     = (t === 'in') ? '' : 'none';
+            document.getElementById('mv-car-wrap').style.display      = (t === 'out') ? '' : 'none';
+            document.getElementById('mv-qty-hint').textContent =
+                t === 'adjust' ? 'Use negative to deduct, positive to add.' :
+                t === 'out' ? 'Positive quantity; it will be deducted from stock.' :
+                'Positive quantity; it will be added to stock.';
+        }
+        document.getElementById('mv-type').addEventListener('change', updateMoveFields);
+        document.getElementById('mv-qty').addEventListener('input', autoFillTotal);
+        document.getElementById('mv-unitcost').addEventListener('input', autoFillTotal);
+        function autoFillTotal() {
+            if (document.getElementById('mv-type').value !== 'in') return;
+            const q = parseFloat(document.getElementById('mv-qty').value);
+            const u = parseFloat(document.getElementById('mv-unitcost').value);
+            if (!isNaN(q) && !isNaN(u)) {
+                document.getElementById('mv-total').value = (q * u).toFixed(2);
+            }
+        }
+        document.getElementById('mv-cancel').addEventListener('click', function () { moveModal.classList.remove('open'); });
+        moveModal.addEventListener('click', function (e) { if (e.target === moveModal) moveModal.classList.remove('open'); });
+
+        document.getElementById('mv-save').addEventListener('click', async function () {
+            const errBox = document.getElementById('move-error');
+            errBox.style.display = 'none';
+            const btn = this;
+
+            const type   = document.getElementById('mv-type').value;
+            const date   = document.getElementById('mv-date').value;
+            const itemId = document.getElementById('mv-item').value;
+            const qty    = parseFloat(document.getElementById('mv-qty').value);
+            const unitCost = parseFloat(document.getElementById('mv-unitcost').value);
+            const total    = parseFloat(document.getElementById('mv-total').value);
+            const supplier = document.getElementById('mv-supplier').value.trim() || null;
+            const reference= document.getElementById('mv-reference').value.trim() || null;
+            const carId    = document.getElementById('mv-car').value || null;
+            const notes    = document.getElementById('mv-notes').value.trim() || null;
+            const file     = document.getElementById('mv-bill').files[0];
+
+            if (!itemId || !date || isNaN(qty)) { errBox.textContent = 'Item, date and quantity are required.'; errBox.style.display = 'block'; return; }
+            if (type !== 'adjust' && qty <= 0) { errBox.textContent = 'Quantity must be greater than zero for in/out.'; errBox.style.display = 'block'; return; }
+            if (type === 'adjust' && qty === 0) { errBox.textContent = 'Adjustment cannot be zero.'; errBox.style.display = 'block'; return; }
+
+            btn.disabled = true;
+            btn.textContent = 'Saving...';
+
+            let billPath = null, billBucket = null;
+            if (type === 'in' && file) {
+                const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+                const path = itemId + '/' + Date.now() + '_' + safeName;
+                const up = await supabaseClient.storage.from('inventory-bills').upload(path, file);
+                if (up.error) { btn.disabled = false; btn.textContent = 'Save'; errBox.textContent = 'Upload failed: ' + up.error.message; errBox.style.display = 'block'; return; }
+                billPath = path;
+                billBucket = 'inventory-bills';
+            }
+
+            const payload = {
+                item_id: itemId,
+                movement_type: type,
+                quantity: qty,
+                unit_cost: type === 'in' && !isNaN(unitCost) ? unitCost : null,
+                total_cost: type === 'in' && !isNaN(total) ? total : null,
+                supplier: type === 'in' ? supplier : null,
+                reference: reference,
+                car_id: type === 'out' ? carId : null,
+                bill_path: billPath,
+                bill_bucket: billBucket,
+                notes: notes,
+                moved_at: date
+            };
+            const resp = await supabaseClient.from('inventory_movements').insert(payload);
+            if (resp.error) { btn.disabled = false; btn.textContent = 'Save'; errBox.textContent = resp.error.message; errBox.style.display = 'block'; return; }
+
+            btn.disabled = false;
+            btn.textContent = 'Save';
+            moveModal.classList.remove('open');
+            showAlert('Movement recorded.', false);
+            await loadAll();
+        });
+
+        // ---------- Table click routing ----------
+        document.getElementById('items-tbody').addEventListener('click', async function (e) {
+            const btn = e.target.closest('button[data-action]');
+            if (!btn) return;
+            const id = btn.dataset.id;
+            const item = stock.find(function (s) { return s.id === id; });
+            if (btn.dataset.action === 'edit-item') openItemModal(item);
+            else if (btn.dataset.action === 'move-item') openMoveModal(id);
+            else if (btn.dataset.action === 'del-item') {
+                if (!confirm('Delete "' + (item ? item.name : 'item') + '"? All its movement history will be removed too.')) return;
+                const { error } = await supabaseClient.from('inventory_items').delete().eq('id', id);
+                if (error) { showAlert(error.message, true); return; }
+                showAlert('Item deleted.', false);
+                await loadAll();
+            }
+        });
+
+        document.getElementById('moves-tbody').addEventListener('click', async function (e) {
+            const btn = e.target.closest('button[data-action]');
+            if (!btn) return;
+            if (btn.dataset.action === 'view-bill') {
+                const { data } = await supabaseClient.storage.from(btn.dataset.bucket).createSignedUrl(btn.dataset.path, 3600);
+                if (data) window.open(data.signedUrl, '_blank');
+                else showAlert('Could not open bill.', true);
+            } else if (btn.dataset.action === 'del-move') {
+                if (!confirm('Delete this movement? Stock levels will be recalculated.')) return;
+                const { error } = await supabaseClient.from('inventory_movements').delete().eq('id', btn.dataset.id);
+                if (error) { showAlert(error.message, true); return; }
+                showAlert('Movement deleted.', false);
+                await loadAll();
+            }
+        });
+
+        await loadAll();
+    })();
+    </script>
+</body>
+</html>
