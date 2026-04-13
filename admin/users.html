@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Accounts | GB Car Rental</title>
+    <link rel="stylesheet" href="../css/app.css">
+    <style>
+        .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display:none; align-items:center; justify-content:center; z-index: 100; padding: 20px; }
+        .modal-backdrop.open { display: flex; }
+        .modal { background: white; border-radius: 10px; padding: 28px; width: 100%; max-width: 460px; }
+        .modal h2 { margin: 0 0 16px 0; font-size: 19px; color: var(--dark-bg); }
+        .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+        .actions-cell { white-space: nowrap; }
+        .actions-cell .btn { margin-right: 4px; }
+    </style>
+</head>
+<body>
+    <div id="app" style="display:none;">
+        <div class="app-shell">
+            <aside class="sidebar">
+                <div class="sidebar-brand"><span>GB</span> Admin</div>
+                <nav class="sidebar-nav">
+                    <a href="index.html">Dashboard</a>
+                    <a href="leads.html">Leads</a>
+                    <a href="cars.html">Cars</a>
+                    <a href="drivers.html">Drivers</a>
+                    <a href="rentals.html">Rentals</a>
+                    <a href="payment-link.html">Payment Link</a>
+                    <a href="inventory.html">Inventory</a>
+                    <a href="profit-loss.html">Profit & Loss</a>
+                    <a href="users.html" class="active">Users</a>
+                </nav>
+                <div class="sidebar-footer">
+                    <div class="user-name" id="user-name"></div>
+                    <a href="#" id="logout" style="color:#cbd1d8;">Sign out</a>
+                </div>
+            </aside>
+
+            <main class="main">
+                <div class="topbar">
+                    <h1>User accounts</h1>
+                    <button id="add-btn" class="btn btn-primary btn-sm">+ New admin</button>
+                </div>
+                <div class="content">
+                    <div id="page-alert"></div>
+
+                    <p style="color: var(--text-muted); font-size: 13px; margin-top: -4px;">
+                        Manage admin + driver login accounts. Use the driver pages to create drivers; this page is mainly for adding or removing admin users.
+                    </p>
+
+                    <div class="card" style="padding:0;">
+                        <div class="table-wrap">
+                            <table class="data">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Email / Login</th>
+                                        <th>Role</th>
+                                        <th>Created</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="u-tbody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- New admin modal -->
+    <div class="modal-backdrop" id="new-modal">
+        <div class="modal">
+            <h2>New admin user</h2>
+            <div id="new-error" class="alert alert-error" style="display:none;"></div>
+            <div class="form-group">
+                <label>Full name</label>
+                <input id="new-name" type="text">
+            </div>
+            <div class="form-group">
+                <label>Email *</label>
+                <input id="new-email" type="email" required>
+            </div>
+            <div class="form-group">
+                <label>Password *</label>
+                <input id="new-password" type="text" required>
+                <div style="color: var(--text-muted); font-size: 12px; margin-top: 4px;">At least 8 characters. Share this with the new admin securely.</div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" id="new-cancel">Cancel</button>
+                <button class="btn btn-primary" id="new-save">Create</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../js/supabase.js"></script>
+    <script src="../js/auth.js"></script>
+    <script>
+    (async function () {
+        const profile = await requireRole('admin');
+        if (!profile) return;
+        document.getElementById('user-name').textContent = profile.full_name || 'Admin';
+        document.getElementById('app').style.display = 'block';
+        document.getElementById('logout').addEventListener('click', function (e) { e.preventDefault(); signOut(); });
+
+        const pageAlert = document.getElementById('page-alert');
+        function escapeHtml(s) { if (s == null) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+        function fmtDate(s) { return s ? new Date(s).toLocaleString('en-MY', { year:'numeric', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' }) : '—'; }
+        function showAlert(msg, isError) {
+            pageAlert.innerHTML = '';
+            const div = document.createElement('div');
+            div.className = 'alert ' + (isError ? 'alert-error' : 'alert-success');
+            div.textContent = msg;
+            pageAlert.appendChild(div);
+            setTimeout(function () { div.remove(); }, 4000);
+        }
+
+        async function callFunc(action, payload) {
+            const session = await supabaseClient.auth.getSession();
+            const jwt = session.data.session?.access_token;
+            const { data, error } = await supabaseClient.functions.invoke('manage-admin-user', {
+                body: Object.assign({ action: action, user_jwt: jwt }, payload)
+            });
+            if (error) throw new Error(error.message || 'Request failed');
+            if (data && data.error) throw new Error(data.error);
+            return data;
+        }
+
+        async function load() {
+            const { data, error } = await supabaseClient
+                .from('profiles')
+                .select('id, role, full_name, created_at')
+                .order('created_at', { ascending: false });
+            const tbody = document.getElementById('u-tbody');
+            if (error) { tbody.innerHTML = '<tr><td colspan="5">' + escapeHtml(error.message) + '</td></tr>'; return; }
+
+            // Fetch emails in a second batched call via RPC? Anon key can't read auth.users.
+            // We'll display the stored full_name and fall back to ID; email is best-effort.
+            tbody.innerHTML = (data || []).map(function (p) {
+                const isSelf = p.id === profile.id;
+                return '<tr>'
+                    + '<td><strong>' + escapeHtml(p.full_name || '—') + '</strong>' + (isSelf ? ' <span style="color:var(--text-muted); font-size:12px;">(you)</span>' : '') + '</td>'
+                    + '<td style="font-family:monospace; font-size:12px; color:var(--text-muted);">' + escapeHtml(p.id) + '</td>'
+                    + '<td><span class="badge badge-' + escapeHtml(p.role) + '">' + escapeHtml(p.role) + '</span></td>'
+                    + '<td>' + fmtDate(p.created_at) + '</td>'
+                    + '<td class="actions-cell">'
+                        + (isSelf ? '' :
+                            (p.role === 'admin'
+                                ? '<button class="btn btn-sm btn-secondary" data-action="demote" data-id="' + p.id + '">Demote to driver</button>'
+                                : '<button class="btn btn-sm btn-secondary" data-action="promote" data-id="' + p.id + '">Promote to admin</button>'))
+                        + (isSelf ? '' : '<button class="btn btn-sm btn-danger" data-action="delete" data-id="' + p.id + '">Delete</button>')
+                    + '</td>'
+                + '</tr>';
+            }).join('') || '<tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:20px;">No users yet.</td></tr>';
+        }
+
+        document.getElementById('u-tbody').addEventListener('click', async function (e) {
+            const btn = e.target.closest('button[data-action]');
+            if (!btn) return;
+            const id = btn.dataset.id;
+            const action = btn.dataset.action;
+            try {
+                if (action === 'delete') {
+                    if (!confirm('Delete this user account? This is permanent.')) return;
+                    await callFunc('delete', { id: id });
+                    showAlert('User deleted.', false);
+                } else if (action === 'promote') {
+                    await callFunc('update_role', { id: id, role: 'admin' });
+                    showAlert('Promoted to admin.', false);
+                } else if (action === 'demote') {
+                    if (!confirm('Demote this admin to driver?')) return;
+                    await callFunc('update_role', { id: id, role: 'driver' });
+                    showAlert('Demoted to driver.', false);
+                }
+                await load();
+            } catch (err) {
+                showAlert(err.message, true);
+            }
+        });
+
+        // ---------- New admin modal ----------
+        const newModal = document.getElementById('new-modal');
+        document.getElementById('add-btn').addEventListener('click', function () {
+            document.getElementById('new-name').value = '';
+            document.getElementById('new-email').value = '';
+            document.getElementById('new-password').value = '';
+            document.getElementById('new-error').style.display = 'none';
+            newModal.classList.add('open');
+        });
+        document.getElementById('new-cancel').addEventListener('click', function () { newModal.classList.remove('open'); });
+        newModal.addEventListener('click', function (e) { if (e.target === newModal) newModal.classList.remove('open'); });
+        document.getElementById('new-save').addEventListener('click', async function () {
+            const errBox = document.getElementById('new-error');
+            errBox.style.display = 'none';
+            const email = document.getElementById('new-email').value.trim().toLowerCase();
+            const password = document.getElementById('new-password').value;
+            const full_name = document.getElementById('new-name').value.trim();
+            if (!email || !password) { errBox.textContent = 'Email and password are required.'; errBox.style.display = 'block'; return; }
+            if (password.length < 8) { errBox.textContent = 'Password must be at least 8 characters.'; errBox.style.display = 'block'; return; }
+            try {
+                await callFunc('create', { email: email, password: password, full_name: full_name });
+                newModal.classList.remove('open');
+                showAlert('Admin user created.', false);
+                await load();
+            } catch (err) {
+                errBox.textContent = err.message;
+                errBox.style.display = 'block';
+            }
+        });
+
+        await load();
+    })();
+    </script>
+</body>
+</html>
