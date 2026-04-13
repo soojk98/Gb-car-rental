@@ -57,6 +57,8 @@
                                         <th>Name</th>
                                         <th>Email / Login</th>
                                         <th>Role</th>
+                                        <th>Status</th>
+                                        <th>Last sign-in</th>
                                         <th>Created</th>
                                         <th></th>
                                     </tr>
@@ -130,27 +132,42 @@
         }
 
         async function load() {
-            const { data, error } = await supabaseClient
-                .from('profiles')
-                .select('id, role, full_name, created_at')
-                .order('created_at', { ascending: false });
             const tbody = document.getElementById('u-tbody');
-            if (error) { tbody.innerHTML = '<tr><td colspan="5">' + escapeHtml(error.message) + '</td></tr>'; return; }
-
-            // Fetch emails in a second batched call via RPC? Anon key can't read auth.users.
-            // We'll display the stored full_name and fall back to ID; email is best-effort.
-            tbody.innerHTML = (data || []).map(function (p) {
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-muted); padding:20px;">Loading...</td></tr>';
+            let users;
+            try {
+                const data = await callFunc('list', {});
+                users = data.users || [];
+            } catch (err) {
+                tbody.innerHTML = '<tr><td colspan="7" style="color:var(--danger);">' + escapeHtml(err.message) + '</td></tr>';
+                return;
+            }
+            if (users.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-muted); padding:20px;">No users yet.</td></tr>';
+                return;
+            }
+            tbody.innerHTML = users.map(function (p) {
                 const isSelf = p.id === profile.id;
+                const banned = p.banned_until && new Date(p.banned_until) > new Date();
+                const statusLabel = banned ? 'Inactive' : 'Active';
+                const statusCls   = banned ? 'badge-rejected' : 'badge-approved';
                 return '<tr>'
                     + '<td><strong>' + escapeHtml(p.full_name || '—') + '</strong>' + (isSelf ? ' <span style="color:var(--text-muted); font-size:12px;">(you)</span>' : '') + '</td>'
-                    + '<td style="font-family:monospace; font-size:12px; color:var(--text-muted);">' + escapeHtml(p.id) + '</td>'
+                    + '<td>' + escapeHtml(p.email || '—') + '</td>'
                     + '<td><span class="badge badge-' + escapeHtml(p.role) + '">' + escapeHtml(p.role) + '</span></td>'
+                    + '<td><span class="badge ' + statusCls + '">' + statusLabel + '</span></td>'
+                    + '<td>' + (p.last_sign_in_at ? fmtDate(p.last_sign_in_at) : '<span style="color:var(--text-muted);">Never</span>') + '</td>'
                     + '<td>' + fmtDate(p.created_at) + '</td>'
                     + '<td class="actions-cell">'
+                        + (isSelf ? '' :
+                            (banned
+                                ? '<button class="btn btn-sm btn-primary"   data-action="activate"   data-id="' + p.id + '">Activate</button>'
+                                : '<button class="btn btn-sm btn-secondary" data-action="deactivate" data-id="' + p.id + '">Deactivate</button>'))
+                        + '<button class="btn btn-sm btn-secondary" data-action="reset"  data-id="' + p.id + '" data-name="' + escapeHtml(p.full_name || p.email || '') + '">Reset password</button>'
                         + (isSelf ? '' : '<button class="btn btn-sm btn-danger" data-action="delete" data-id="' + p.id + '">Delete</button>')
                     + '</td>'
                 + '</tr>';
-            }).join('') || '<tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:20px;">No users yet.</td></tr>';
+            }).join('');
         }
 
         document.getElementById('u-tbody').addEventListener('click', async function (e) {
@@ -163,6 +180,20 @@
                     if (!confirm('Delete this user account? This is permanent.')) return;
                     await callFunc('delete', { id: id });
                     showAlert('User deleted.', false);
+                } else if (action === 'deactivate') {
+                    if (!confirm('Deactivate this account? The user will not be able to sign in.')) return;
+                    await callFunc('set_active', { id: id, active: false });
+                    showAlert('Account deactivated.', false);
+                } else if (action === 'activate') {
+                    await callFunc('set_active', { id: id, active: true });
+                    showAlert('Account activated.', false);
+                } else if (action === 'reset') {
+                    const name = btn.dataset.name || '';
+                    const newPw = prompt('Enter a new password for ' + name + ' (min 8 characters):');
+                    if (newPw === null) return;
+                    if (newPw.length < 8) { showAlert('Password must be at least 8 characters.', true); return; }
+                    await callFunc('reset_password', { id: id, password: newPw });
+                    showAlert('Password reset. Share the new password with the user.', false);
                 }
                 await load();
             } catch (err) {

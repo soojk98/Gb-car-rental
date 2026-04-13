@@ -114,6 +114,58 @@ Deno.serve(async (req) => {
             return jsonOk({ id, role });
         }
 
+        if (action === "list") {
+            // Return all profiles + their auth banned_until / email / last_sign_in
+            const { data: profiles, error: pErr } = await admin
+                .from("profiles")
+                .select("id, role, full_name, created_at")
+                .order("created_at", { ascending: false });
+            if (pErr) return jsonError("List failed: " + pErr.message, 400);
+
+            const { data: usersPage, error: uListErr } = await admin.auth.admin.listUsers({ perPage: 1000 });
+            if (uListErr) return jsonError("Auth list failed: " + uListErr.message, 400);
+            const byId: Record<string, { email?: string | null; banned_until?: string | null; last_sign_in_at?: string | null }> = {};
+            (usersPage?.users || []).forEach((u) => {
+                const anyUser = u as unknown as { banned_until?: string | null };
+                byId[u.id] = {
+                    email: u.email,
+                    banned_until: anyUser.banned_until || null,
+                    last_sign_in_at: u.last_sign_in_at || null,
+                };
+            });
+            const enriched = (profiles || []).map((p) => ({
+                ...p,
+                email: byId[p.id]?.email || null,
+                banned_until: byId[p.id]?.banned_until || null,
+                last_sign_in_at: byId[p.id]?.last_sign_in_at || null,
+            }));
+            return jsonOk({ users: enriched });
+        }
+
+        if (action === "set_active") {
+            const id = body?.id as string;
+            const active = body?.active as boolean;
+            if (!id || typeof active !== "boolean") return jsonError("id and active required", 400);
+            if (id === userData.user.id && active === false) {
+                return jsonError("You cannot deactivate your own account.", 400);
+            }
+            // ban_duration: 'none' re-enables; a long duration disables.
+            const ban_duration = active ? "none" : "876000h"; // ~100 years
+            const { error } = await admin.auth.admin.updateUserById(id, { ban_duration });
+            if (error) return jsonError("Update failed: " + error.message, 400);
+            return jsonOk({ id, active });
+        }
+
+        if (action === "reset_password") {
+            const id = body?.id as string;
+            const password = body?.password as string;
+            if (!id || !password) return jsonError("id and password required", 400);
+            if (password.length < 8) return jsonError("password must be 8+ characters", 400);
+            const { error } = await admin.auth.admin.updateUserById(id, { password });
+            if (error) return jsonError("Reset failed: " + error.message, 400);
+            return jsonOk({ id });
+        }
+
         if (action === "delete") {
             const id = body?.id as string;
             if (!id) return jsonError("id required", 400);
