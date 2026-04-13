@@ -68,7 +68,9 @@
             <main class="main">
                 <div class="topbar">
                     <h1>Rentals</h1>
-                    <div>
+                    <div style="display:flex; gap:8px; align-items:center;">
+                        <input id="search-input" type="search" placeholder="Search driver / plate..." style="padding:7px 10px; border:1px solid var(--border); border-radius:5px; min-width:220px;">
+                        <button id="export-btn" class="btn btn-secondary btn-sm">Export Excel</button>
                         <button id="refresh-btn" class="btn btn-secondary btn-sm">Refresh</button>
                         <button id="new-btn" class="btn btn-primary btn-sm">+ New rental</button>
                     </div>
@@ -270,6 +272,8 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="../js/table-utils.js"></script>
     <script src="../js/supabase.js"></script>
     <script src="../js/auth.js"></script>
     <script>
@@ -291,6 +295,19 @@
 
         let allRentals = [];
         let currentFilter = 'active';
+        let currentSearch = '';
+        function getFilteredRentals() {
+            let arr = currentFilter === 'all' ? allRentals : allRentals.filter(function (r) { return r.status === currentFilter; });
+            if (currentSearch) arr = arr.filter(function (r) {
+                return matchSearch(currentSearch, [
+                    r.drivers ? r.drivers.full_name : '',
+                    r.cars ? r.cars.plate_number : '',
+                    r.cars ? r.cars.model : '',
+                    r.notes
+                ]);
+            });
+            return arr;
+        }
         let endingRental = null;
         let paymentsRental = null;
         let currentPayments = [];
@@ -357,7 +374,7 @@
                 document.getElementById('count-' + k).textContent = '(' + counts[k] + ')';
             });
 
-            const filtered = currentFilter === 'all' ? allRentals : allRentals.filter(function (r) { return r.status === currentFilter; });
+            const filtered = getFilteredRentals();
 
             if (filtered.length === 0) {
                 tableEl.style.display = 'none';
@@ -415,6 +432,29 @@
         });
 
         document.getElementById('refresh-btn').addEventListener('click', loadRentals);
+
+        document.getElementById('search-input').addEventListener('input', function () {
+            currentSearch = this.value;
+            render();
+        });
+
+        document.getElementById('export-btn').addEventListener('click', function () {
+            const rows = getFilteredRentals().map(function (r) {
+                return [
+                    r.drivers ? r.drivers.full_name : '',
+                    r.cars ? r.cars.plate_number : '',
+                    r.cars ? r.cars.model : '',
+                    r.start_date || '', r.end_date || '',
+                    Number(r.weekly_rate || 0),
+                    Number(r.deposit_amount || 0),
+                    r.deposit_returned ? 'Yes' : 'No',
+                    Number(r._totalPaid || 0),
+                    r.status, r.notes || ''
+                ];
+            });
+            downloadXlsx(xlsxFilename('rentals'), 'Rentals',
+                ['Driver','Plate','Model','Start','End','Weekly rate (RM)','Deposit (RM)','Deposit returned','Total paid (RM)','Status','Notes'], rows);
+        });
 
         tbody.addEventListener('click', function (event) {
             const target = event.target.closest('button[data-action]');

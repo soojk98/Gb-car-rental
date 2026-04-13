@@ -62,7 +62,9 @@
             <main class="main">
                 <div class="topbar">
                     <h1>Drivers</h1>
-                    <div>
+                    <div style="display:flex; gap:8px; align-items:center;">
+                        <input id="search-input" type="search" placeholder="Search name / phone / email / IC..." style="padding:7px 10px; border:1px solid var(--border); border-radius:5px; min-width:240px;">
+                        <button id="export-btn" class="btn btn-secondary btn-sm">Export Excel</button>
                         <button id="refresh-btn" class="btn btn-secondary btn-sm">Refresh</button>
                         <button id="add-btn" class="btn btn-primary btn-sm">+ Add driver</button>
                     </div>
@@ -290,6 +292,8 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="../js/table-utils.js"></script>
     <script src="../js/supabase.js"></script>
     <script src="../js/auth.js"></script>
     <script>
@@ -313,7 +317,15 @@
         let allDrivers = [];
         let activeRentalsByDriverId = {};
         let currentFilter = 'all';
+        let currentSearch = '';
         let editingId = null;
+        function getFilteredDrivers() {
+            let arr = currentFilter === 'all' ? allDrivers : allDrivers.filter(function (d) { return d.status === currentFilter; });
+            if (currentSearch) arr = arr.filter(function (d) {
+                return matchSearch(currentSearch, [d.full_name, d.email, d.whatsapp, d.ic_number, d.license_number, d.psv_number]);
+            });
+            return arr;
+        }
         let viewingDocsDriver = null;
         let reviewingDriver = null;
 
@@ -366,7 +378,7 @@
                 document.getElementById('count-' + k).textContent = '(' + counts[k] + ')';
             });
 
-            const filtered = currentFilter === 'all' ? allDrivers : allDrivers.filter(function (d) { return d.status === currentFilter; });
+            const filtered = getFilteredDrivers();
 
             if (filtered.length === 0) {
                 tableEl.style.display = 'none';
@@ -413,6 +425,25 @@
         });
 
         document.getElementById('refresh-btn').addEventListener('click', loadDrivers);
+
+        document.getElementById('search-input').addEventListener('input', function () {
+            currentSearch = this.value;
+            render();
+        });
+
+        document.getElementById('export-btn').addEventListener('click', function () {
+            const rows = getFilteredDrivers().map(function (d) {
+                return [
+                    d.full_name, d.email || '', d.whatsapp || '', d.ic_number || '',
+                    d.license_number || '', d.psv_number || '',
+                    d.status, d.deposit_required === false ? 'No' : 'Yes',
+                    d.deposit_status || '', d.deposit_amount_paid != null ? Number(d.deposit_amount_paid) : '',
+                    activeRentalsByDriverId[d.id] || '', d.address || '', d.notes || ''
+                ];
+            });
+            downloadXlsx(xlsxFilename('drivers'), 'Drivers',
+                ['Name','Email','WhatsApp','IC','License','PSV','Status','Deposit required','Deposit status','Deposit paid','Current car','Address','Notes'], rows);
+        });
         document.getElementById('add-btn').addEventListener('click', function () { openModal(null); });
 
         tbody.addEventListener('click', async function (event) {

@@ -58,7 +58,9 @@
             <main class="main">
                 <div class="topbar">
                     <h1>Cars</h1>
-                    <div>
+                    <div style="display:flex; gap:8px; align-items:center;">
+                        <input id="search-input" type="search" placeholder="Search plate / model / color..." style="padding:7px 10px; border:1px solid var(--border); border-radius:5px; min-width:220px;">
+                        <button id="export-btn" class="btn btn-secondary btn-sm">Export Excel</button>
                         <button id="refresh-btn" class="btn btn-secondary btn-sm">Refresh</button>
                         <button id="add-btn" class="btn btn-primary btn-sm">+ Add car</button>
                     </div>
@@ -198,6 +200,8 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="../js/table-utils.js"></script>
     <script src="../js/supabase.js"></script>
     <script src="../js/auth.js"></script>
     <script>
@@ -217,7 +221,15 @@
         let allCars = [];
         let activeRentalsByCarId = {};   // car_id -> { driver_full_name }
         let currentFilter = 'all';
+        let currentSearch = '';
         let editingId = null;
+        function getFilteredCars() {
+            let arr = currentFilter === 'all' ? allCars : allCars.filter(function (c) { return c.status === currentFilter; });
+            if (currentSearch) arr = arr.filter(function (c) {
+                return matchSearch(currentSearch, [c.plate_number, c.model, c.color, String(c.year || '')]);
+            });
+            return arr;
+        }
 
         function escapeHtml(s) {
             if (s == null) return '';
@@ -261,7 +273,7 @@
                 document.getElementById('count-' + k).textContent = '(' + counts[k] + ')';
             });
 
-            const filtered = currentFilter === 'all' ? allCars : allCars.filter(function (c) { return c.status === currentFilter; });
+            const filtered = getFilteredCars();
 
             if (filtered.length === 0) {
                 tableEl.style.display = 'none';
@@ -301,6 +313,25 @@
         });
 
         document.getElementById('refresh-btn').addEventListener('click', loadCars);
+
+        document.getElementById('search-input').addEventListener('input', function () {
+            currentSearch = this.value;
+            render();
+        });
+
+        document.getElementById('export-btn').addEventListener('click', function () {
+            const rows = getFilteredCars().map(function (c) {
+                const r = activeRentalsByCarId[c.id];
+                return [
+                    c.plate_number, c.model, c.year || '', c.color || '',
+                    c.status, c.weekly_rate != null ? Number(c.weekly_rate) : '',
+                    c.current_mileage != null ? Number(c.current_mileage) : '',
+                    r ? r.driver_full_name : '', c.notes || ''
+                ];
+            });
+            downloadXlsx(xlsxFilename('cars'), 'Cars',
+                ['Plate','Model','Year','Color','Status','Weekly rate (RM)','Mileage (km)','Current driver','Notes'], rows);
+        });
 
         document.getElementById('add-btn').addEventListener('click', function () { openModal(null); });
 

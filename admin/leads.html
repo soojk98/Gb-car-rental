@@ -83,7 +83,11 @@
             <main class="main">
                 <div class="topbar">
                     <h1>Leads</h1>
-                    <button id="refresh-btn" class="btn btn-secondary btn-sm">Refresh</button>
+                    <div style="display:flex; gap:8px; align-items:center;">
+                        <input id="search-input" type="search" placeholder="Search name / phone / car..." style="padding:7px 10px; border:1px solid var(--border); border-radius:5px; min-width:240px;">
+                        <button id="export-btn" class="btn btn-secondary btn-sm">Export Excel</button>
+                        <button id="refresh-btn" class="btn btn-secondary btn-sm">Refresh</button>
+                    </div>
                 </div>
 
                 <div class="content">
@@ -218,8 +222,10 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="../js/supabase.js"></script>
     <script src="../js/auth.js"></script>
+    <script src="../js/table-utils.js"></script>
     <script>
     (async function () {
         const profile = await requireRole('admin');
@@ -235,6 +241,16 @@
         const pageAlert = document.getElementById('page-alert');
         let allLeads = [];
         let currentFilter = 'all';
+        let currentSearch = '';
+        function getFilteredLeads() {
+            let arr = currentFilter === 'all' ? allLeads : allLeads.filter(function (l) { return l.status === currentFilter; });
+            if (currentSearch) {
+                arr = arr.filter(function (l) {
+                    return matchSearch(currentSearch, [l.full_name, l.whatsapp, l.email, l.preferred_car, l.notes]);
+                });
+            }
+            return arr;
+        }
         let editingId = null;
         let convertingLead = null;
 
@@ -293,9 +309,7 @@
             document.getElementById('count-converted').textContent = '(' + counts.converted + ')';
             document.getElementById('count-rejected').textContent  = '(' + counts.rejected + ')';
 
-            const filtered = currentFilter === 'all'
-                ? allLeads
-                : allLeads.filter(function (l) { return l.status === currentFilter; });
+            const filtered = getFilteredLeads();
 
             if (filtered.length === 0) {
                 tableEl.style.display = 'none';
@@ -335,6 +349,24 @@
         });
 
         document.getElementById('refresh-btn').addEventListener('click', loadLeads);
+
+        document.getElementById('search-input').addEventListener('input', function () {
+            currentSearch = this.value;
+            render();
+        });
+
+        document.getElementById('export-btn').addEventListener('click', function () {
+            const rows = getFilteredLeads().map(function (l) {
+                return [
+                    l.created_at ? new Date(l.created_at).toLocaleString('en-MY') : '',
+                    l.full_name, l.whatsapp || '', l.email || '',
+                    carLabel[l.preferred_car] || l.preferred_car || '',
+                    l.status, l.notes || ''
+                ];
+            });
+            downloadXlsx(xlsxFilename('leads'), 'Leads',
+                ['Submitted', 'Name', 'WhatsApp', 'Email', 'Preferred car', 'Status', 'Notes'], rows);
+        });
 
         // Row actions
         tbody.addEventListener('click', async function (event) {

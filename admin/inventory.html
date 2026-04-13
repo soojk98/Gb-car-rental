@@ -52,7 +52,9 @@
             <main class="main">
                 <div class="topbar">
                     <h1>Inventory</h1>
-                    <div>
+                    <div style="display:flex; gap:8px; align-items:center;">
+                        <input id="search-input" type="search" placeholder="Search..." style="padding:7px 10px; border:1px solid var(--border); border-radius:5px; min-width:220px;">
+                        <button class="btn btn-secondary btn-sm" id="export-btn">Export Excel</button>
                         <button class="btn btn-secondary" id="new-item-btn">+ Item</button>
                         <button class="btn btn-primary" id="new-move-btn">+ Movement</button>
                     </div>
@@ -230,6 +232,8 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="../js/table-utils.js"></script>
     <script src="../js/supabase.js"></script>
     <script src="../js/auth.js"></script>
     <script>
@@ -255,6 +259,23 @@
 
         let stock = [];      // from inventory_stock view
         let moves = [];      // inventory_movements with item joined
+        let currentSearch = '';
+        function filteredStock() {
+            if (!currentSearch) return stock;
+            return stock.filter(function (s) {
+                return matchSearch(currentSearch, [s.name, s.sku, s.category, s.notes]);
+            });
+        }
+        function filteredMoves() {
+            if (!currentSearch) return moves;
+            return moves.filter(function (m) {
+                return matchSearch(currentSearch, [
+                    m.inventory_items ? m.inventory_items.name : '',
+                    m.supplier, m.reference, m.notes,
+                    m.cars ? m.cars.plate_number : ''
+                ]);
+            });
+        }
         let cars = [];
         let editingItemId = null;
 
@@ -298,10 +319,11 @@
 
             // Items table
             const itemsTbody = document.getElementById('items-tbody');
-            if (stock.length === 0) {
-                itemsTbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:var(--text-muted); padding:30px;">No items yet. Click "+ Item" to add one.</td></tr>';
+            const itemsView = filteredStock();
+            if (itemsView.length === 0) {
+                itemsTbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:var(--text-muted); padding:30px;">No items match.</td></tr>';
             } else {
-                itemsTbody.innerHTML = stock.map(function (s) {
+                itemsTbody.innerHTML = itemsView.map(function (s) {
                     const low = Number(s.stock) <= Number(s.reorder_level);
                     return '<tr>'
                         + '<td><strong>' + escapeHtml(s.name) + '</strong></td>'
@@ -322,10 +344,11 @@
 
             // Movements table
             const movesTbody = document.getElementById('moves-tbody');
-            if (moves.length === 0) {
-                movesTbody.innerHTML = '<tr><td colspan="10" style="text-align:center; color:var(--text-muted); padding:30px;">No movements yet.</td></tr>';
+            const movesView = filteredMoves();
+            if (movesView.length === 0) {
+                movesTbody.innerHTML = '<tr><td colspan="10" style="text-align:center; color:var(--text-muted); padding:30px;">No movements match.</td></tr>';
             } else {
-                movesTbody.innerHTML = moves.map(function (m) {
+                movesTbody.innerHTML = movesView.map(function (m) {
                     const sign = m.movement_type === 'out' ? '-' : (m.movement_type === 'adjust' && Number(m.quantity) < 0 ? '' : '+');
                     const qty  = Math.abs(Number(m.quantity)).toFixed(2);
                     const typeLabel = m.movement_type === 'in' ? 'IN' : m.movement_type === 'out' ? 'OUT' : 'ADJ';
@@ -536,6 +559,39 @@
                 if (error) { showAlert(error.message, true); return; }
                 showAlert('Movement deleted.', false);
                 await loadAll();
+            }
+        });
+
+        document.getElementById('search-input').addEventListener('input', function () {
+            currentSearch = this.value;
+            render();
+        });
+
+        document.getElementById('export-btn').addEventListener('click', function () {
+            const activeTab = document.querySelector('.filter-bar button[data-tab].active').dataset.tab;
+            if (activeTab === 'items') {
+                const rows = filteredStock().map(function (s) {
+                    return [s.name, s.sku || '', s.category || '', Number(s.stock), Number(s.reorder_level), s.unit || '', s.notes || ''];
+                });
+                downloadXlsx(xlsxFilename('inventory_items'), 'Items',
+                    ['Name','SKU','Category','Stock','Reorder level','Unit','Notes'], rows);
+            } else {
+                const rows = filteredMoves().map(function (m) {
+                    return [
+                        m.moved_at || '',
+                        m.movement_type,
+                        m.inventory_items ? m.inventory_items.name : '',
+                        Number(m.quantity),
+                        m.unit_cost != null ? Number(m.unit_cost) : '',
+                        m.total_cost != null ? Number(m.total_cost) : '',
+                        m.supplier || '',
+                        m.cars ? m.cars.plate_number : '',
+                        m.reference || '',
+                        m.notes || ''
+                    ];
+                });
+                downloadXlsx(xlsxFilename('inventory_movements'), 'Movements',
+                    ['Date','Type','Item','Qty','Unit cost (RM)','Total (RM)','Supplier','Car','Reference','Notes'], rows);
             }
         });
 
