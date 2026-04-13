@@ -147,10 +147,6 @@
                     + '<td><span class="badge badge-' + escapeHtml(p.role) + '">' + escapeHtml(p.role) + '</span></td>'
                     + '<td>' + fmtDate(p.created_at) + '</td>'
                     + '<td class="actions-cell">'
-                        + (isSelf ? '' :
-                            (p.role === 'admin'
-                                ? '<button class="btn btn-sm btn-secondary" data-action="demote" data-id="' + p.id + '">Demote to driver</button>'
-                                : '<button class="btn btn-sm btn-secondary" data-action="promote" data-id="' + p.id + '">Promote to admin</button>'))
                         + (isSelf ? '' : '<button class="btn btn-sm btn-danger" data-action="delete" data-id="' + p.id + '">Delete</button>')
                     + '</td>'
                 + '</tr>';
@@ -167,13 +163,6 @@
                     if (!confirm('Delete this user account? This is permanent.')) return;
                     await callFunc('delete', { id: id });
                     showAlert('User deleted.', false);
-                } else if (action === 'promote') {
-                    await callFunc('update_role', { id: id, role: 'admin' });
-                    showAlert('Promoted to admin.', false);
-                } else if (action === 'demote') {
-                    if (!confirm('Demote this admin to driver?')) return;
-                    await callFunc('update_role', { id: id, role: 'driver' });
-                    showAlert('Demoted to driver.', false);
                 }
                 await load();
             } catch (err) {
