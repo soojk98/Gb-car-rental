@@ -661,6 +661,25 @@
 
             let resp;
             if (action === 'approve') {
+                // Remove any previously-approved doc of the same type before approving the new one.
+                const target = await supabaseClient.from('documents')
+                    .select('driver_id, type').eq('id', docId).single();
+                if (target.data) {
+                    const old = await supabaseClient.from('documents')
+                        .select('id, file_path')
+                        .eq('driver_id', target.data.driver_id)
+                        .eq('type', target.data.type)
+                        .eq('status', 'approved')
+                        .neq('id', docId);
+                    if (old.data && old.data.length > 0) {
+                        const oldPaths = old.data.map(function (e) { return e.file_path; }).filter(Boolean);
+                        if (oldPaths.length > 0) {
+                            await supabaseClient.storage.from('driver-documents').remove(oldPaths);
+                        }
+                        await supabaseClient.from('documents').delete()
+                            .in('id', old.data.map(function (e) { return e.id; }));
+                    }
+                }
                 resp = await supabaseClient.from('documents').update({ status: 'approved', review_notes: null }).eq('id', docId);
             } else if (action === 'reject') {
                 const reason = prompt('Reason for rejecting this document?');
@@ -690,11 +709,11 @@
             const upResp = await supabaseClient.storage.from('driver-documents').upload(path, file);
             if (upResp.error) { errBox.textContent = 'Upload failed: ' + upResp.error.message; errBox.style.display = 'block'; return; }
 
-            // Replace any existing non-rejected document of this type.
-            // Rejected uploads are kept as history.
+            // Admin upload is auto-approved, so it supersedes any previous
+            // approved or pending row of this type. Rejected rows stay as history.
             const existing = await supabaseClient.from('documents')
                 .select('id, file_path').eq('driver_id', viewingDocsDriver.id).eq('type', type)
-                .neq('status', 'rejected');
+                .in('status', ['pending', 'approved']);
             if (existing.data && existing.data.length > 0) {
                 const oldPaths = existing.data.map(function (e) { return e.file_path; }).filter(Boolean);
                 if (oldPaths.length > 0) {
