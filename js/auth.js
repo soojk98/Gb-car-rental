@@ -149,6 +149,21 @@ async function getDriverContext() {
 // #logout elements somewhere on the page.
 // =====================================================================
 (function () {
+    function initials(name) {
+        if (!name) return '?';
+        const parts = String(name).trim().split(/\s+/).filter(Boolean);
+        if (parts.length === 0) return '?';
+        if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+        return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    }
+
+    function detectRole() {
+        const p = (window.location.pathname || '').toLowerCase();
+        if (p.includes('/admin/'))  return 'Admin';
+        if (p.includes('/driver/')) return 'Driver';
+        return '';
+    }
+
     function mount() {
         const topbar = document.querySelector('.topbar');
         const userNameEl = document.getElementById('user-name');
@@ -158,33 +173,58 @@ async function getDriverContext() {
         const footer = document.querySelector('.sidebar-footer');
         if (footer) footer.style.display = 'none';
 
-        const nameSpan = document.createElement('span');
-        nameSpan.id = 'user-name';
-        nameSpan.style.cssText = 'font-weight:600; color:var(--dark-bg); font-size:14px;';
-        nameSpan.textContent = userNameEl.textContent;
+        const originalName = userNameEl.textContent || '';
         userNameEl.remove();
-
-        const logoutLink = document.createElement('a');
-        logoutLink.id = 'logout';
-        logoutLink.href = '#';
-        logoutLink.textContent = 'Sign out';
-        logoutLink.className = 'btn btn-secondary btn-sm';
         logoutEl.remove();
 
-        // If the topbar already has a right-side controls div, append into it.
-        // Otherwise create a new flex wrapper on the right.
-        let rightWrap = topbar.querySelector(':scope > div:last-child');
-        if (!rightWrap || rightWrap.tagName === 'H1') {
-            rightWrap = document.createElement('div');
-            rightWrap.style.cssText = 'display:flex; align-items:center; gap:8px;';
-            topbar.appendChild(rightWrap);
+        const wrap = document.createElement('div');
+        wrap.className = 'topbar-user';
+
+        const avatar = document.createElement('div');
+        avatar.className = 'avatar';
+        avatar.id = 'user-avatar';
+        avatar.textContent = initials(originalName);
+
+        const who = document.createElement('div');
+        who.className = 'who';
+
+        const nameEl = document.createElement('span');
+        nameEl.className = 'name';
+        nameEl.id = 'user-name';
+        nameEl.textContent = originalName;
+
+        const roleEl = document.createElement('span');
+        roleEl.className = 'role';
+        roleEl.textContent = detectRole();
+
+        who.appendChild(nameEl);
+        if (roleEl.textContent) who.appendChild(roleEl);
+
+        const signOutBtn = document.createElement('a');
+        signOutBtn.id = 'logout';
+        signOutBtn.href = '#';
+        signOutBtn.className = 'signout';
+        signOutBtn.title = 'Sign out';
+        signOutBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg><span>Sign out</span>';
+
+        wrap.appendChild(avatar);
+        wrap.appendChild(who);
+        wrap.appendChild(signOutBtn);
+
+        // Append into existing right-side div if present, otherwise to topbar.
+        const children = topbar.children;
+        const lastChild = children[children.length - 1];
+        if (lastChild && lastChild.tagName !== 'H1') {
+            lastChild.appendChild(wrap);
         } else {
-            rightWrap.style.display = 'flex';
-            rightWrap.style.alignItems = 'center';
-            if (!rightWrap.style.gap) rightWrap.style.gap = '8px';
+            topbar.appendChild(wrap);
         }
-        rightWrap.appendChild(nameSpan);
-        rightWrap.appendChild(logoutLink);
+
+        // Update avatar when the page later sets the real name.
+        const observer = new MutationObserver(function () {
+            avatar.textContent = initials(nameEl.textContent);
+        });
+        observer.observe(nameEl, { childList: true, characterData: true, subtree: true });
     }
 
     if (document.readyState === 'loading') {
