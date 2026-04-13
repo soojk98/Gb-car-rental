@@ -148,6 +148,18 @@
                         return;
                     }
 
+                    // Replace any existing document of this type
+                    const existing = await supabaseClient.from('documents')
+                        .select('id, file_path').eq('driver_id', driverId).eq('type', docType);
+                    if (existing.data && existing.data.length > 0) {
+                        const oldPaths = existing.data.map(function (e) { return e.file_path; }).filter(Boolean);
+                        if (oldPaths.length > 0) {
+                            await supabaseClient.storage.from('driver-documents').remove(oldPaths);
+                        }
+                        await supabaseClient.from('documents').delete()
+                            .in('id', existing.data.map(function (e) { return e.id; }));
+                    }
+
                     const insResp = await supabaseClient.from('documents').insert({
                         driver_id: driverId,
                         type: docType,
