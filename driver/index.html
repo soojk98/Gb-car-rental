@@ -224,8 +224,9 @@
 
             const docsResp = await supabaseClient
                 .from('car_documents')
-                .select('type, uploaded_at')
+                .select('type, uploaded_at, expiry_date')
                 .eq('car_id', car.id)
+                .order('expiry_date', { ascending: false, nullsFirst: false })
                 .order('uploaded_at', { ascending: false });
             const latestByType = {};
             (docsResp.data || []).forEach(function (d) {
@@ -234,6 +235,12 @@
             function statusFor(type) {
                 const rec = latestByType[type];
                 if (!rec) return { cls: 'status-bad', text: 'Not on record' };
+                if (rec.expiry_date) {
+                    const d = daysUntil(rec.expiry_date);
+                    if (d < 0)  return { cls: 'status-bad',  text: 'Expired on ' + fmtDate(rec.expiry_date) };
+                    if (d < 30) return { cls: 'status-warn', text: d + ' days left (until ' + fmtDate(rec.expiry_date) + ')' };
+                    return { cls: 'status-ok', text: 'Valid until ' + fmtDate(rec.expiry_date) };
+                }
                 return { cls: 'status-ok', text: 'Uploaded · ' + fmtDate(rec.uploaded_at) };
             }
             const insStatus = statusFor('insurance');

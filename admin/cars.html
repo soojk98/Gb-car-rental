@@ -185,6 +185,10 @@
                     <label>File</label>
                     <input id="docs-upload-file" type="file" accept="image/*,application/pdf">
                 </div>
+                <div class="form-group">
+                    <label>Expiry date <span style="color:var(--text-muted); font-weight:normal;">(optional for registration)</span></label>
+                    <input id="docs-upload-expiry" type="date">
+                </div>
             </div>
             <button class="btn btn-primary btn-sm" id="docs-upload-btn">Upload</button>
             <div class="modal-actions">
@@ -428,10 +432,17 @@
                     .createSignedUrl(d.file_path, 3600);
                 const url = urlData ? urlData.signedUrl : '#';
                 const filename = d.file_path.split('/').pop();
+                let expiryLabel = '';
+                if (d.expiry_date) {
+                    const days = Math.ceil((new Date(d.expiry_date) - new Date()) / (1000*60*60*24));
+                    const color = days < 0 ? 'var(--danger)' : (days < 30 ? '#c80' : 'var(--success)');
+                    const text  = days < 0 ? 'expired' : (days < 30 ? days + ' days left' : 'valid');
+                    expiryLabel = ' · <span style="color:' + color + '; font-weight:600;">Expires ' + new Date(d.expiry_date).toLocaleDateString('en-MY', { year:'numeric', month:'short', day:'numeric' }) + ' (' + text + ')</span>';
+                }
                 return '<li>'
                     + '<div class="doc-info">'
                         + '<strong>' + escapeHtml(docTypeLabels[d.type] || d.type) + '</strong>'
-                        + '<span>' + escapeHtml(filename) + ' · uploaded ' + fmtDate(d.uploaded_at) + '</span>'
+                        + '<span>' + escapeHtml(filename) + ' · uploaded ' + fmtDate(d.uploaded_at) + expiryLabel + '</span>'
                     + '</div>'
                     + '<div>'
                         + '<a class="btn btn-sm btn-secondary" href="' + escapeHtml(url) + '" target="_blank">View</a> '
@@ -474,14 +485,23 @@
             const upResp = await supabaseClient.storage.from('car-documents').upload(path, file);
             if (upResp.error) { errBox.textContent = 'Upload failed: ' + upResp.error.message; errBox.style.display = 'block'; return; }
 
+            const expiry = document.getElementById('docs-upload-expiry').value || null;
+            if (type !== 'registration' && !expiry) {
+                errBox.textContent = 'Please enter an expiry date for ' + (docTypeLabels[type] || type) + '.';
+                errBox.style.display = 'block';
+                return;
+            }
+
             const insResp = await supabaseClient.from('car_documents').insert({
                 car_id: viewingDocsCar.id,
                 type: type,
-                file_path: path
+                file_path: path,
+                expiry_date: expiry
             });
             if (insResp.error) { errBox.textContent = 'Upload OK but record failed: ' + insResp.error.message; errBox.style.display = 'block'; return; }
 
             document.getElementById('docs-upload-file').value = '';
+            document.getElementById('docs-upload-expiry').value = '';
             await loadDocsList();
         });
 
