@@ -163,6 +163,13 @@
                 <textarea id="driver-notes" rows="3"></textarea>
             </div>
 
+            <div class="form-group">
+                <label>
+                    <input id="driver-deposit-required" type="checkbox" checked> Deposit required
+                </label>
+                <div style="color: var(--text-muted); font-size: 12px;">Uncheck to waive the deposit for this driver.</div>
+            </div>
+
             <div class="modal-actions">
                 <button class="btn btn-secondary" id="driver-cancel">Cancel</button>
                 <button class="btn btn-primary" id="driver-save">Save</button>
@@ -370,7 +377,8 @@
             tbody.innerHTML = filtered.map(function (driver) {
                 const currentCar = activeRentalsByDriverId[driver.id];
                 const wa = (driver.whatsapp || '').replace(/[^0-9]/g, '');
-                const depositStatus = driver.deposit_status || 'pending';
+                const depositRequired = driver.deposit_required !== false;
+                const depositStatus = depositRequired ? (driver.deposit_status || 'pending') : 'not_required';
                 return '<tr>'
                     + '<td><strong>' + escapeHtml(driver.full_name) + '</strong></td>'
                     + '<td>' + escapeHtml(driver.email || '-') + '</td>'
@@ -384,7 +392,7 @@
                         + '<button class="btn btn-sm btn-secondary" data-action="edit"      data-id="' + driver.id + '">Edit</button>'
                         + '<button class="btn btn-sm btn-secondary" data-action="docs"      data-id="' + driver.id + '">Documents</button>'
                         + '<button class="btn btn-sm btn-secondary" data-action="agreement" data-id="' + driver.id + '">Agreement</button>'
-                        + (depositStatus === 'submitted' ? '<button class="btn btn-sm btn-primary" data-action="deposit"  data-id="' + driver.id + '">Review deposit</button>' : '')
+                        + (depositRequired && depositStatus === 'submitted' ? '<button class="btn btn-sm btn-primary" data-action="deposit"  data-id="' + driver.id + '">Review deposit</button>' : '')
                         + (driver.email ? '<button class="btn btn-sm btn-secondary" data-action="resend"   data-id="' + driver.id + '">Email invite</button>' : '')
                         + '<button class="btn btn-sm btn-secondary" data-action="link"      data-id="' + driver.id + '">Sign-in link</button>'
                         + '<button class="btn btn-sm btn-danger"    data-action="delete"    data-id="' + driver.id + '">Delete</button>'
@@ -511,6 +519,7 @@
             document.getElementById('driver-address').value   = driver ? (driver.address || '') : '';
             document.getElementById('driver-status').value    = driver ? (driver.status || 'active') : 'active';
             document.getElementById('driver-notes').value     = driver ? (driver.notes || '') : '';
+            document.getElementById('driver-deposit-required').checked = driver ? (driver.deposit_required !== false) : true;
             document.getElementById('driver-error').style.display = 'none';
             driverModal.classList.add('open');
         }
@@ -531,7 +540,8 @@
                 psv_number:     document.getElementById('driver-psv').value.trim() || null,
                 address:        document.getElementById('driver-address').value.trim() || null,
                 status:         document.getElementById('driver-status').value,
-                notes:          document.getElementById('driver-notes').value.trim() || null
+                notes:          document.getElementById('driver-notes').value.trim() || null,
+                deposit_required: document.getElementById('driver-deposit-required').checked
             };
 
             if (!payload.full_name) {

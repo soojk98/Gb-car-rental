@@ -68,6 +68,10 @@
         await render();
 
         async function render() {
+            if (driver.deposit_required === false) {
+                content.innerHTML = '<div class="alert alert-success">✓ No deposit is required for your rental. You\'re all set.</div>';
+                return;
+            }
             const status = driver.deposit_status || 'pending';
             let slipLink = '';
             if (driver.deposit_slip_path) {
