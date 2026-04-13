@@ -41,6 +41,15 @@
             margin-top: 20px; padding: 0 8px;
         }
 
+        /* Prevent date inputs from overflowing narrow columns */
+        .form-group { min-width: 0; }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+        input[type="date"] { -webkit-appearance: none; appearance: none; }
+
         @media (max-width: 560px) {
             body { padding: 12px 10px; }
             .wrap { margin: 16px auto; }
