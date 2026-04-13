@@ -5,6 +5,27 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard | GB Car Rental</title>
     <link rel="stylesheet" href="../css/app.css">
+    <style>
+        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 24px; }
+        .kpi { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 18px; box-shadow: 0 1px 2px rgba(0,0,0,.03); }
+        .kpi .label { font-size: 11px; text-transform: uppercase; color: var(--text-muted); letter-spacing: .5px; }
+        .kpi .value { font-size: 28px; font-weight: 800; color: var(--dark-bg); margin-top: 6px; line-height: 1; }
+        .kpi .sub   { font-size: 12px; color: var(--text-muted); margin-top: 6px; }
+        .kpi.kpi-warn .value { color: #c80; }
+        .kpi.kpi-bad  .value { color: var(--danger); }
+        .kpi.kpi-good .value { color: var(--success); }
+
+        .pending-list { list-style: none; padding: 0; margin: 0; }
+        .pending-list li {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 12px 14px; border: 1px solid var(--border); border-radius: 6px;
+            margin-bottom: 8px; background: var(--light-bg);
+        }
+        .pending-list .what strong { display:block; color: var(--dark-bg); margin-bottom: 2px; }
+        .pending-list .what span   { color: var(--text-muted); font-size: 12px; }
+        .pending-empty { color: var(--text-muted); font-size: 13px; padding: 10px 0; }
+        .section-title { font-size: 13px; text-transform: uppercase; color: var(--text-muted); letter-spacing: .5px; margin: 18px 0 10px; }
+    </style>
 </head>
 <body>
     <div id="app" style="display:none;">
@@ -27,14 +48,30 @@
             </aside>
 
             <main class="main">
-                <div class="topbar">
-                    <h1>Dashboard</h1>
-                </div>
+                <div class="topbar"><h1>Dashboard</h1></div>
                 <div class="content">
+                    <div id="kpis" class="kpi-grid">
+                        <div class="kpi"><div class="label">Loading...</div></div>
+                    </div>
+
                     <div class="card">
-                        <div class="card-header"><h2>Welcome</h2></div>
-                        <p>Welcome to the GB Car Rental admin portal. Use the sidebar to manage leads, cars, drivers, and rentals.</p>
-                        <p style="color: var(--text-muted); font-size: 13px;">More dashboard widgets (active rentals, overdue payments, expiring insurance) will appear here.</p>
+                        <div class="card-header"><h2>Pending tasks</h2></div>
+                        <p style="color: var(--text-muted); font-size: 13px; margin-top: -4px;">Items that need your action.</p>
+
+                        <div class="section-title">Payments to approve</div>
+                        <div id="pending-payments"><div class="pending-empty">Loading...</div></div>
+
+                        <div class="section-title">Deposits to review</div>
+                        <div id="pending-deposits"><div class="pending-empty">Loading...</div></div>
+
+                        <div class="section-title">Documents expiring soon (≤ 30 days) or expired</div>
+                        <div id="pending-docs"><div class="pending-empty">Loading...</div></div>
+
+                        <div class="section-title">New leads to follow up</div>
+                        <div id="pending-leads"><div class="pending-empty">Loading...</div></div>
+
+                        <div class="section-title">Inventory low-stock</div>
+                        <div id="pending-stock"><div class="pending-empty">Loading...</div></div>
                     </div>
                 </div>
             </main>
@@ -45,18 +82,135 @@
     <script src="../js/supabase.js"></script>
     <script src="../js/auth.js"></script>
     <script>
-        (async function () {
-            const profile = await requireRole('admin');
-            if (!profile) return;
+    (async function () {
+        const profile = await requireRole('admin');
+        if (!profile) return;
+        document.getElementById('user-name').textContent = profile.full_name || 'Admin';
+        document.getElementById('app').style.display = 'block';
+        document.getElementById('logout').addEventListener('click', function (e) { e.preventDefault(); signOut(); });
 
-            document.getElementById('user-name').textContent = profile.full_name || 'Admin';
-            document.getElementById('app').style.display = 'block';
+        function escapeHtml(s) { if (s == null) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+        function fmtDate(s) { return s ? new Date(s).toLocaleDateString('en-MY', { year:'numeric', month:'short', day:'numeric' }) : '—'; }
+        function fmtRM(n)   { return 'RM ' + Number(n || 0).toFixed(2); }
 
-            document.getElementById('logout').addEventListener('click', function (e) {
-                e.preventDefault();
-                signOut();
-            });
-        })();
+        // Current month range
+        const now = new Date();
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+        const nextMonth  = new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString().slice(0, 10);
+        const monthLabel = now.toLocaleDateString('en-MY', { month: 'long', year: 'numeric' });
+
+        const in30Date = new Date(); in30Date.setDate(in30Date.getDate() + 30);
+        const in30 = in30Date.toISOString().slice(0, 10);
+
+        // Run all queries in parallel
+        const [
+            driversAll, driversActive,
+            leadsNew, leadsAll,
+            carsAll, carsAvailable,
+            rentalsActive,
+            paymentsMonth,
+            paymentsPending,
+            depositsPending,
+            docsExpiring,
+            lowStock
+        ] = await Promise.all([
+            supabaseClient.from('drivers').select('id', { count: 'exact', head: true }),
+            supabaseClient.from('drivers').select('id', { count: 'exact', head: true }).eq('status', 'active'),
+            supabaseClient.from('leads').select('id, full_name, whatsapp, preferred_car, created_at').eq('status', 'new').order('created_at', { ascending: false }),
+            supabaseClient.from('leads').select('id', { count: 'exact', head: true }),
+            supabaseClient.from('cars').select('id', { count: 'exact', head: true }),
+            supabaseClient.from('cars').select('id', { count: 'exact', head: true }).eq('status', 'available'),
+            supabaseClient.from('rentals').select('id', { count: 'exact', head: true }).eq('status', 'active'),
+            supabaseClient.from('payments').select('amount, status, paid_at').gte('paid_at', monthStart).lt('paid_at', nextMonth),
+            supabaseClient.from('payments').select('id, amount, paid_at, rental_id, rentals(drivers(full_name), cars(plate_number))').eq('status', 'pending').order('created_at', { ascending: false }),
+            supabaseClient.from('drivers').select('id, full_name, deposit_amount_paid, deposit_paid_at').eq('deposit_status', 'submitted').neq('deposit_required', false).order('deposit_paid_at', { ascending: false }),
+            supabaseClient.from('car_documents').select('id, type, expiry_date, car_id, cars(plate_number, model)').not('expiry_date', 'is', null).lte('expiry_date', in30).order('expiry_date'),
+            supabaseClient.from('inventory_stock').select('*')
+        ]);
+
+        const monthCollected = (paymentsMonth.data || [])
+            .filter(function (p) { return p.status !== 'rejected'; })
+            .reduce(function (s, p) { return s + Number(p.amount || 0); }, 0);
+
+        const lowStockRows = (lowStock.data || []).filter(function (s) {
+            return Number(s.stock) <= Number(s.reorder_level);
+        });
+
+        // ---------- KPI cards ----------
+        const kpis = [
+            { label: 'Active drivers',           value: driversActive.count || 0,  sub: 'Total: ' + (driversAll.count || 0) },
+            { label: 'New leads',                value: (leadsNew.data || []).length, sub: 'Total leads: ' + (leadsAll.count || 0), cls: (leadsNew.data || []).length > 0 ? 'kpi-warn' : '' },
+            { label: 'Cars in fleet',            value: carsAll.count || 0,        sub: 'Available now: ' + (carsAvailable.count || 0) },
+            { label: 'Active rentals',           value: rentalsActive.count || 0,  sub: '' },
+            { label: 'Collected — ' + monthLabel, value: fmtRM(monthCollected),     sub: 'Approved + pending payments', cls: 'kpi-good' },
+            { label: 'Pending payments',         value: (paymentsPending.data || []).length, sub: 'Need your approval', cls: (paymentsPending.data || []).length > 0 ? 'kpi-warn' : '' },
+            { label: 'Pending deposits',         value: (depositsPending.data || []).length, sub: 'Need your review', cls: (depositsPending.data || []).length > 0 ? 'kpi-warn' : '' },
+            { label: 'Low-stock items',          value: lowStockRows.length,        sub: 'At or below reorder level', cls: lowStockRows.length > 0 ? 'kpi-bad' : '' }
+        ];
+        document.getElementById('kpis').innerHTML = kpis.map(function (k) {
+            return '<div class="kpi ' + (k.cls || '') + '">'
+                + '<div class="label">' + escapeHtml(k.label) + '</div>'
+                + '<div class="value">' + (typeof k.value === 'number' ? k.value : k.value) + '</div>'
+                + (k.sub ? '<div class="sub">' + escapeHtml(k.sub) + '</div>' : '')
+            + '</div>';
+        }).join('');
+
+        // ---------- Pending lists ----------
+        function renderList(elId, items, emptyMsg, rowFn) {
+            const el = document.getElementById(elId);
+            if (!items || items.length === 0) {
+                el.innerHTML = '<div class="pending-empty">' + emptyMsg + '</div>';
+                return;
+            }
+            el.innerHTML = '<ul class="pending-list">' + items.map(rowFn).join('') + '</ul>';
+        }
+
+        renderList('pending-payments', paymentsPending.data, '✓ No payments awaiting approval.', function (p) {
+            const driver = p.rentals && p.rentals.drivers ? p.rentals.drivers.full_name : '(unknown driver)';
+            const car    = p.rentals && p.rentals.cars ? p.rentals.cars.plate_number : '—';
+            return '<li>'
+                + '<div class="what"><strong>' + fmtRM(p.amount) + ' — ' + escapeHtml(driver) + '</strong>'
+                + '<span>' + escapeHtml(car) + ' · paid ' + fmtDate(p.paid_at) + '</span></div>'
+                + '<a class="btn btn-sm btn-primary" href="rentals.html">Review</a>'
+            + '</li>';
+        });
+
+        renderList('pending-deposits', depositsPending.data, '✓ No deposits awaiting review.', function (d) {
+            return '<li>'
+                + '<div class="what"><strong>' + escapeHtml(d.full_name) + '</strong>'
+                + '<span>Submitted ' + fmtRM(d.deposit_amount_paid) + ' on ' + fmtDate(d.deposit_paid_at) + '</span></div>'
+                + '<a class="btn btn-sm btn-primary" href="drivers.html">Review</a>'
+            + '</li>';
+        });
+
+        renderList('pending-docs', docsExpiring.data, '✓ All vehicle documents valid for the next 30 days.', function (d) {
+            const days = Math.ceil((new Date(d.expiry_date) - new Date()) / (1000*60*60*24));
+            const status = days < 0 ? ('Expired ' + Math.abs(days) + ' days ago') : (days + ' days left');
+            const carLabel = d.cars ? (d.cars.plate_number + ' — ' + d.cars.model) : '—';
+            const typeLabel = ({ road_tax:'Road tax', insurance:'Insurance', puspakom:'Puspakom', registration:'Registration' })[d.type] || d.type;
+            return '<li>'
+                + '<div class="what"><strong>' + escapeHtml(typeLabel) + ' — ' + escapeHtml(carLabel) + '</strong>'
+                + '<span>Expires ' + fmtDate(d.expiry_date) + ' · ' + status + '</span></div>'
+                + '<a class="btn btn-sm btn-primary" href="cars.html">Open</a>'
+            + '</li>';
+        });
+
+        renderList('pending-leads', leadsNew.data, '✓ No new leads to follow up.', function (l) {
+            return '<li>'
+                + '<div class="what"><strong>' + escapeHtml(l.full_name) + '</strong>'
+                + '<span>' + escapeHtml(l.whatsapp || '') + ' · prefers ' + escapeHtml(l.preferred_car || '—') + ' · ' + fmtDate(l.created_at) + '</span></div>'
+                + '<a class="btn btn-sm btn-primary" href="leads.html">Open</a>'
+            + '</li>';
+        });
+
+        renderList('pending-stock', lowStockRows, '✓ All inventory items above reorder level.', function (s) {
+            return '<li>'
+                + '<div class="what"><strong>' + escapeHtml(s.name) + '</strong>'
+                + '<span>Stock ' + Number(s.stock).toFixed(2) + ' ' + escapeHtml(s.unit || '') + ' · reorder at ' + Number(s.reorder_level).toFixed(2) + '</span></div>'
+                + '<a class="btn btn-sm btn-primary" href="inventory.html">Restock</a>'
+            + '</li>';
+        });
+    })();
     </script>
 </body>
 </html>
