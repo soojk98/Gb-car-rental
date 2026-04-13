@@ -211,19 +211,25 @@ async function getDriverContext() {
         wrap.appendChild(who);
         wrap.appendChild(signOutBtn);
 
-        // Append into existing right-side DIV container if present; otherwise
-        // create one so the user widget sits alongside any action buttons
-        // instead of inside them.
-        const children = topbar.children;
-        const lastChild = children[children.length - 1];
-        if (lastChild && lastChild.tagName === 'DIV') {
-            lastChild.style.display = 'flex';
-            lastChild.style.alignItems = 'center';
-            if (!lastChild.style.gap) lastChild.style.gap = '8px';
-            lastChild.appendChild(wrap);
+        // Ensure there is a right-side container holding all non-H1 items
+        // (action buttons + the user widget), so they cluster on the right
+        // instead of being spread by justify-content:space-between.
+        let rightWrap = null;
+        const topbarKids = Array.from(topbar.children);
+        const existingDivs = topbarKids.filter(function (c) { return c.tagName === 'DIV'; });
+        if (existingDivs.length === 1 && topbarKids.indexOf(existingDivs[0]) === topbarKids.length - 1) {
+            rightWrap = existingDivs[0];
         } else {
-            topbar.appendChild(wrap);
+            rightWrap = document.createElement('div');
+            topbarKids.forEach(function (c) {
+                if (c.tagName !== 'H1') rightWrap.appendChild(c);
+            });
+            topbar.appendChild(rightWrap);
         }
+        rightWrap.style.display = 'flex';
+        rightWrap.style.alignItems = 'center';
+        if (!rightWrap.style.gap) rightWrap.style.gap = '8px';
+        rightWrap.appendChild(wrap);
 
         // Update avatar when the page later sets the real name.
         const observer = new MutationObserver(function () {
