@@ -198,6 +198,7 @@
             <div class="summary-row">
                 <div class="summary-box"><div class="label">Driver</div><div class="value" id="pm-driver"></div></div>
                 <div class="summary-box"><div class="label">Car</div><div class="value" id="pm-car"></div></div>
+                <div class="summary-box"><div class="label">Deposit</div><div class="value" id="pm-deposit"></div></div>
                 <div class="summary-box"><div class="label">Total paid</div><div class="value" id="pm-total"></div></div>
                 <div class="summary-box"><div class="label">Status</div><div class="value" id="pm-status"></div></div>
             </div>
@@ -595,6 +596,7 @@
             document.getElementById('payments-error').style.display = 'none';
             document.getElementById('pm-driver').textContent = rental.drivers ? rental.drivers.full_name : '—';
             document.getElementById('pm-car').textContent    = rental.cars ? rental.cars.plate_number : '—';
+            document.getElementById('pm-deposit').innerHTML  = fmtRM(rental.deposit_amount) + (rental.deposit_returned ? ' <span class="badge badge-paid">returned</span>' : '');
             document.getElementById('pm-total').textContent  = fmtRM(rental._totalPaid);
             document.getElementById('pm-status').innerHTML   = '<span class="badge badge-' + rental.status + '">' + rental.status + '</span>';
 
