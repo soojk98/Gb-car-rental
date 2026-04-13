@@ -211,10 +211,15 @@ async function getDriverContext() {
         wrap.appendChild(who);
         wrap.appendChild(signOutBtn);
 
-        // Append into existing right-side div if present, otherwise to topbar.
+        // Append into existing right-side DIV container if present; otherwise
+        // create one so the user widget sits alongside any action buttons
+        // instead of inside them.
         const children = topbar.children;
         const lastChild = children[children.length - 1];
-        if (lastChild && lastChild.tagName !== 'H1') {
+        if (lastChild && lastChild.tagName === 'DIV') {
+            lastChild.style.display = 'flex';
+            lastChild.style.alignItems = 'center';
+            if (!lastChild.style.gap) lastChild.style.gap = '8px';
             lastChild.appendChild(wrap);
         } else {
             topbar.appendChild(wrap);
