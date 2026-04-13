@@ -21,6 +21,8 @@
         }
 
         /* --- Premium Dark Navbar --- */
+        html { scroll-behavior: smooth; }
+        section[id] { scroll-margin-top: 90px; }
         nav {
             display: flex;
             justify-content: space-between;
@@ -149,6 +151,7 @@
         /* --- Mobile Responsiveness --- */
         @media (max-width: 768px) {
             nav { flex-direction: column; padding: 15px; gap: 15px; }
+            section[id] { scroll-margin-top: 200px; }
             .nav-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
             .hero h1 { font-size: 40px; }
             .hero h2 { font-size: 22px; }
