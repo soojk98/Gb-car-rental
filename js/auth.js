@@ -141,3 +141,55 @@ async function getDriverContext() {
         car: rental ? rental.cars : null
     };
 }
+
+// =====================================================================
+// Auto-mount the user menu (name + Sign out) to the top-right of the
+// topbar, so every page shows it consistently. The sidebar-footer
+// version is hidden. Relies on page markup having #user-name and
+// #logout elements somewhere on the page.
+// =====================================================================
+(function () {
+    function mount() {
+        const topbar = document.querySelector('.topbar');
+        const userNameEl = document.getElementById('user-name');
+        const logoutEl   = document.getElementById('logout');
+        if (!topbar || !userNameEl || !logoutEl) return;
+
+        const footer = document.querySelector('.sidebar-footer');
+        if (footer) footer.style.display = 'none';
+
+        const nameSpan = document.createElement('span');
+        nameSpan.id = 'user-name';
+        nameSpan.style.cssText = 'font-weight:600; color:var(--dark-bg); font-size:14px;';
+        nameSpan.textContent = userNameEl.textContent;
+        userNameEl.remove();
+
+        const logoutLink = document.createElement('a');
+        logoutLink.id = 'logout';
+        logoutLink.href = '#';
+        logoutLink.textContent = 'Sign out';
+        logoutLink.className = 'btn btn-secondary btn-sm';
+        logoutEl.remove();
+
+        // If the topbar already has a right-side controls div, append into it.
+        // Otherwise create a new flex wrapper on the right.
+        let rightWrap = topbar.querySelector(':scope > div:last-child');
+        if (!rightWrap || rightWrap.tagName === 'H1') {
+            rightWrap = document.createElement('div');
+            rightWrap.style.cssText = 'display:flex; align-items:center; gap:8px;';
+            topbar.appendChild(rightWrap);
+        } else {
+            rightWrap.style.display = 'flex';
+            rightWrap.style.alignItems = 'center';
+            if (!rightWrap.style.gap) rightWrap.style.gap = '8px';
+        }
+        rightWrap.appendChild(nameSpan);
+        rightWrap.appendChild(logoutLink);
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', mount);
+    } else {
+        mount();
+    }
+})();
