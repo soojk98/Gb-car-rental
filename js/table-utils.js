@@ -27,6 +27,23 @@ function xlsxFilename(prefix) {
     return prefix + '_' + d + '.xlsx';
 }
 
+// On page load, if a .filter-bar is on the page and ?filter=<value> is in
+// the URL, mark the matching button active and deactivate siblings.
+(function () {
+    function apply() {
+        const urlFilter = new URLSearchParams(location.search).get('filter');
+        if (!urlFilter) return;
+        document.querySelectorAll('.filter-bar button[data-filter]').forEach(function (b) {
+            b.classList.toggle('active', b.dataset.filter === urlFilter);
+        });
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', apply);
+    } else {
+        apply();
+    }
+})();
+
 // Case-insensitive multi-field search. Returns true if `query` matches
 // any of the supplied field strings (substring match).
 function matchSearch(query, fields) {

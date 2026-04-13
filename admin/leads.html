@@ -296,7 +296,7 @@
         const tableEl = document.getElementById('leads-table');
         const pageAlert = document.getElementById('page-alert');
         let allLeads = [];
-        let currentFilter = 'all';
+        let currentFilter = new URLSearchParams(location.search).get('filter') || 'all';
         let currentSearch = '';
         function getFilteredLeads() {
             let arr = currentFilter === 'all' ? allLeads : allLeads.filter(function (l) { return l.status === currentFilter; });

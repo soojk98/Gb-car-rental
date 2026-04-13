@@ -255,7 +255,7 @@
 
         let allCars = [];
         let activeRentalsByCarId = {};   // car_id -> { driver_full_name }
-        let currentFilter = 'all';
+        let currentFilter = new URLSearchParams(location.search).get('filter') || 'all';
         let currentSearch = '';
         let editingId = null;
         function getFilteredCars() {

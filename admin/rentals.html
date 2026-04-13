@@ -295,7 +295,7 @@
         const paymentsModal = document.getElementById('payments-modal');
 
         let allRentals = [];
-        let currentFilter = 'active';
+        let currentFilter = new URLSearchParams(location.search).get('filter') || 'active';
         let currentSearch = '';
         function getFilteredRentals() {
             let arr = currentFilter === 'all' ? allRentals : allRentals.filter(function (r) { return r.status === currentFilter; });

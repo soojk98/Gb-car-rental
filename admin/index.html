@@ -14,6 +14,8 @@
         .kpi.kpi-warn .value { color: #c80; }
         .kpi.kpi-bad  .value { color: var(--danger); }
         .kpi.kpi-good .value { color: var(--success); }
+        a.kpi-link { display: block; text-decoration: none; color: inherit; transition: transform 0.12s, box-shadow 0.12s, border-color 0.12s; }
+        a.kpi-link:hover { text-decoration: none; transform: translateY(-1px); box-shadow: 0 4px 10px rgba(0,0,0,0.08); border-color: var(--primary-green); }
 
         .pending-list { list-style: none; padding: 0; margin: 0; }
         .pending-list li {
@@ -144,22 +146,23 @@
 
         // ---------- KPI cards ----------
         const kpis = [
-            { label: 'Active drivers',           value: driversActive.count || 0,  sub: 'Total: ' + (driversAll.count || 0) },
-            { label: 'New leads',                value: (leadsNew.data || []).length, sub: 'Total leads: ' + (leadsAll.count || 0), cls: (leadsNew.data || []).length > 0 ? 'kpi-warn' : '' },
-            { label: 'Cars in fleet',            value: carsAll.count || 0,        sub: 'Available now: ' + (carsAvailable.count || 0) },
-            { label: 'Active rentals',           value: rentalsActive.count || 0,  sub: '' },
-            { label: 'Collected — ' + monthLabel, value: fmtRM(monthCollected),     sub: 'Approved + pending payments', cls: 'kpi-good' },
-            { label: 'Pending payments',         value: (paymentsPending.data || []).length, sub: 'Need your approval', cls: (paymentsPending.data || []).length > 0 ? 'kpi-warn' : '' },
-            { label: 'Pending deposits',         value: (depositsPending.data || []).length, sub: 'Need your review', cls: (depositsPending.data || []).length > 0 ? 'kpi-warn' : '' },
-            { label: 'Pending driver docs',      value: (docsPendingDriver.data || []).length, sub: 'NRIC/license/PSV uploads', cls: (docsPendingDriver.data || []).length > 0 ? 'kpi-warn' : '' },
-            { label: 'Low-stock items',          value: lowStockRows.length,        sub: 'At or below reorder level', cls: lowStockRows.length > 0 ? 'kpi-bad' : '' }
+            { label: 'Active drivers',           value: driversActive.count || 0,  sub: 'Total: ' + (driversAll.count || 0), href: 'drivers.html?filter=active' },
+            { label: 'New leads',                value: (leadsNew.data || []).length, sub: 'Total leads: ' + (leadsAll.count || 0), cls: (leadsNew.data || []).length > 0 ? 'kpi-warn' : '', href: 'leads.html?filter=new' },
+            { label: 'Cars in fleet',            value: carsAll.count || 0,        sub: 'Available now: ' + (carsAvailable.count || 0), href: 'cars.html' },
+            { label: 'Active rentals',           value: rentalsActive.count || 0,  sub: '', href: 'rentals.html?filter=active' },
+            { label: 'Collected — ' + monthLabel, value: fmtRM(monthCollected),     sub: 'Approved + pending payments', cls: 'kpi-good', href: 'rentals.html?filter=all' },
+            { label: 'Pending payments',         value: (paymentsPending.data || []).length, sub: 'Need your approval', cls: (paymentsPending.data || []).length > 0 ? 'kpi-warn' : '', href: 'rentals.html?payments=pending' },
+            { label: 'Pending deposits',         value: (depositsPending.data || []).length, sub: 'Need your review', cls: (depositsPending.data || []).length > 0 ? 'kpi-warn' : '', href: 'drivers.html?deposit=submitted' },
+            { label: 'Pending driver docs',      value: (docsPendingDriver.data || []).length, sub: 'NRIC/license/PSV uploads', cls: (docsPendingDriver.data || []).length > 0 ? 'kpi-warn' : '', href: 'drivers.html?docs=pending' },
+            { label: 'Low-stock items',          value: lowStockRows.length,        sub: 'At or below reorder level', cls: lowStockRows.length > 0 ? 'kpi-bad' : '', href: 'inventory.html?lowstock=1' }
         ];
         document.getElementById('kpis').innerHTML = kpis.map(function (k) {
-            return '<div class="kpi ' + (k.cls || '') + '">'
-                + '<div class="label">' + escapeHtml(k.label) + '</div>'
+            const inner = '<div class="label">' + escapeHtml(k.label) + '</div>'
                 + '<div class="value">' + (typeof k.value === 'number' ? k.value : k.value) + '</div>'
-                + (k.sub ? '<div class="sub">' + escapeHtml(k.sub) + '</div>' : '')
-            + '</div>';
+                + (k.sub ? '<div class="sub">' + escapeHtml(k.sub) + '</div>' : '');
+            return k.href
+                ? '<a class="kpi kpi-link ' + (k.cls || '') + '" href="' + k.href + '">' + inner + '</a>'
+                : '<div class="kpi ' + (k.cls || '') + '">' + inner + '</div>';
         }).join('');
 
         // ---------- Pending lists ----------

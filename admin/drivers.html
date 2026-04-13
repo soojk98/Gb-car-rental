@@ -317,7 +317,7 @@
 
         let allDrivers = [];
         let activeRentalsByDriverId = {};
-        let currentFilter = 'all';
+        let currentFilter = new URLSearchParams(location.search).get('filter') || 'all';
         let currentSearch = '';
         let editingId = null;
         function getFilteredDrivers() {
