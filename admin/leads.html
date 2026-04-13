@@ -88,6 +88,7 @@
                         <input id="search-input" type="search" placeholder="Search name / phone / car..." style="padding:7px 10px; border:1px solid var(--border); border-radius:5px; min-width:240px;">
                         <button id="export-btn" class="btn btn-secondary btn-sm">Export Excel</button>
                         <button id="refresh-btn" class="btn btn-secondary btn-sm">Refresh</button>
+                        <button id="add-btn" class="btn btn-primary btn-sm">+ New lead</button>
                     </div>
                 </div>
 
@@ -131,6 +132,55 @@
     </div>
 
     <!-- Edit / Notes modal -->
+    <!-- New lead modal -->
+    <div class="modal-backdrop" id="new-lead-modal">
+        <div class="modal">
+            <h2>New lead</h2>
+            <div id="new-lead-error" class="alert alert-error" style="display:none;"></div>
+            <div class="form-group">
+                <label>Full name *</label>
+                <input id="nl-name" type="text" required>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>WhatsApp *</label>
+                    <input id="nl-whatsapp" type="tel" required>
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input id="nl-email" type="email">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Preferred car</label>
+                    <select id="nl-car">
+                        <option value="">—</option>
+                        <option value="saga">Proton Saga</option>
+                        <option value="bezza">Perodua Bezza</option>
+                        <option value="alza">Perodua Alza</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Status</label>
+                    <select id="nl-status">
+                        <option value="new">New</option>
+                        <option value="contacted">Contacted</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Notes</label>
+                <textarea id="nl-notes" rows="3"></textarea>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" id="nl-cancel">Cancel</button>
+                <button class="btn btn-primary" id="nl-save">Save</button>
+            </div>
+        </div>
+    </div>
+
     <div class="modal-backdrop" id="edit-modal">
         <div class="modal">
             <h2>Edit lead</h2>
@@ -355,6 +405,48 @@
         });
 
         document.getElementById('refresh-btn').addEventListener('click', loadLeads);
+
+        // ---------- New lead ----------
+        const newLeadModal = document.getElementById('new-lead-modal');
+        document.getElementById('add-btn').addEventListener('click', function () {
+            document.getElementById('nl-name').value = '';
+            document.getElementById('nl-whatsapp').value = '';
+            document.getElementById('nl-email').value = '';
+            document.getElementById('nl-car').value = '';
+            document.getElementById('nl-status').value = 'new';
+            document.getElementById('nl-notes').value = '';
+            document.getElementById('new-lead-error').style.display = 'none';
+            newLeadModal.classList.add('open');
+        });
+        document.getElementById('nl-cancel').addEventListener('click', function () { newLeadModal.classList.remove('open'); });
+        newLeadModal.addEventListener('click', function (e) { if (e.target === newLeadModal) newLeadModal.classList.remove('open'); });
+        document.getElementById('nl-save').addEventListener('click', async function () {
+            const errBox = document.getElementById('new-lead-error');
+            errBox.style.display = 'none';
+            const payload = {
+                full_name:     document.getElementById('nl-name').value.trim(),
+                whatsapp:      document.getElementById('nl-whatsapp').value.trim(),
+                email:         document.getElementById('nl-email').value.trim().toLowerCase() || null,
+                preferred_car: document.getElementById('nl-car').value || null,
+                status:        document.getElementById('nl-status').value,
+                notes:         document.getElementById('nl-notes').value.trim() || null
+            };
+            if (!payload.full_name || !payload.whatsapp) {
+                errBox.textContent = 'Name and WhatsApp are required.';
+                errBox.style.display = 'block';
+                return;
+            }
+            if (payload.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.email)) {
+                errBox.textContent = 'Please enter a valid email (or leave blank).';
+                errBox.style.display = 'block';
+                return;
+            }
+            const { error } = await supabaseClient.from('leads').insert(payload);
+            if (error) { errBox.textContent = error.message; errBox.style.display = 'block'; return; }
+            newLeadModal.classList.remove('open');
+            showAlert('Lead added.', false);
+            await loadLeads();
+        });
 
         document.getElementById('search-input').addEventListener('input', function () {
             currentSearch = this.value;
