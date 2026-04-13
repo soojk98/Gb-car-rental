@@ -152,9 +152,19 @@
                 </div>
             </div>
 
-            <div class="form-group">
-                <label>Current mileage (km)</label>
-                <input id="car-mileage" type="number" min="0" placeholder="0">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Current mileage (km)</label>
+                    <input id="car-mileage" type="number" min="0" placeholder="0">
+                </div>
+                <div class="form-group">
+                    <label>Condition</label>
+                    <select id="car-condition">
+                        <option value="">—</option>
+                        <option value="new">New</option>
+                        <option value="used">Used</option>
+                    </select>
+                </div>
             </div>
 
             <div class="form-row">
@@ -409,6 +419,7 @@
             document.getElementById('car-rate').value = car ? (car.weekly_rate || '') : '';
             document.getElementById('car-status').value = car ? (car.status || 'available') : 'available';
             document.getElementById('car-mileage').value = car ? (car.current_mileage || 0) : 0;
+            document.getElementById('car-condition').value = car ? (car.condition || '') : '';
             document.getElementById('car-purchase-price').value = car ? (car.purchase_price || '') : '';
             document.getElementById('car-purchase-date').value  = car ? (car.purchase_date || '') : '';
             document.getElementById('car-reg-date').value       = car ? (car.registration_date || '') : '';
@@ -449,6 +460,7 @@
                 weekly_rate: parseFloat(document.getElementById('car-rate').value),
                 status: document.getElementById('car-status').value,
                 current_mileage: parseInt(document.getElementById('car-mileage').value) || 0,
+                condition:       document.getElementById('car-condition').value || null,
                 purchase_price:    parseFloat(document.getElementById('car-purchase-price').value) || null,
                 purchase_date:     document.getElementById('car-purchase-date').value || null,
                 registration_date: document.getElementById('car-reg-date').value || null,
