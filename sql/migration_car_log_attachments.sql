@@ -5,6 +5,9 @@
 -- accidents:   police report + insurance report
 -- =====================================================================
 
+ALTER TABLE public.mileage_logs
+    ADD COLUMN IF NOT EXISTS attachment_path text;
+
 ALTER TABLE public.maintenance_records
     ADD COLUMN IF NOT EXISTS attachment_path text;
 
