@@ -173,6 +173,11 @@
                 <input id="convert-whatsapp" type="tel" required>
             </div>
             <div class="form-group">
+                <label>NRIC *</label>
+                <input id="convert-ic" type="text" placeholder="e.g. 900101-14-1234" required>
+                <div style="color: var(--text-muted); font-size: 12px; margin-top: 4px;">Used as the driver's login password.</div>
+            </div>
+            <div class="form-group">
                 <label>Email <span style="color: var(--text-muted); font-weight: normal;">(optional — leave blank if driver has none)</span></label>
                 <input id="convert-email" type="email">
             </div>
@@ -431,6 +436,7 @@
             document.getElementById('convert-name').value = lead.full_name || '';
             document.getElementById('convert-whatsapp').value = lead.whatsapp || '';
             document.getElementById('convert-email').value = lead.email || '';
+            document.getElementById('convert-ic').value = '';
             document.getElementById('convert-error').style.display = 'none';
             convertModal.classList.add('open');
         }
@@ -439,13 +445,14 @@
             if (!convertingLead) return;
             const name     = document.getElementById('convert-name').value.trim();
             const whatsapp = document.getElementById('convert-whatsapp').value.trim();
+            const ic       = document.getElementById('convert-ic').value.trim();
             const email    = document.getElementById('convert-email').value.trim().toLowerCase();
             const errBox   = document.getElementById('convert-error');
             const btn      = document.getElementById('convert-confirm');
             errBox.style.display = 'none';
 
-            if (!name || !whatsapp) {
-                errBox.textContent = 'Name and WhatsApp are required.';
+            if (!name || !whatsapp || !ic) {
+                errBox.textContent = 'Name, WhatsApp, and NRIC are required.';
                 errBox.style.display = 'block';
                 return;
             }
@@ -467,6 +474,7 @@
                 .insert({
                     full_name: name,
                     whatsapp: whatsapp,
+                    ic_number: ic,
                     email: email || null,
                     lead_id: convertingLead.id,
                     status: 'active',
