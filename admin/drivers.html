@@ -406,6 +406,7 @@
                     + '<td><span class="badge badge-' + escapeHtml(depositStatus) + '">' + escapeHtml(depositStatus) + '</span></td>'
                     + '<td>' + (currentCar ? escapeHtml(currentCar) : '<span style="color:var(--text-muted);">—</span>') + '</td>'
                     + '<td class="actions-cell">'
+                        + '<a class="btn btn-sm btn-primary" href="driver-detail.html?id=' + driver.id + '">View</a>'
                         + '<button class="btn btn-sm btn-secondary" data-action="edit"      data-id="' + driver.id + '">Edit</button>'
                         + '<button class="btn btn-sm btn-secondary" data-action="docs"      data-id="' + driver.id + '">Documents</button>'
                         + '<button class="btn btn-sm btn-secondary" data-action="agreement" data-id="' + driver.id + '">Agreement</button>'

@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Car Details | GB Car Rental</title>
+    <link rel="stylesheet" href="../css/app.css">
+    <style>
+        .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+        .info-box { background: var(--light-bg); padding: 12px 14px; border-radius: 6px; border: 1px solid var(--border); }
+        .info-box .label { font-size: 11px; text-transform: uppercase; color: var(--text-muted); letter-spacing: .5px; }
+        .info-box .value { font-size: 15px; font-weight: 600; color: var(--dark-bg); margin-top: 4px; word-break: break-word; }
+        .photos { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+        .photo { height: 180px; background: var(--light-bg); border: 1px dashed var(--border); border-radius: 8px; overflow: hidden; position: relative; }
+        .photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .photo .cap { position: absolute; left: 8px; bottom: 8px; background: rgba(0,0,0,0.6); color: #fff; font-size: 11px; padding: 3px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: .5px; }
+        .photo.empty { display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 13px; text-transform: uppercase; letter-spacing: .5px; }
+        .doc-list { list-style: none; padding: 0; margin: 0; }
+        .doc-list li {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px;
+            margin-bottom: 8px; background: var(--light-bg); gap: 12px;
+        }
+        .doc-list li .meta strong { display: block; font-size: 13px; }
+        .doc-list li .meta span { font-size: 12px; color: var(--text-muted); }
+    </style>
+</head>
+<body>
+    <div id="app" style="display:none;">
+        <div class="app-shell">
+            <aside class="sidebar">
+                <div class="sidebar-brand"><span>GB</span> Admin</div>
+                <nav class="sidebar-nav">
+                    <a href="index.html">Dashboard</a>
+                    <a href="leads.html">Leads</a>
+                    <a href="cars.html" class="active">Cars</a>
+                    <a href="drivers.html">Drivers</a>
+                    <a href="rentals.html">Rentals</a>
+                    <a href="payment-link.html">Payment Link</a>
+                    <a href="inventory.html">Inventory</a>
+                    <a href="profit-loss.html">Profit & Loss</a>
+                    <a href="financial.html">Financial</a>
+                    <a href="users.html">Users</a>
+                </nav>
+                <div class="sidebar-footer">
+                    <div class="user-name" id="user-name"></div>
+                    <a href="#" id="logout" style="color:#cbd1d8;">Sign out</a>
+                </div>
+            </aside>
+
+            <main class="main">
+                <div class="topbar">
+                    <h1 id="page-title">Car details</h1>
+                    <div style="display:flex; gap:8px;">
+                        <a href="#" id="logs-link" class="btn btn-secondary btn-sm">Open logs</a>
+                        <a href="cars.html" class="btn btn-secondary btn-sm">← Back to Cars</a>
+                    </div>
+                </div>
+                <div class="content">
+                    <div id="page-alert"></div>
+                    <div id="body"><p style="color:var(--text-muted);">Loading...</p></div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../js/supabase.js"></script>
+    <script src="../js/auth.js"></script>
+    <script>
+    (async function () {
+        const profile = await requireRole('admin');
+        if (!profile) return;
+        document.getElementById('user-name').textContent = profile.full_name || 'Admin';
+        document.getElementById('app').style.display = 'block';
+        document.getElementById('logout').addEventListener('click', function (e) { e.preventDefault(); signOut(); });
+
+        const body = document.getElementById('body');
+        function escapeHtml(s) { if (s == null) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+        function fmtDate(s) { return s ? new Date(s).toLocaleDateString('en-MY', { year:'numeric', month:'short', day:'numeric' }) : '—'; }
+        function fmtRM(n) { return n == null ? '—' : 'RM ' + Number(n).toFixed(2); }
+        function yearsBetween(a, b) { return (new Date(b) - new Date(a)) / (1000*60*60*24*365.25); }
+
+        const id = new URLSearchParams(location.search).get('id');
+        if (!id) { body.innerHTML = '<div class="alert alert-error">Missing car id.</div>'; return; }
+        document.getElementById('logs-link').href = 'car-logs.html?car_id=' + encodeURIComponent(id);
+
+        async function signedUrl(bucket, path) {
+            if (!path) return null;
+            const { data } = await supabaseClient.storage.from(bucket).createSignedUrl(path, 3600);
+            return data ? data.signedUrl : null;
+        }
+
+        const [carResp, docsResp, rentalsResp, mileageResp, maintResp, summonsResp, accidentsResp] = await Promise.all([
+            supabaseClient.from('cars').select('*').eq('id', id).single(),
+            supabaseClient.from('car_documents').select('*').eq('car_id', id).order('uploaded_at', { ascending: false }),
+            supabaseClient.from('rentals').select('*, drivers(full_name)').eq('car_id', id).order('start_date', { ascending: false }),
+            supabaseClient.from('mileage_logs').select('*').eq('car_id', id).order('recorded_date', { ascending: false }).limit(1),
+            supabaseClient.from('maintenance_records').select('cost').eq('car_id', id),
+            supabaseClient.from('summons').select('fine_amount, status').eq('car_id', id),
+            supabaseClient.from('accidents').select('repair_cost').eq('car_id', id)
+        ]);
+        if (carResp.error || !carResp.data) {
+            body.innerHTML = '<div class="alert alert-error">' + escapeHtml(carResp.error ? carResp.error.message : 'Car not found') + '</div>';
+            return;
+        }
+        const c = carResp.data;
+        document.getElementById('page-title').textContent = 'Car: ' + c.plate_number;
+
+        const docs = docsResp.data || [];
+        const rentals = rentalsResp.data || [];
+        const latestMileage = (mileageResp.data || [])[0];
+
+        // Cost rollups
+        const maintCost = (maintResp.data || []).reduce(function (s, m) { return s + Number(m.cost || 0); }, 0);
+        const summonsCost = (summonsResp.data || []).filter(function (m) { return m.status !== 'paid'; })
+            .reduce(function (s, m) { return s + Number(m.fine_amount || 0); }, 0);
+        const accidentCost = (accidentsResp.data || []).reduce(function (s, m) { return s + Number(m.repair_cost || 0); }, 0);
+
+        // Revenue from payments (non-rejected)
+        let revenue = 0;
+        if (rentals.length > 0) {
+            const pays = await supabaseClient.from('payments').select('amount, status').in('rental_id', rentals.map(function (r) { return r.id; }));
+            if (pays.data) revenue = pays.data.filter(function (p) { return p.status !== 'rejected'; })
+                .reduce(function (s, p) { return s + Number(p.amount || 0); }, 0);
+        }
+
+        // Latest doc per type
+        const DOC_LABEL = { registration:'Registration', road_tax:'Road Tax', insurance:'Insurance', puspakom:'Puspakom' };
+        const DOC_TYPES = ['registration','road_tax','insurance','puspakom'];
+        const latestByType = {};
+        docs.forEach(function (d) { if (!latestByType[d.type]) latestByType[d.type] = d; });
+
+        // Photos
+        const [frontUrl, backUrl, sideUrl] = await Promise.all([
+            signedUrl('car-documents', c.photo_front_path),
+            signedUrl('car-documents', c.photo_back_path),
+            signedUrl('car-documents', c.photo_side_path)
+        ]);
+        function photo(url, label) {
+            return url
+                ? '<div class="photo"><img src="' + url + '"><div class="cap">' + label + '</div></div>'
+                : '<div class="photo empty">' + label + ' — none</div>';
+        }
+
+        // Doc rows
+        const docItems = await Promise.all(DOC_TYPES.map(async function (t) {
+            const d = latestByType[t];
+            if (!d) return '<li><div class="meta"><strong>' + DOC_LABEL[t] + '</strong><span>Not uploaded</span></div><span class="badge badge-pending">missing</span></li>';
+            const url = await signedUrl('car-documents', d.file_path);
+            let exp = '';
+            if (d.expiry_date) {
+                const days = Math.ceil((new Date(d.expiry_date) - new Date()) / (1000*60*60*24));
+                const color = days < 0 ? 'var(--danger)' : (days < 30 ? '#c80' : 'var(--success)');
+                exp = ' · <span style="color:' + color + ';">Expires ' + fmtDate(d.expiry_date) + (days < 0 ? ' (expired)' : ' (' + days + ' days left)') + '</span>';
+            }
+            return '<li>'
+                + '<div class="meta"><strong>' + DOC_LABEL[t] + '</strong><span>uploaded ' + fmtDate(d.uploaded_at) + exp + '</span></div>'
+                + (url ? '<a class="btn btn-sm btn-secondary" href="' + url + '" target="_blank">View</a>' : '')
+            + '</li>';
+        }));
+
+        // Age
+        const reg = c.registration_date || c.purchase_date || null;
+        const age = reg ? yearsBetween(reg, new Date()) : null;
+        const yearsLeft = age != null ? Math.max(0, 15 - age) : null;
+
+        body.innerHTML = ''
+            + '<div class="card"><div class="card-header"><h2>Overview</h2></div>'
+                + '<div class="info-grid">'
+                    + kv('Plate', '<strong>' + escapeHtml(c.plate_number) + '</strong>')
+                    + kv('Model', escapeHtml(c.model))
+                    + kv('Year / Colour', (c.year || '—') + ' · ' + (c.color || '—'))
+                    + kv('Condition', c.condition ? c.condition : '—')
+                    + kv('Status', '<span class="badge badge-' + escapeHtml(c.status) + '">' + escapeHtml(c.status) + '</span>')
+                    + kv('Weekly rate', fmtRM(c.weekly_rate))
+                    + kv('Mileage', (c.current_mileage != null ? Number(c.current_mileage).toLocaleString() + ' km' : '—')
+                        + (latestMileage ? ' <span style="font-size:11px; color:var(--text-muted);">(last logged ' + fmtDate(latestMileage.recorded_date) + ')</span>' : ''))
+                    + kv('Purchase price', fmtRM(c.purchase_price))
+                    + kv('Purchase date', fmtDate(c.purchase_date))
+                    + kv('Registration date', fmtDate(c.registration_date))
+                    + kv('Age', age != null ? age.toFixed(1) + ' yrs' : '—')
+                    + kv('Years left (15-yr limit)', yearsLeft != null ? yearsLeft.toFixed(1) + ' yrs' : '—')
+                + '</div>'
+                + (c.notes ? '<p style="margin-top:14px; color:var(--text-muted); font-size:13px;"><strong>Notes:</strong> ' + escapeHtml(c.notes) + '</p>' : '')
+            + '</div>'
+
+            + '<div class="card"><div class="card-header"><h2>Photos</h2></div>'
+                + '<div class="photos">' + photo(frontUrl, 'Front') + photo(backUrl, 'Back') + photo(sideUrl, 'Side') + '</div>'
+            + '</div>'
+
+            + '<div class="card"><div class="card-header"><h2>Compliance documents</h2></div>'
+                + '<ul class="doc-list">' + docItems.join('') + '</ul>'
+            + '</div>'
+
+            + '<div class="card"><div class="card-header"><h2>Financials</h2></div>'
+                + '<div class="info-grid">'
+                    + kv('Total revenue', fmtRM(revenue))
+                    + kv('Maintenance costs', fmtRM(maintCost))
+                    + kv('Accident repair costs', fmtRM(accidentCost))
+                    + kv('Unpaid summons', fmtRM(summonsCost))
+                    + kv('Net P&L (revenue − purchase − costs)', fmtRM(revenue - Number(c.purchase_price || 0) - maintCost - summonsCost - accidentCost))
+                + '</div>'
+            + '</div>'
+
+            + '<div class="card" style="padding:0;">'
+                + '<div class="card-header" style="margin:0; padding:16px;"><h2 style="margin:0;">Rental history (' + rentals.length + ')</h2></div>'
+                + '<div class="table-wrap"><table class="data"><thead><tr><th>Driver</th><th>Start</th><th>End</th><th>Weekly rate</th><th>Deposit</th><th>Status</th></tr></thead><tbody>'
+                + (rentals.length === 0
+                    ? '<tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:20px;">No rentals yet.</td></tr>'
+                    : rentals.map(function (r) {
+                        return '<tr>'
+                            + '<td>' + escapeHtml(r.drivers ? r.drivers.full_name : '—') + '</td>'
+                            + '<td>' + fmtDate(r.start_date) + '</td>'
+                            + '<td>' + fmtDate(r.end_date) + '</td>'
+                            + '<td>' + fmtRM(r.weekly_rate) + '</td>'
+                            + '<td>' + fmtRM(r.deposit_amount) + (r.deposit_returned ? ' <span class="badge badge-paid">returned</span>' : '') + '</td>'
+                            + '<td><span class="badge badge-' + escapeHtml(r.status) + '">' + escapeHtml(r.status) + '</span></td>'
+                        + '</tr>';
+                    }).join(''))
+                + '</tbody></table></div>'
+            + '</div>';
+
+        function kv(label, value) {
+            return '<div class="info-box"><div class="label">' + escapeHtml(label) + '</div><div class="value">' + value + '</div></div>';
+        }
+    })();
+    </script>
+</body>
+</html>

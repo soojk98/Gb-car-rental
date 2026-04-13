@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Driver Details | GB Car Rental</title>
+    <link rel="stylesheet" href="../css/app.css">
+    <style>
+        .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+        .info-box { background: var(--light-bg); padding: 12px 14px; border-radius: 6px; border: 1px solid var(--border); }
+        .info-box .label { font-size: 11px; text-transform: uppercase; color: var(--text-muted); letter-spacing: .5px; }
+        .info-box .value { font-size: 15px; font-weight: 600; color: var(--dark-bg); margin-top: 4px; word-break: break-word; }
+        .doc-list { list-style: none; padding: 0; margin: 0; }
+        .doc-list li {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px;
+            margin-bottom: 8px; background: var(--light-bg); gap: 12px;
+        }
+        .doc-list li .meta strong { display: block; font-size: 13px; }
+        .doc-list li .meta span { font-size: 12px; color: var(--text-muted); }
+    </style>
+</head>
+<body>
+    <div id="app" style="display:none;">
+        <div class="app-shell">
+            <aside class="sidebar">
+                <div class="sidebar-brand"><span>GB</span> Admin</div>
+                <nav class="sidebar-nav">
+                    <a href="index.html">Dashboard</a>
+                    <a href="leads.html">Leads</a>
+                    <a href="cars.html">Cars</a>
+                    <a href="drivers.html" class="active">Drivers</a>
+                    <a href="rentals.html">Rentals</a>
+                    <a href="payment-link.html">Payment Link</a>
+                    <a href="inventory.html">Inventory</a>
+                    <a href="profit-loss.html">Profit & Loss</a>
+                    <a href="financial.html">Financial</a>
+                    <a href="users.html">Users</a>
+                </nav>
+                <div class="sidebar-footer">
+                    <div class="user-name" id="user-name"></div>
+                    <a href="#" id="logout" style="color:#cbd1d8;">Sign out</a>
+                </div>
+            </aside>
+
+            <main class="main">
+                <div class="topbar">
+                    <h1 id="page-title">Driver details</h1>
+                    <a href="drivers.html" class="btn btn-secondary btn-sm">← Back to Drivers</a>
+                </div>
+                <div class="content">
+                    <div id="page-alert"></div>
+                    <div id="body"><p style="color:var(--text-muted);">Loading...</p></div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../js/supabase.js"></script>
+    <script src="../js/auth.js"></script>
+    <script>
+    (async function () {
+        const profile = await requireRole('admin');
+        if (!profile) return;
+        document.getElementById('user-name').textContent = profile.full_name || 'Admin';
+        document.getElementById('app').style.display = 'block';
+        document.getElementById('logout').addEventListener('click', function (e) { e.preventDefault(); signOut(); });
+
+        const body = document.getElementById('body');
+        function escapeHtml(s) { if (s == null) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+        function fmtDate(s) { return s ? new Date(s).toLocaleDateString('en-MY', { year:'numeric', month:'short', day:'numeric' }) : '—'; }
+        function fmtRM(n) { return n == null ? '—' : 'RM ' + Number(n).toFixed(2); }
+
+        const id = new URLSearchParams(location.search).get('id');
+        if (!id) { body.innerHTML = '<div class="alert alert-error">Missing driver id.</div>'; return; }
+
+        const [driverResp, docsResp, rentalsResp, agreementsResp] = await Promise.all([
+            supabaseClient.from('drivers').select('*').eq('id', id).single(),
+            supabaseClient.from('documents').select('*').eq('driver_id', id).order('uploaded_at', { ascending: false }),
+            supabaseClient.from('rentals').select('*, cars(plate_number, model)').eq('driver_id', id).order('start_date', { ascending: false }),
+            supabaseClient.from('agreements').select('*').eq('driver_id', id).order('uploaded_at', { ascending: false })
+        ]);
+        if (driverResp.error || !driverResp.data) {
+            body.innerHTML = '<div class="alert alert-error">' + escapeHtml(driverResp.error ? driverResp.error.message : 'Driver not found') + '</div>';
+            return;
+        }
+        const d = driverResp.data;
+        const docs = docsResp.data || [];
+        const rentals = rentalsResp.data || [];
+        const agreements = agreementsResp.data || [];
+
+        // Payments for this driver across rentals
+        let payments = [];
+        if (rentals.length > 0) {
+            const payResp = await supabaseClient.from('payments').select('*')
+                .in('rental_id', rentals.map(function (r) { return r.id; }))
+                .order('paid_at', { ascending: false });
+            payments = payResp.data || [];
+        }
+
+        document.getElementById('page-title').textContent = 'Driver: ' + d.full_name;
+
+        const DOC_LABEL = { nric:'NRIC', license:'Driving License', psv:'PSV License', electric_bill:'Electric Bill', water_bill:'Water Bill', other:'Other' };
+        const DOC_TYPES = ['nric','license','psv','electric_bill','water_bill'];
+
+        // Signed URLs for private buckets
+        async function signedUrl(bucket, path) {
+            if (!path) return null;
+            const { data } = await supabaseClient.storage.from(bucket).createSignedUrl(path, 3600);
+            return data ? data.signedUrl : null;
+        }
+
+        // Build document slots
+        const docsByType = {};
+        docs.forEach(function (x) { if (!docsByType[x.type]) docsByType[x.type] = []; docsByType[x.type].push(x); });
+
+        const docItems = await Promise.all(DOC_TYPES.map(async function (t) {
+            const list = docsByType[t] || [];
+            if (list.length === 0) {
+                return '<li><div class="meta"><strong>' + DOC_LABEL[t] + '</strong><span>Not uploaded</span></div>'
+                    + '<span class="badge badge-pending">missing</span></li>';
+            }
+            const rows = await Promise.all(list.map(async function (x) {
+                const url = await signedUrl('driver-documents', x.file_path);
+                const status = x.status || 'approved';
+                return '<li>'
+                    + '<div class="meta">'
+                        + '<strong>' + DOC_LABEL[t] + ' <span class="badge badge-' + escapeHtml(status) + '" style="font-weight:normal;">' + escapeHtml(status) + '</span></strong>'
+                        + '<span>' + escapeHtml(x.file_path.split('/').pop()) + ' · uploaded ' + fmtDate(x.uploaded_at) + (x.review_notes ? ' · ' + escapeHtml(x.review_notes) : '') + '</span>'
+                    + '</div>'
+                    + (url ? '<a class="btn btn-sm btn-secondary" href="' + url + '" target="_blank">View</a>' : '')
+                + '</li>';
+            }));
+            return rows.join('');
+        }));
+
+        // Deposit slip signed
+        const depositSlipUrl = await signedUrl('driver-documents', d.deposit_slip_path);
+
+        // Agreement signed
+        const agreementLatest = agreements[0];
+        const agreementUrl = agreementLatest ? await signedUrl('driver-documents', agreementLatest.file_path) : null;
+
+        // Rentals rows with per-rental totals
+        const rentalTotals = {};
+        payments.forEach(function (p) {
+            if (p.status === 'rejected') return;
+            rentalTotals[p.rental_id] = (rentalTotals[p.rental_id] || 0) + Number(p.amount || 0);
+        });
+
+        body.innerHTML = ''
+            + '<div class="card"><div class="card-header"><h2>Profile</h2></div>'
+                + '<div class="info-grid">'
+                    + kv('Full name', d.full_name)
+                    + kv('Status', '<span class="badge badge-' + escapeHtml(d.status) + '">' + escapeHtml(d.status) + '</span>')
+                    + kv('WhatsApp', d.whatsapp ? '<a href="https://wa.me/' + (d.whatsapp || '').replace(/[^0-9]/g,'') + '" target="_blank">' + escapeHtml(d.whatsapp) + '</a>' : '—')
+                    + kv('Email', d.email || '—')
+                    + kv('IC number', d.ic_number || '—')
+                    + kv('License', d.license_number || '—')
+                    + kv('PSV', d.psv_number || '—')
+                    + kv('Address', d.address || '—')
+                    + kv('Account linked', d.profile_id ? '✓ Linked' : 'Pending')
+                + '</div>'
+                + (d.notes ? '<p style="margin-top:14px; color:var(--text-muted); font-size:13px;"><strong>Notes:</strong> ' + escapeHtml(d.notes) + '</p>' : '')
+            + '</div>'
+
+            + '<div class="card"><div class="card-header"><h2>Deposit</h2></div>'
+                + (d.deposit_required === false
+                    ? '<p style="color:var(--success);"><strong>✓ No deposit required</strong> for this driver.</p>'
+                    : '<div class="info-grid">'
+                        + kv('Status', '<span class="badge badge-' + escapeHtml(d.deposit_status || 'pending') + '">' + escapeHtml(d.deposit_status || 'pending') + '</span>')
+                        + kv('Amount paid', fmtRM(d.deposit_amount_paid))
+                        + kv('Paid on', fmtDate(d.deposit_paid_at))
+                        + kv('Slip', depositSlipUrl ? '<a href="' + depositSlipUrl + '" target="_blank">View slip</a>' : '—')
+                        + kv('Review notes', d.deposit_notes || '—')
+                    + '</div>')
+            + '</div>'
+
+            + '<div class="card"><div class="card-header"><h2>Documents</h2></div>'
+                + '<ul class="doc-list">' + docItems.join('') + '</ul>'
+            + '</div>'
+
+            + '<div class="card"><div class="card-header"><h2>Agreement</h2></div>'
+                + (agreementLatest
+                    ? '<div class="info-grid">'
+                        + kv('Uploaded', fmtDate(agreementLatest.uploaded_at))
+                        + kv('File', agreementUrl ? '<a href="' + agreementUrl + '" target="_blank">View agreement</a>' : '—')
+                    + '</div>'
+                    + (agreements.length > 1 ? '<p style="color:var(--text-muted); font-size:12px; margin-top:8px;">' + agreements.length + ' total versions on record.</p>' : '')
+                    : '<p style="color:var(--text-muted);">No agreement uploaded.</p>')
+            + '</div>'
+
+            + '<div class="card" style="padding:0;">'
+                + '<div class="card-header" style="margin:0; padding:16px;"><h2 style="margin:0;">Rentals (' + rentals.length + ')</h2></div>'
+                + '<div class="table-wrap"><table class="data"><thead><tr><th>Car</th><th>Start</th><th>End</th><th>Weekly rate</th><th>Deposit</th><th>Total collected</th><th>Status</th></tr></thead><tbody>'
+                + (rentals.length === 0
+                    ? '<tr><td colspan="7" style="text-align:center; color:var(--text-muted); padding:20px;">No rentals yet.</td></tr>'
+                    : rentals.map(function (r) {
+                        return '<tr>'
+                            + '<td>' + escapeHtml(r.cars ? r.cars.plate_number + ' — ' + r.cars.model : '—') + '</td>'
+                            + '<td>' + fmtDate(r.start_date) + '</td>'
+                            + '<td>' + fmtDate(r.end_date) + '</td>'
+                            + '<td>' + fmtRM(r.weekly_rate) + '</td>'
+                            + '<td>' + fmtRM(r.deposit_amount) + (r.deposit_returned ? ' <span class="badge badge-paid">returned</span>' : '') + '</td>'
+                            + '<td>' + fmtRM(rentalTotals[r.id] || 0) + '</td>'
+                            + '<td><span class="badge badge-' + escapeHtml(r.status) + '">' + escapeHtml(r.status) + '</span></td>'
+                        + '</tr>';
+                    }).join(''))
+                + '</tbody></table></div>'
+            + '</div>'
+
+            + '<div class="card" style="padding:0;">'
+                + '<div class="card-header" style="margin:0; padding:16px;"><h2 style="margin:0;">Payments (' + payments.length + ')</h2></div>'
+                + '<div class="table-wrap"><table class="data"><thead><tr><th>Paid on</th><th>Amount</th><th>Method</th><th>Period</th><th>Status</th><th>Notes</th></tr></thead><tbody>'
+                + (payments.length === 0
+                    ? '<tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:20px;">No payments yet.</td></tr>'
+                    : payments.map(function (p) {
+                        const status = p.status || 'approved';
+                        return '<tr>'
+                            + '<td>' + fmtDate(p.paid_at) + '</td>'
+                            + '<td>' + fmtRM(p.amount) + '</td>'
+                            + '<td>' + escapeHtml(p.method || '-') + '</td>'
+                            + '<td>' + (p.period_start || p.period_end ? fmtDate(p.period_start) + ' → ' + fmtDate(p.period_end) : '—') + '</td>'
+                            + '<td><span class="badge badge-' + escapeHtml(status) + '">' + escapeHtml(status) + '</span></td>'
+                            + '<td style="color:var(--text-muted);">' + escapeHtml(p.notes || '') + '</td>'
+                        + '</tr>';
+                    }).join(''))
+                + '</tbody></table></div>'
+            + '</div>';
+
+        function kv(label, value) {
+            return '<div class="info-box"><div class="label">' + escapeHtml(label) + '</div><div class="value">' + value + '</div></div>';
+        }
+    })();
+    </script>
+</body>
+</html>
