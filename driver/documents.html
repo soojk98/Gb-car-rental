@@ -107,8 +107,13 @@
                             .createSignedUrl(d.file_path, 3600);
                         const url = urlData ? urlData.signedUrl : '#';
                         const filename = d.file_path.split('/').pop();
-                        return '<div class="uploaded">✓ ' + escapeHtml(filename) + ' '
-                            + '<a class="view" href="' + escapeHtml(url) + '" target="_blank">View</a></div>';
+                        const status = d.status || 'approved';
+                        return '<div class="uploaded">'
+                            + '<span class="badge badge-' + escapeHtml(status) + '">' + escapeHtml(status) + '</span> '
+                            + escapeHtml(filename) + ' '
+                            + '<a class="view" href="' + escapeHtml(url) + '" target="_blank">View</a>'
+                            + (status === 'rejected' && d.review_notes ? '<div style="color:var(--danger); font-size:12px; margin-top:4px;">Reason: ' + escapeHtml(d.review_notes) + '</div>' : '')
+                            + '</div>';
                     }));
                     listHtml = items.join('');
                 }
@@ -146,7 +151,8 @@
                     const insResp = await supabaseClient.from('documents').insert({
                         driver_id: driverId,
                         type: docType,
-                        file_path: path
+                        file_path: path,
+                        status: 'pending'
                     });
 
                     if (insResp.error) {
@@ -155,7 +161,7 @@
                         return;
                     }
 
-                    showAlert('Uploaded successfully.', false);
+                    showAlert('Uploaded. Pending admin approval.', false);
                     await loadDocuments();
                 });
             });

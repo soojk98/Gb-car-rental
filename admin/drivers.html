@@ -633,15 +633,19 @@
                     .createSignedUrl(d.file_path, 3600);
                 const url = urlData ? urlData.signedUrl : '#';
                 const filename = d.file_path.split('/').pop();
+                const status = d.status || 'approved';
+                let actions = '<a class="btn btn-sm btn-secondary" href="' + escapeHtml(url) + '" target="_blank">View</a> ';
+                if (status === 'pending') {
+                    actions += '<button class="btn btn-sm btn-primary" data-doc-action="approve" data-doc-id="' + d.id + '">Approve</button> '
+                             + '<button class="btn btn-sm btn-danger"  data-doc-action="reject"  data-doc-id="' + d.id + '">Reject</button> ';
+                }
+                actions += '<button class="btn btn-sm btn-danger" data-doc-action="delete" data-doc-id="' + d.id + '" data-doc-path="' + escapeHtml(d.file_path) + '">Delete</button>';
                 return '<li>'
                     + '<div class="doc-info">'
-                        + '<strong>' + escapeHtml(d.type.toUpperCase()) + '</strong>'
-                        + '<span>' + escapeHtml(filename) + ' · uploaded ' + fmtDate(d.uploaded_at) + '</span>'
+                        + '<strong>' + escapeHtml(d.type.toUpperCase()) + '</strong> <span class="badge badge-' + escapeHtml(status) + '">' + escapeHtml(status) + '</span>'
+                        + '<span>' + escapeHtml(filename) + ' · uploaded ' + fmtDate(d.uploaded_at) + (status === 'rejected' && d.review_notes ? ' · <em>' + escapeHtml(d.review_notes) + '</em>' : '') + '</span>'
                     + '</div>'
-                    + '<div>'
-                        + '<a class="btn btn-sm btn-secondary" href="' + escapeHtml(url) + '" target="_blank">View</a> '
-                        + '<button class="btn btn-sm btn-danger" data-doc-id="' + d.id + '" data-doc-path="' + escapeHtml(d.file_path) + '">Delete</button>'
-                    + '</div>'
+                    + '<div>' + actions + '</div>'
                     + '</li>';
             }));
             listEl.innerHTML = '<ul class="doc-list">' + items.join('') + '</ul>';
@@ -650,19 +654,26 @@
         document.getElementById('docs-list').addEventListener('click', async function (event) {
             const target = event.target.closest('button[data-doc-id]');
             if (!target) return;
-            if (!confirm('Delete this document? This cannot be undone.')) return;
             const docId = target.dataset.docId;
-            const docPath = target.dataset.docPath;
+            const action = target.dataset.docAction || 'delete';
+            const errBox = document.getElementById('docs-error');
+            errBox.style.display = 'none';
 
-            const { error: storageErr } = await supabaseClient.storage.from('driver-documents').remove([docPath]);
-            if (storageErr) console.warn('Storage delete failed:', storageErr);
-
-            const { error: dbErr } = await supabaseClient.from('documents').delete().eq('id', docId);
-            if (dbErr) {
-                document.getElementById('docs-error').textContent = dbErr.message;
-                document.getElementById('docs-error').style.display = 'block';
-                return;
+            let resp;
+            if (action === 'approve') {
+                resp = await supabaseClient.from('documents').update({ status: 'approved', review_notes: null }).eq('id', docId);
+            } else if (action === 'reject') {
+                const reason = prompt('Reason for rejecting this document?');
+                if (reason === null) return;
+                resp = await supabaseClient.from('documents').update({ status: 'rejected', review_notes: reason || null }).eq('id', docId);
+            } else {
+                if (!confirm('Delete this document? This cannot be undone.')) return;
+                const docPath = target.dataset.docPath;
+                const { error: storageErr } = await supabaseClient.storage.from('driver-documents').remove([docPath]);
+                if (storageErr) console.warn('Storage delete failed:', storageErr);
+                resp = await supabaseClient.from('documents').delete().eq('id', docId);
             }
+            if (resp.error) { errBox.textContent = resp.error.message; errBox.style.display = 'block'; return; }
             await loadDocsList();
         });
 
@@ -682,7 +693,8 @@
             const insResp = await supabaseClient.from('documents').insert({
                 driver_id: viewingDocsDriver.id,
                 type: type,
-                file_path: path
+                file_path: path,
+                status: 'approved'
             });
             if (insResp.error) { errBox.textContent = 'Upload OK but record failed: ' + insResp.error.message; errBox.style.display = 'block'; return; }
 

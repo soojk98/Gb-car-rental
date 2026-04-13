@@ -58,6 +58,9 @@
                         <div class="card-header"><h2>Pending tasks</h2></div>
                         <p style="color: var(--text-muted); font-size: 13px; margin-top: -4px;">Items that need your action.</p>
 
+                        <div class="section-title">Driver documents to approve</div>
+                        <div id="pending-docs-driver"><div class="pending-empty">Loading...</div></div>
+
                         <div class="section-title">Payments to approve</div>
                         <div id="pending-payments"><div class="pending-empty">Loading...</div></div>
 
@@ -111,6 +114,7 @@
             paymentsMonth,
             paymentsPending,
             depositsPending,
+            docsPendingDriver,
             docsExpiring,
             lowStock
         ] = await Promise.all([
@@ -124,6 +128,7 @@
             supabaseClient.from('payments').select('amount, status, paid_at').gte('paid_at', monthStart).lt('paid_at', nextMonth),
             supabaseClient.from('payments').select('id, amount, paid_at, rental_id, rentals(drivers(full_name), cars(plate_number))').eq('status', 'pending').order('created_at', { ascending: false }),
             supabaseClient.from('drivers').select('id, full_name, deposit_amount_paid, deposit_paid_at').eq('deposit_status', 'submitted').neq('deposit_required', false).order('deposit_paid_at', { ascending: false }),
+            supabaseClient.from('documents').select('id, type, uploaded_at, driver_id, drivers(full_name)').eq('status', 'pending').order('uploaded_at', { ascending: false }),
             supabaseClient.from('car_documents').select('id, type, expiry_date, car_id, cars(plate_number, model)').not('expiry_date', 'is', null).lte('expiry_date', in30).order('expiry_date'),
             supabaseClient.from('inventory_stock').select('*')
         ]);
@@ -145,6 +150,7 @@
             { label: 'Collected — ' + monthLabel, value: fmtRM(monthCollected),     sub: 'Approved + pending payments', cls: 'kpi-good' },
             { label: 'Pending payments',         value: (paymentsPending.data || []).length, sub: 'Need your approval', cls: (paymentsPending.data || []).length > 0 ? 'kpi-warn' : '' },
             { label: 'Pending deposits',         value: (depositsPending.data || []).length, sub: 'Need your review', cls: (depositsPending.data || []).length > 0 ? 'kpi-warn' : '' },
+            { label: 'Pending driver docs',      value: (docsPendingDriver.data || []).length, sub: 'NRIC/license/PSV uploads', cls: (docsPendingDriver.data || []).length > 0 ? 'kpi-warn' : '' },
             { label: 'Low-stock items',          value: lowStockRows.length,        sub: 'At or below reorder level', cls: lowStockRows.length > 0 ? 'kpi-bad' : '' }
         ];
         document.getElementById('kpis').innerHTML = kpis.map(function (k) {
@@ -164,6 +170,16 @@
             }
             el.innerHTML = '<ul class="pending-list">' + items.map(rowFn).join('') + '</ul>';
         }
+
+        const docTypeLabels = { nric:'NRIC', license:'Driving License', psv:'PSV', electric_bill:'Electric Bill', water_bill:'Water Bill', other:'Other' };
+        renderList('pending-docs-driver', docsPendingDriver.data, '✓ No driver document uploads to review.', function (d) {
+            const drv = d.drivers ? d.drivers.full_name : '(unknown driver)';
+            return '<li>'
+                + '<div class="what"><strong>' + escapeHtml(docTypeLabels[d.type] || d.type) + ' — ' + escapeHtml(drv) + '</strong>'
+                + '<span>Uploaded ' + fmtDate(d.uploaded_at) + '</span></div>'
+                + '<a class="btn btn-sm btn-primary" href="drivers.html">Review</a>'
+            + '</li>';
+        });
 
         renderList('pending-payments', paymentsPending.data, '✓ No payments awaiting approval.', function (p) {
             const driver = p.rentals && p.rentals.drivers ? p.rentals.drivers.full_name : '(unknown driver)';
