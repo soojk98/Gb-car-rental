@@ -433,7 +433,48 @@ table.data tbody tr:hover { background: #fafbfc; }
         padding: 14px 18px;
         font-size: 12px;
     }
-    .topbar { padding: 14px 18px; }
-    .content { padding: 18px; }
+    .topbar {
+        padding: 12px 16px;
+        flex-wrap: wrap;
+        gap: 10px;
+        min-height: auto;
+    }
+    .topbar h1 { font-size: 18px; }
+    .topbar > div {
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 8px !important;
+    }
+    .topbar input[type="search"] { flex: 1 1 100%; min-width: 0 !important; }
+    .topbar .btn { flex-shrink: 0; }
+    .topbar-user {
+        padding-left: 0;
+        margin-left: 0;
+        border-left: none;
+        gap: 8px;
+    }
+    .content { padding: 16px; }
     .form-row { grid-template-columns: 1fr; }
+    .card { padding: 18px; }
+    .card-header { margin: -18px -18px 16px -18px; padding: 14px 18px; }
+
+    /* Tables: allow horizontal scroll inside a card */
+    .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .data { min-width: 560px; }
+
+    /* Action button rows inside tables */
+    .actions-cell { white-space: nowrap; }
+
+    /* Modals - full-screen feel on narrow viewports */
+    .modal { padding: 20px; border-radius: 10px; max-height: 95vh; }
+
+    /* Summary / KPI grids in one column on very small screens */
+    .summary-row, .kpi-grid { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 480px) {
+    .summary-row, .kpi-grid { grid-template-columns: 1fr; }
+    .topbar-user .who { display: none; }
+    .topbar-user .signout span { display: none; }
+    .topbar-user .signout { padding: 7px 9px; }
 }
