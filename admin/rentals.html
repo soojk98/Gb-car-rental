@@ -145,7 +145,8 @@
 
             <div class="form-group">
                 <label>Deposit (RM)</label>
-                <input id="new-deposit" type="number" min="0" step="0.01" value="0">
+                <input id="new-deposit" type="number" min="0" step="0.01" value="0" readonly style="background: var(--bg-muted, #f5f5f5);">
+                <div id="new-deposit-hint" style="color: var(--text-muted); font-size: 12px; margin-top: 4px;">Select a driver to auto-fill from their approved deposit.</div>
             </div>
 
             <div class="form-group">
@@ -435,17 +436,40 @@
             newModal.classList.add('open');
 
             const [driversResp, carsResp] = await Promise.all([
-                supabaseClient.from('drivers').select('id, full_name').eq('status', 'active').order('full_name'),
+                supabaseClient.from('drivers').select('id, full_name, deposit_required, deposit_status, deposit_amount_paid').eq('status', 'active').order('full_name'),
                 supabaseClient.from('cars').select('id, plate_number, model, weekly_rate').eq('status', 'available').order('plate_number')
             ]);
 
+            const driversById = {};
             const driverSel = document.getElementById('new-driver');
             driverSel.innerHTML = '<option value="">Select driver...</option>';
             (driversResp.data || []).forEach(function (d) {
+                driversById[d.id] = d;
                 const opt = document.createElement('option');
                 opt.value = d.id;
                 opt.textContent = d.full_name;
                 driverSel.appendChild(opt);
+            });
+
+            const depositInput = document.getElementById('new-deposit');
+            const depositHint  = document.getElementById('new-deposit-hint');
+            driverSel.addEventListener('change', function () {
+                const d = driversById[driverSel.value];
+                if (!d) {
+                    depositInput.value = 0;
+                    depositHint.textContent = 'Select a driver to auto-fill from their approved deposit.';
+                    return;
+                }
+                if (d.deposit_required === false) {
+                    depositInput.value = 0;
+                    depositHint.textContent = 'No deposit required for this driver.';
+                } else if (d.deposit_status === 'approved') {
+                    depositInput.value = Number(d.deposit_amount_paid || 0).toFixed(2);
+                    depositHint.textContent = 'Auto-filled from driver\'s approved deposit.';
+                } else {
+                    depositInput.value = 0;
+                    depositHint.textContent = 'Driver\'s deposit is ' + (d.deposit_status || 'pending') + ' — not yet approved.';
+                }
             });
 
             const carSel = document.getElementById('new-car');
