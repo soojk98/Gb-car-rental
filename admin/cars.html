@@ -48,6 +48,7 @@
                     <a href="rentals.html">Rentals</a>
                     <a href="payment-link.html">Payment Link</a>
                     <a href="inventory.html">Inventory</a>
+                    <a href="profit-loss.html">Profit & Loss</a>
                 </nav>
                 <div class="sidebar-footer">
                     <div class="user-name" id="user-name"></div>
@@ -152,6 +153,22 @@
             <div class="form-group">
                 <label>Current mileage (km)</label>
                 <input id="car-mileage" type="number" min="0" placeholder="0">
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Purchase price (RM)</label>
+                    <input id="car-purchase-price" type="number" min="0" step="0.01" placeholder="35000">
+                </div>
+                <div class="form-group">
+                    <label>Purchase date</label>
+                    <input id="car-purchase-date" type="date">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Registration date <span style="color:var(--text-muted); font-weight:normal;">(used for 15-year e-hailing limit)</span></label>
+                <input id="car-reg-date" type="date">
             </div>
 
             <div class="form-group">
@@ -372,6 +389,9 @@
             document.getElementById('car-rate').value = car ? (car.weekly_rate || '') : '';
             document.getElementById('car-status').value = car ? (car.status || 'available') : 'available';
             document.getElementById('car-mileage').value = car ? (car.current_mileage || 0) : 0;
+            document.getElementById('car-purchase-price').value = car ? (car.purchase_price || '') : '';
+            document.getElementById('car-purchase-date').value  = car ? (car.purchase_date || '') : '';
+            document.getElementById('car-reg-date').value       = car ? (car.registration_date || '') : '';
             document.getElementById('car-notes').value = car ? (car.notes || '') : '';
             document.getElementById('car-error').style.display = 'none';
             carModal.classList.add('open');
@@ -392,6 +412,9 @@
                 weekly_rate: parseFloat(document.getElementById('car-rate').value),
                 status: document.getElementById('car-status').value,
                 current_mileage: parseInt(document.getElementById('car-mileage').value) || 0,
+                purchase_price:    parseFloat(document.getElementById('car-purchase-price').value) || null,
+                purchase_date:     document.getElementById('car-purchase-date').value || null,
+                registration_date: document.getElementById('car-reg-date').value || null,
                 notes: document.getElementById('car-notes').value.trim() || null
             };
 

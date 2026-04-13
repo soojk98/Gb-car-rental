@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profit & Loss | GB Car Rental</title>
+    <link rel="stylesheet" href="../css/app.css">
+    <style>
+        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 24px; }
+        .kpi { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 18px; }
+        .kpi .label { font-size: 11px; text-transform: uppercase; color: var(--text-muted); letter-spacing: .5px; }
+        .kpi .value { font-size: 24px; font-weight: 800; color: var(--dark-bg); margin-top: 6px; line-height: 1; }
+        .kpi.kpi-good .value { color: var(--success); }
+        .kpi.kpi-bad  .value { color: var(--danger); }
+        .progress { background: var(--border); height: 8px; border-radius: 4px; overflow: hidden; min-width: 80px; margin-top: 4px; }
+        .progress > div { height: 100%; background: var(--success); }
+        .progress.over > div { background: var(--success); }
+        .progress.under > div { background: #c80; }
+        td.num { text-align: right; font-variant-numeric: tabular-nums; }
+        td.pos { color: var(--success); font-weight: 600; }
+        td.neg { color: var(--danger); font-weight: 600; }
+    </style>
+</head>
+<body>
+    <div id="app" style="display:none;">
+        <div class="app-shell">
+            <aside class="sidebar">
+                <div class="sidebar-brand"><span>GB</span> Admin</div>
+                <nav class="sidebar-nav">
+                    <a href="index.html">Dashboard</a>
+                    <a href="leads.html">Leads</a>
+                    <a href="cars.html">Cars</a>
+                    <a href="drivers.html">Drivers</a>
+                    <a href="rentals.html">Rentals</a>
+                    <a href="payment-link.html">Payment Link</a>
+                    <a href="inventory.html">Inventory</a>
+                    <a href="profit-loss.html" class="active">Profit & Loss</a>
+                </nav>
+                <div class="sidebar-footer">
+                    <div class="user-name" id="user-name"></div>
+                    <a href="#" id="logout" style="color:#cbd1d8;">Sign out</a>
+                </div>
+            </aside>
+
+            <main class="main">
+                <div class="topbar">
+                    <h1>Profit & Loss</h1>
+                    <button id="export-btn" class="btn btn-secondary btn-sm">Export Excel</button>
+                </div>
+                <div class="content">
+                    <div id="page-alert"></div>
+
+                    <div id="kpis" class="kpi-grid">
+                        <div class="kpi"><div class="label">Loading...</div></div>
+                    </div>
+
+                    <div class="card" style="padding:0;">
+                        <div class="card-header" style="padding:16px 18px;"><h2 style="margin:0;">Per-car P&amp;L</h2></div>
+                        <div class="table-wrap">
+                            <table class="data">
+                                <thead>
+                                    <tr>
+                                        <th>Car</th>
+                                        <th class="num">Purchase price</th>
+                                        <th>Reg. date</th>
+                                        <th class="num">Age (yrs)</th>
+                                        <th class="num">Years left<br><span style="font-weight:normal; color:var(--text-muted); font-size:11px;">(15-yr limit)</span></th>
+                                        <th class="num">Revenue</th>
+                                        <th class="num">Costs</th>
+                                        <th class="num">Net P&amp;L</th>
+                                        <th>Recouped</th>
+                                        <th class="num">Yrs to recoup<br><span style="font-weight:normal; color:var(--text-muted); font-size:11px;">(at current run-rate)</span></th>
+                                        <th class="num">Projected lifetime profit</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="cars-tbody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <p style="font-size: 12px; color: var(--text-muted); margin-top: 14px;">
+                        Revenue counts approved + pending payments. Costs include maintenance, accident repairs, and unpaid summons fines.
+                        Run-rate is computed from net profit since the registration date (or first payment, whichever is later).
+                        E-hailing limit: 15 years from registration (Malaysia, effective 1 Jan 2023).
+                    </p>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="../js/supabase.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/table-utils.js"></script>
+    <script>
+    (async function () {
+        const profile = await requireRole('admin');
+        if (!profile) return;
+        document.getElementById('user-name').textContent = profile.full_name || 'Admin';
+        document.getElementById('app').style.display = 'block';
+        document.getElementById('logout').addEventListener('click', function (e) { e.preventDefault(); signOut(); });
+
+        function escapeHtml(s) { if (s == null) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+        function fmtRM(n) { return 'RM ' + Number(n || 0).toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+        function fmtDate(s) { return s ? new Date(s).toLocaleDateString('en-MY', { year:'numeric', month:'short', day:'numeric' }) : '—'; }
+        function yearsBetween(a, b) { return (new Date(b) - new Date(a)) / (1000 * 60 * 60 * 24 * 365.25); }
+
+        const MAX_YEARS = 15;
+
+        // Pull everything in parallel
+        const [carsResp, rentalsResp, paymentsResp, maintResp, summonsResp, accidentsResp] = await Promise.all([
+            supabaseClient.from('cars').select('*').order('plate_number'),
+            supabaseClient.from('rentals').select('id, car_id, weekly_rate, start_date, end_date, status'),
+            supabaseClient.from('payments').select('rental_id, amount, paid_at, status'),
+            supabaseClient.from('maintenance_records').select('car_id, cost'),
+            supabaseClient.from('summons').select('car_id, fine_amount, status'),
+            supabaseClient.from('accidents').select('car_id, repair_cost')
+        ]);
+
+        if (carsResp.error) { document.getElementById('page-alert').innerHTML = '<div class="alert alert-error">' + carsResp.error.message + '</div>'; return; }
+
+        const cars     = carsResp.data || [];
+        const rentals  = rentalsResp.data || [];
+        const payments = (paymentsResp.data || []).filter(function (p) { return p.status !== 'rejected'; });
+        const maint    = maintResp.data || [];
+        const summons  = summonsResp.data || [];
+        const accidents= accidentsResp.data || [];
+
+        // Group rentals by car for car_id lookup of payments
+        const rentalCarMap = {};
+        rentals.forEach(function (r) { rentalCarMap[r.id] = r.car_id; });
+
+        const today = new Date();
+
+        const rows = cars.map(function (c) {
+            const carRentals  = rentals.filter(function (r) { return r.car_id === c.id; });
+            const carPayments = payments.filter(function (p) { return rentalCarMap[p.rental_id] === c.id; });
+            const revenue = carPayments.reduce(function (s, p) { return s + Number(p.amount || 0); }, 0);
+
+            const maintCost = maint.filter(function (m) { return m.car_id === c.id; })
+                .reduce(function (s, m) { return s + Number(m.cost || 0); }, 0);
+            const summonsCost = summons.filter(function (m) { return m.car_id === c.id && m.status !== 'paid'; })
+                .reduce(function (s, m) { return s + Number(m.fine_amount || 0); }, 0);
+            const accidentCost = accidents.filter(function (m) { return m.car_id === c.id; })
+                .reduce(function (s, m) { return s + Number(m.repair_cost || 0); }, 0);
+            const opCosts = maintCost + summonsCost + accidentCost;
+
+            const purchase = Number(c.purchase_price || 0);
+            const investment = purchase;             // capex
+            const totalCost  = investment + opCosts; // capex + opex
+            const netProfit  = revenue - totalCost;  // overall to date
+
+            // Age & years left
+            const regDate = c.registration_date || c.purchase_date || null;
+            const age = regDate ? Math.max(0, yearsBetween(regDate, today)) : null;
+            const yearsLeft = age != null ? Math.max(0, MAX_YEARS - age) : null;
+
+            // Recoup % (simple revenue vs purchase, ignoring opex)
+            const recoupPct = purchase > 0 ? Math.min(999, (revenue / purchase) * 100) : null;
+
+            // Run-rate net per year, since first payment date or reg date
+            const earliestPaid = carPayments.reduce(function (acc, p) {
+                const d = new Date(p.paid_at);
+                return (acc == null || d < acc) ? d : acc;
+            }, null);
+            const startDate = earliestPaid || (regDate ? new Date(regDate) : null);
+            let yearsActive = startDate ? yearsBetween(startDate, today) : 0;
+            if (yearsActive < 0.05) yearsActive = 0.05; // floor at ~2 weeks
+            const annualNet = startDate ? (netProfit / yearsActive) : 0;
+            const annualRevenue = startDate ? (revenue / yearsActive) : 0;
+
+            // Years to recoup remaining
+            const remaining = purchase - revenue + opCosts;
+            let yrsToRecoup = null;
+            if (purchase > 0) {
+                if (netProfit >= purchase) yrsToRecoup = 0;
+                else if (annualNet > 0) yrsToRecoup = remaining / annualNet;
+            }
+
+            // Projected lifetime profit if continued at run-rate for remaining years
+            const projectedLifetime = (yearsLeft != null && annualNet)
+                ? (netProfit + annualNet * yearsLeft)
+                : null;
+
+            return {
+                car: c, revenue: revenue, opCosts: opCosts, totalCost: totalCost,
+                netProfit: netProfit, age: age, yearsLeft: yearsLeft,
+                recoupPct: recoupPct, yrsToRecoup: yrsToRecoup,
+                annualNet: annualNet, annualRevenue: annualRevenue,
+                projectedLifetime: projectedLifetime, purchase: purchase
+            };
+        });
+
+        // Fleet totals
+        const total = rows.reduce(function (acc, r) {
+            acc.invested += r.purchase;
+            acc.revenue  += r.revenue;
+            acc.opCosts  += r.opCosts;
+            acc.netProfit+= r.netProfit;
+            acc.projected+= (r.projectedLifetime || 0);
+            return acc;
+        }, { invested:0, revenue:0, opCosts:0, netProfit:0, projected:0 });
+
+        document.getElementById('kpis').innerHTML = [
+            { label: 'Cars', value: cars.length },
+            { label: 'Total invested',  value: fmtRM(total.invested) },
+            { label: 'Total revenue',   value: fmtRM(total.revenue), cls: 'kpi-good' },
+            { label: 'Operating costs', value: fmtRM(total.opCosts) },
+            { label: 'Net P&L (to date)', value: fmtRM(total.netProfit), cls: total.netProfit >= 0 ? 'kpi-good' : 'kpi-bad' },
+            { label: 'Projected lifetime profit', value: fmtRM(total.projected), cls: total.projected >= 0 ? 'kpi-good' : 'kpi-bad' }
+        ].map(function (k) {
+            return '<div class="kpi ' + (k.cls || '') + '">'
+                + '<div class="label">' + escapeHtml(k.label) + '</div>'
+                + '<div class="value">' + (typeof k.value === 'number' ? k.value : k.value) + '</div>'
+            + '</div>';
+        }).join('');
+
+        document.getElementById('cars-tbody').innerHTML = rows.length === 0
+            ? '<tr><td colspan="11" style="text-align:center; padding:30px; color:var(--text-muted);">No cars in the fleet yet.</td></tr>'
+            : rows.map(function (r) {
+                const c = r.car;
+                const recoupCell = r.recoupPct == null
+                    ? '<span style="color:var(--text-muted);">—</span>'
+                    : (r.recoupPct.toFixed(1) + '%'
+                        + '<div class="progress ' + (r.recoupPct >= 100 ? 'over' : 'under') + '"><div style="width:' + Math.min(100, r.recoupPct) + '%;"></div></div>');
+                const yrsCell = r.yrsToRecoup == null
+                    ? '<span style="color:var(--text-muted);">—</span>'
+                    : (r.yrsToRecoup === 0
+                        ? '<span style="color:var(--success); font-weight:600;">Recouped ✓</span>'
+                        : r.yrsToRecoup > 50 ? '> 50 yrs' : r.yrsToRecoup.toFixed(1) + ' yrs');
+                const projCell = r.projectedLifetime == null
+                    ? '<span style="color:var(--text-muted);">—</span>'
+                    : fmtRM(r.projectedLifetime);
+                return '<tr>'
+                    + '<td><strong>' + escapeHtml(c.plate_number) + '</strong><br><span style="color:var(--text-muted); font-size:12px;">' + escapeHtml(c.model || '') + '</span></td>'
+                    + '<td class="num">' + (r.purchase ? fmtRM(r.purchase) : '<span style="color:var(--text-muted);">—</span>') + '</td>'
+                    + '<td>' + (c.registration_date ? fmtDate(c.registration_date) : '<span style="color:var(--text-muted);">—</span>') + '</td>'
+                    + '<td class="num">' + (r.age == null ? '—' : r.age.toFixed(1)) + '</td>'
+                    + '<td class="num">' + (r.yearsLeft == null ? '—' : r.yearsLeft.toFixed(1)) + '</td>'
+                    + '<td class="num">' + fmtRM(r.revenue) + '</td>'
+                    + '<td class="num">' + fmtRM(r.opCosts) + '</td>'
+                    + '<td class="num ' + (r.netProfit >= 0 ? 'pos' : 'neg') + '">' + fmtRM(r.netProfit) + '</td>'
+                    + '<td>' + recoupCell + '</td>'
+                    + '<td class="num">' + yrsCell + '</td>'
+                    + '<td class="num ' + ((r.projectedLifetime || 0) >= 0 ? 'pos' : 'neg') + '">' + projCell + '</td>'
+                + '</tr>';
+            }).join('');
+
+        document.getElementById('export-btn').addEventListener('click', function () {
+            const xlsxRows = rows.map(function (r) {
+                return [
+                    r.car.plate_number, r.car.model || '',
+                    r.purchase || 0,
+                    r.car.registration_date || '',
+                    r.age == null ? '' : Number(r.age.toFixed(2)),
+                    r.yearsLeft == null ? '' : Number(r.yearsLeft.toFixed(2)),
+                    Number(r.revenue.toFixed(2)),
+                    Number(r.opCosts.toFixed(2)),
+                    Number(r.netProfit.toFixed(2)),
+                    r.recoupPct == null ? '' : Number(r.recoupPct.toFixed(1)),
+                    r.yrsToRecoup == null ? '' : (r.yrsToRecoup > 50 ? 99 : Number(r.yrsToRecoup.toFixed(2))),
+                    r.projectedLifetime == null ? '' : Number(r.projectedLifetime.toFixed(2))
+                ];
+            });
+            downloadXlsx(xlsxFilename('profit_loss'), 'P&L',
+                ['Plate','Model','Purchase price (RM)','Reg. date','Age (yrs)','Years left','Revenue (RM)','Op costs (RM)','Net P&L (RM)','Recouped %','Years to recoup','Projected lifetime profit (RM)'],
+                xlsxRows);
+        });
+    })();
+    </script>
+</body>
+</html>
