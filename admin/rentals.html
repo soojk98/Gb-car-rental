@@ -252,6 +252,7 @@
                             <th>Amount</th>
                             <th>Period</th>
                             <th>Method</th>
+                            <th>Status</th>
                             <th>Notes</th>
                             <th></th>
                         </tr>
@@ -334,9 +335,10 @@
             const ids = allRentals.map(function (r) { return r.id; });
             let totals = {};
             if (ids.length > 0) {
-                const payResp = await supabaseClient.from('payments').select('rental_id, amount').in('rental_id', ids);
+                const payResp = await supabaseClient.from('payments').select('rental_id, amount, status').in('rental_id', ids);
                 if (!payResp.error && payResp.data) {
                     payResp.data.forEach(function (p) {
+                        if (p.status === 'rejected') return;
                         totals[p.rental_id] = (totals[p.rental_id] || 0) + Number(p.amount || 0);
                     });
                 }
@@ -651,32 +653,59 @@
             }
             currentPayments = data || [];
             if (currentPayments.length === 0) {
-                tbodyP.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:20px;">No payments recorded yet.</td></tr>';
+                tbodyP.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-muted); padding:20px;">No payments recorded yet.</td></tr>';
                 return;
             }
-            tbodyP.innerHTML = currentPayments.map(function (p) {
+
+            const rows = await Promise.all(currentPayments.map(async function (p) {
                 const period = (p.period_start || p.period_end) ? (fmtDate(p.period_start) + ' → ' + fmtDate(p.period_end)) : '—';
+                const status = p.status || 'approved';
+                let slipHtml = '';
+                if (p.slip_path) {
+                    const { data: u } = await supabaseClient.storage.from('driver-documents').createSignedUrl(p.slip_path, 3600);
+                    if (u) slipHtml = ' · <a href="' + u.signedUrl + '" target="_blank">Slip</a>';
+                }
+                let actions = '';
+                if (status === 'pending') {
+                    actions = '<button class="btn btn-sm btn-primary" data-paction="approve" data-pid="' + p.id + '">Approve</button>'
+                            + '<button class="btn btn-sm btn-danger" data-paction="reject" data-pid="' + p.id + '">Reject</button>';
+                } else {
+                    actions = '<button class="btn btn-sm btn-danger" data-paction="delete" data-pid="' + p.id + '">Delete</button>';
+                }
                 return '<tr>'
                     + '<td>' + fmtDate(p.paid_at) + '</td>'
                     + '<td>' + fmtRM(p.amount) + '</td>'
                     + '<td>' + escapeHtml(period) + '</td>'
                     + '<td>' + escapeHtml(p.method || '-') + '</td>'
-                    + '<td style="color:var(--text-muted);">' + escapeHtml(p.notes || '') + '</td>'
-                    + '<td><button class="btn btn-sm btn-danger" data-pid="' + p.id + '">Delete</button></td>'
+                    + '<td><span class="badge badge-' + escapeHtml(status) + '">' + escapeHtml(status) + '</span>' + slipHtml + '</td>'
+                    + '<td style="color:var(--text-muted);">' + escapeHtml(p.notes || '') + (p.review_notes ? '<br><em>' + escapeHtml(p.review_notes) + '</em>' : '') + '</td>'
+                    + '<td class="actions-cell">' + actions + '</td>'
                 + '</tr>';
-            }).join('');
+            }));
+            tbodyP.innerHTML = rows.join('');
         }
 
         document.getElementById('payments-tbody').addEventListener('click', async function (event) {
             const target = event.target.closest('button[data-pid]');
             if (!target) return;
-            if (!confirm('Delete this payment?')) return;
-            const { error } = await supabaseClient.from('payments').delete().eq('id', target.dataset.pid);
-            if (error) {
-                document.getElementById('payments-error').textContent = error.message;
-                document.getElementById('payments-error').style.display = 'block';
-                return;
+            const pid = target.dataset.pid;
+            const action = target.dataset.paction || 'delete';
+            const errBox = document.getElementById('payments-error');
+            errBox.style.display = 'none';
+
+            let resp;
+            if (action === 'approve') {
+                resp = await supabaseClient.from('payments').update({ status: 'approved', review_notes: null }).eq('id', pid);
+            } else if (action === 'reject') {
+                const reason = prompt('Reason for rejecting this payment?');
+                if (reason === null) return;
+                resp = await supabaseClient.from('payments').update({ status: 'rejected', review_notes: reason || null }).eq('id', pid);
+            } else {
+                if (!confirm('Delete this payment?')) return;
+                resp = await supabaseClient.from('payments').delete().eq('id', pid);
             }
+            if (resp.error) { errBox.textContent = resp.error.message; errBox.style.display = 'block'; return; }
+
             await loadPayments();
             await loadRentals();
             // Update summary
