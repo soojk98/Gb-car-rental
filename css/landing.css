@@ -317,32 +317,25 @@ body.landing section[id] { scroll-margin-top: 56px; }
 
 .car-ctas { display: flex; flex-wrap: wrap; gap: 12px; }
 
-/* The three source photos were shot in three different places under three
-   different lights. A shared grade plus edges that dissolve into the panel
-   is what makes them read as one set rather than three snapshots. Number
-   plates are blanked in the pixels, not here. */
+/* Line art, not photography. The three cars we used to show here were other
+   people's photos, shot in three places under three lights. These are drawn
+   on one 800x400 grid with a common ground line and a common stroke weight,
+   so they read as one technical set. They are deliberately generic profiles
+   -- a sedan and an MPV -- and never claim to depict a specific vehicle. */
 .car-shot { position: relative; }
-.car-shot img {
+.car-art {
     display: block; width: 100%; height: auto;
-    aspect-ratio: 2 / 1; object-fit: cover;
-    filter: grayscale(.45) contrast(1.12) brightness(.94);
-    -webkit-mask-image:
-        linear-gradient(to right,  transparent 0, #000 20%, #000 80%, transparent 100%),
-        linear-gradient(to bottom, transparent 0, #000 18%, #000 78%, transparent 100%);
-    mask-image:
-        linear-gradient(to right,  transparent 0, #000 20%, #000 80%, transparent 100%),
-        linear-gradient(to bottom, transparent 0, #000 18%, #000 78%, transparent 100%);
-    -webkit-mask-composite: source-in;
-    mask-composite: intersect;
+    aspect-ratio: 2 / 1; overflow: visible;
+    stroke-linecap: round; stroke-linejoin: round;
 }
-/* Vignette, so the eye lands on the car and not on the parking lot. */
-.car-shot::after {
-    content: ""; position: absolute; inset: 0; pointer-events: none;
-    background: radial-gradient(ellipse 74% 68% at 50% 46%, transparent 28%, rgba(10,10,10,.92) 100%);
-}
-.car-panel:nth-child(even) .car-shot::after {
-    background: radial-gradient(ellipse 74% 68% at 50% 46%, transparent 28%, rgba(20,20,20,.92) 100%);
-}
+.car-art .ca-body  { stroke: var(--fg); stroke-width: 2.6; }
+.car-art .ca-tyre  { stroke: var(--fg); stroke-width: 2.6; }
+.car-art .ca-rim   { stroke: var(--accent); stroke-width: 2.6; }
+.car-art .ca-glass { stroke: var(--fg-muted); stroke-width: 1.6; fill: rgba(250,250,250,.045); }
+.car-art .ca-line  { stroke: var(--fg-muted); stroke-width: 1.6; }
+/* The one vermillion note in the drawing, besides the rims: the car sits on
+   a ground line rather than floating. */
+.car-art .ca-ground { stroke: var(--accent); stroke-width: 2; opacity: .85; }
 
 /* ---------- stats band ---------- */
 .stats-grid {
@@ -475,10 +468,21 @@ body.landing { padding-bottom: 64px; }
 @supports (animation-timeline: view()) {
     @media (prefers-reduced-motion: no-preference) {
         @keyframes car-rise { from { transform: translateY(28px) scale(.985); } to { transform: none; } }
-        .car-shot img {
+        .car-art {
             animation: car-rise linear both;
             animation-timeline: view();
             animation-range: entry 15% cover 42%;
+        }
+        /* The outline draws itself as the panel scrolls in. pathLength="1"
+           on the body path normalises the dash maths, so no JS is needed to
+           measure it. Scoped to the body only -- glass and wheels just rise,
+           which keeps the effect from turning into a cartoon. */
+        @keyframes car-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+        .car-art .ca-body {
+            stroke-dasharray: 1; stroke-dashoffset: 0;
+            animation: car-draw linear both;
+            animation-timeline: view();
+            animation-range: entry 20% cover 46%;
         }
     }
 }
