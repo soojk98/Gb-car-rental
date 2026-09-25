@@ -186,13 +186,41 @@ html[data-theme="bluegrid"] .sidebar {
     background: var(--bg);
     border-right: 1px solid var(--hairline);
 }
+/* Two variants of the same block. Admin carries the product -- mark plus
+   "Blue Grid". Driver carries the operator -- "GB Car Rental", no mark,
+   because drivers are GB's customers and were never sold Blue Grid. Same
+   styling either way, which is the point: one design system, two names. */
 html[data-theme="bluegrid"] .sidebar-brand {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--s-2);
+    padding-bottom: var(--s-6);
+    border-bottom: 1px solid var(--hairline);
+    margin-bottom: var(--s-4);
+}
+html[data-theme="bluegrid"] .bg-mark {
+    display: grid;
+    grid-template-columns: repeat(2, 9px);
+    grid-auto-rows: 9px;
+    gap: 3px;
+}
+html[data-theme="bluegrid"] .bg-mark i { background: var(--accent); }
+html[data-theme="bluegrid"] .bg-mark i:nth-child(2) { background: var(--text); }
+html[data-theme="bluegrid"] .bg-word {
     color: var(--text);
-    letter-spacing: var(--track-caps);
     text-transform: uppercase;
+    letter-spacing: var(--track-caps);
     font-size: var(--fs-sm);
     font-weight: 700;
-    padding-bottom: var(--s-6);
+    line-height: 1.2;
+}
+html[data-theme="bluegrid"] .bg-portal {
+    color: var(--text-subtle);
+    text-transform: uppercase;
+    letter-spacing: var(--track-label);
+    font-size: var(--fs-micro);
+    font-weight: 600;
 }
 html[data-theme="bluegrid"] .sidebar-nav a {
     color: var(--text-muted);
