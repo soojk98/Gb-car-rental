@@ -5,6 +5,12 @@ description: Brand, design system, copy rules and competitive research for the G
 
 # GB Car Rental — brand and design system
 
+> **Scope: the public site only** — `index.html`, `css/landing.css`,
+> `js/i18n.js`, `public-pay.html`. Everything behind the sign-in is a separate
+> product, **Blue Grid**, with its own identity and its own skill
+> (`.claude/skills/bluegrid/`). `css/tokens.css` and `css/app.css` are shared
+> by both, so check any edit to those against both products.
+
 Research date: **2026-09-25**. Re-verify competitor pricing before quoting it.
 
 ## 1. The business
