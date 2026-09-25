@@ -299,8 +299,11 @@ body.landing section[id] { scroll-margin-top: 56px; }
     font-size: clamp(2.2rem, 6vw, 3.4rem); letter-spacing: -0.04em; color: var(--accent);
 }
 .car-price .per { font-size: 15px; color: var(--fg-muted); }
-.car-sub { font-size: 15px; color: var(--fg-muted); margin: 0 0 26px; }
-.car-sub .sep { opacity: .4; margin: 0 8px; }
+.car-sub {
+    font-size: 15px; color: var(--fg-muted); margin: 0 0 26px;
+    display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px;
+}
+.car-sub .sep { opacity: .4; }
 
 .spec-strip {
     display: flex; flex-wrap: wrap; gap: 0;
@@ -314,20 +317,32 @@ body.landing section[id] { scroll-margin-top: 56px; }
 
 .car-ctas { display: flex; flex-wrap: wrap; gap: 12px; }
 
+/* The three source photos were shot in three different places under three
+   different lights. A shared grade plus edges that dissolve into the panel
+   is what makes them read as one set rather than three snapshots. Number
+   plates are blanked in the pixels, not here. */
 .car-shot { position: relative; }
 .car-shot img {
     display: block; width: 100%; height: auto;
-    aspect-ratio: 16 / 10; object-fit: cover;
-    filter: grayscale(.25) contrast(1.06);
+    aspect-ratio: 2 / 1; object-fit: cover;
+    filter: grayscale(.45) contrast(1.12) brightness(.94);
+    -webkit-mask-image:
+        linear-gradient(to right,  transparent 0, #000 20%, #000 80%, transparent 100%),
+        linear-gradient(to bottom, transparent 0, #000 18%, #000 78%, transparent 100%);
+    mask-image:
+        linear-gradient(to right,  transparent 0, #000 20%, #000 80%, transparent 100%),
+        linear-gradient(to bottom, transparent 0, #000 18%, #000 78%, transparent 100%);
+    -webkit-mask-composite: source-in;
+    mask-composite: intersect;
 }
-/* Masks the number plate region until the owner's own photos land. */
-.car-shot .plate-mask {
-    position: absolute; background: var(--bg);
-    left: var(--mx, 50%); top: var(--my, 78%);
-    width: var(--mw, 14%); height: var(--mh, 7%);
-    transform: translateX(-50%); display: none;
+/* Vignette, so the eye lands on the car and not on the parking lot. */
+.car-shot::after {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background: radial-gradient(ellipse 74% 68% at 50% 46%, transparent 28%, rgba(10,10,10,.92) 100%);
 }
-.car-shot[data-mask="on"] .plate-mask { display: block; }
+.car-panel:nth-child(even) .car-shot::after {
+    background: radial-gradient(ellipse 74% 68% at 50% 46%, transparent 28%, rgba(20,20,20,.92) 100%);
+}
 
 /* ---------- stats band ---------- */
 .stats-grid {
@@ -389,7 +404,7 @@ body.landing section[id] { scroll-margin-top: 56px; }
 .faq summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 
 /* ---------- trust block ---------- */
-.trust-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; border: var(--border-w) solid var(--line); border-right: none; }
+.trust-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; border: var(--border-w) solid var(--line); border-right: none; }
 .trust-cell { border-right: var(--border-w) solid var(--line); padding: 26px 22px; }
 .trust-cell .k {
     font-size: 11px; font-weight: 700; letter-spacing: .16em;
@@ -486,8 +501,7 @@ body.landing { padding-bottom: 64px; }
     .steps { grid-template-columns: repeat(2, 1fr); }
     .step:nth-child(2) { border-right: none; }
     .step:nth-child(-n+2) { border-bottom: 1px solid var(--line-light); }
-    .trust-grid { grid-template-columns: repeat(2, 1fr); }
-    .trust-cell:nth-child(-n+2) { border-bottom: var(--border-w) solid var(--line); }
+    .trust-grid { grid-template-columns: repeat(3, 1fr); }
     .stats-grid { grid-template-columns: repeat(2, 1fr); }
     .stat:nth-child(-n+2) { border-bottom: var(--border-w) solid var(--line); }
 }

@@ -62,7 +62,7 @@ window.GB_I18N = {
         'faq.h2': 'Straight answers.',
 
         'trust.eyebrow': 'Who we are',
-        'trust.h2': 'A real company,<br>with a real address.',
+        'trust.h2': 'Real people.<br>Fast replies.',
         'trust.ssm': 'Company registration',
         'trust.where': 'Where to find us',
         'trust.hours': 'Opening hours',
@@ -199,7 +199,7 @@ window.GB_I18N = {
         'faq.h2': 'Jawapan terus.',
 
         'trust.eyebrow': 'Siapa kami',
-        'trust.h2': 'Syarikat sebenar,<br>dengan alamat sebenar.',
+        'trust.h2': 'Orang sebenar.<br>Balasan pantas.',
         'trust.ssm': 'Pendaftaran syarikat',
         'trust.where': 'Di mana kami',
         'trust.hours': 'Waktu operasi',

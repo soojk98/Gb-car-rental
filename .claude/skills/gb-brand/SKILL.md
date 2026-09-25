@@ -56,7 +56,9 @@ never as a large background wash except the one calculator panel.
 ## 3. Claims policy
 
 **Verified by the owner, safe to state prominently:**
-- 100+ cars (the table says 97 — prefer the exact number, it is more credible)
+- 100+ cars. **Stated as a fixed "100+", not a live count.** The table read 97
+  on 2026-09-25; the owner asked for the rounded claim, so the stats band is
+  hardcoded and must not be wired back to the database.
 - Comprehensive insurance with **zero excess**
 - **PSV licence paid for by GB** (not "arranged", not "assisted")
 - Servicing, tyres, brake pads, battery, wipers, bulbs, road tax, PUSPAKOM, EVP
@@ -71,11 +73,16 @@ never as a large background wash except the one calculator panel.
   no public Grab Malaysia partner list exists to verify against. Use checkable
   facts instead: PSV arranged, active EVP, e-hailing insurance, PUSPAKOM handled.
 - Fleet-age claims — the owner chose not to publish these.
+- **Company registration / SSM number** — the owner asked for this to be off
+  the page. Do not reinstate it.
+- A street address. The location line says **"Klang Valley"** and nothing more,
+  so the section heading must not promise "a real address" (it reads
+  "Real people. Fast replies.").
 - Live availability counts — currently zero cars are free; use
   "new cars arriving monthly" instead.
 
 **Still unsupplied** (rendered as visible `.todo` badges in `index.html`):
-deposit per car, SSM number, address, opening hours, minimum contract period,
+deposit per car, opening hours, minimum contract period,
 WhatsApp reply time, testimonials, and the accident / breakdown / mileage /
 early-termination policies. The real contract is a per-driver PDF in a private
 Supabase bucket, not in this repo. **Do not invent these answers.**
@@ -116,8 +123,16 @@ GB's Saga undercuts VisionCar by RM100/week. Lead with it.
 The three files in `img/` are **borrowed, not GB's**, and must be replaced:
 `saga.jpg` is a stranger's car with plate VV 7935 legible; `bezza.jpg` is a
 Perodua motor-show press photo; `alza.jpg` looks like a video frame with the
-plate crudely whited out. `index.html` masks the visible plates with
-`.plate-mask` as a stopgap only.
+plate crudely whited out. As of 2026-09-25 the shipped files are **pre-processed**: each is cropped to a
+uniform **1600x800 (2:1)** letterbox centred on the car, and the registration
+plate is **painted out in the pixels** with a #141414 rectangle. The old CSS
+`.plate-mask` approach is gone. Re-run the PowerShell crop from
+`img/original/` if the framing needs changing; do not re-add CSS masks.
+
+The CSS then applies a shared grade (`grayscale(.45) contrast(1.12)`), a
+two-axis `mask-image` edge fade and a strong radial vignette, which is what
+makes three photos shot in three different places read as one set. A weak
+vignette is not enough for the Bezza, whose showroom background is bright.
 
 **Shot brief for replacements:** underground car park at night or an empty
 industrial road at golden hour. Mark **one** ground position and shoot every
