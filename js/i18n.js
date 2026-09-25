@@ -37,6 +37,7 @@ window.GB_I18N = {
         'fleet.wa': 'WhatsApp about this car',
         'fleet.reserve': 'Reserve this car',
         'fleet.deposit': 'Deposit',
+        'fleet.depositnote': 'same as one week',
 
         'stats.eyebrow': 'By the numbers',
 
@@ -66,6 +67,7 @@ window.GB_I18N = {
         'trust.ssm': 'Company registration',
         'trust.where': 'Where to find us',
         'trust.hours': 'Opening hours',
+        'trust.hoursvalue': '8:30am to 5:30pm<br>Every day',
         'trust.reply': 'WhatsApp reply time',
 
         'apply.eyebrow': 'Apply',
@@ -120,7 +122,7 @@ window.GB_I18N = {
         "spec.mpv": "MPV",
 
         "faq.1.q": "What do I need to pay before I can drive?",
-        "faq.1.a": "Your deposit plus the first week’s rental. Nothing else — no admin fee, no processing charge.",
+        "faq.1.a": "Your deposit plus the first week’s rental. The deposit is the same as one week — RM330 for the Saga, RM420 for the Bezza, RM460 for the Alza — and it is refundable. Nothing else: no admin fee, no processing charge.",
         "faq.2.q": "What documents do I need?",
         "faq.2.a": "Your NRIC and your Competent Driving Licence (CDL). If you do not have a PSV licence yet, tell us — we arrange it and we pay for it.",
         "faq.3.q": "What is the minimum rental period?",
@@ -174,6 +176,7 @@ window.GB_I18N = {
         'fleet.wa': 'WhatsApp pasal kereta ini',
         'fleet.reserve': 'Tempah kereta ini',
         'fleet.deposit': 'Deposit',
+        'fleet.depositnote': 'sama dengan sewa seminggu',
 
         'stats.eyebrow': 'Dalam angka',
 
@@ -203,6 +206,7 @@ window.GB_I18N = {
         'trust.ssm': 'Pendaftaran syarikat',
         'trust.where': 'Di mana kami',
         'trust.hours': 'Waktu operasi',
+        'trust.hoursvalue': '8:30 pagi hingga 5:30 petang<br>Setiap hari',
         'trust.reply': 'Masa balas WhatsApp',
 
         'apply.eyebrow': 'Mohon',
@@ -257,7 +261,7 @@ window.GB_I18N = {
         "spec.mpv": "MPV",
 
         "faq.1.q": "Apa yang saya perlu bayar sebelum boleh pandu?",
-        "faq.1.a": "Deposit anda dan sewa minggu pertama. Tiada yang lain — tiada yuran admin, tiada caj pemprosesan.",
+        "faq.1.a": "Deposit anda dan sewa minggu pertama. Deposit sama dengan sewa seminggu — RM330 untuk Saga, RM420 untuk Bezza, RM460 untuk Alza — dan ia boleh dikembalikan. Tiada yang lain: tiada yuran admin, tiada caj pemprosesan.",
         "faq.2.q": "Dokumen apa yang saya perlukan?",
         "faq.2.a": "IC dan lesen memandu (CDL) anda. Kalau belum ada lesen PSV, beritahu kami — kami uruskan dan kami bayar.",
         "faq.3.q": "Berapa tempoh sewa minimum?",

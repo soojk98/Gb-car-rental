@@ -546,3 +546,8 @@ body.landing { padding-bottom: 64px; }
     .lang-toggle button { padding: 7px 10px; }
     .nav-cta { padding: 11px 13px !important; }
 }
+
+/* Deposit is a headline fact, not a footnote — competitors hide theirs. */
+.car-sub .dep { color: var(--fg); font-weight: 600; }
+.car-sub .dep-note { color: var(--fg-muted); font-size: 13px; }
+.car-sub .dep-note::before { content: "\00b7\00a0"; }

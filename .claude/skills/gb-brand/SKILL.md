@@ -62,6 +62,11 @@ never as a large background wash except the one calculator panel.
 - Comprehensive insurance with **zero excess**
 - **PSV licence paid for by GB** (not "arranged", not "assisted")
 - Servicing, tyres, brake pads, battery, wipers, bulbs, road tax, PUSPAKOM, EVP
+- **Deposit equals one week's rental** and is refundable: RM330 Saga, RM420
+  Bezza, RM460 Alza. Day one therefore costs two weeks' rental. The owner
+  chose to publish the deposit but *not* a bundled "total to drive away"
+  figure, so state the deposit per car and leave the arithmetic to the reader.
+- **Opening hours: 8:30am to 5:30pm, every day.**
 
 **Never state:**
 - **"Earn up to RM1,400/week."** This is Grab's own marketing claim, copied
@@ -82,7 +87,7 @@ never as a large background wash except the one calculator panel.
   "new cars arriving monthly" instead.
 
 **Still unsupplied** (rendered as visible `.todo` badges in `index.html`):
-deposit per car, opening hours, minimum contract period,
+minimum contract period,
 WhatsApp reply time, testimonials, and the accident / breakdown / mileage /
 early-termination policies. The real contract is a per-driver PDF in a private
 Supabase bucket, not in this repo. **Do not invent these answers.**
@@ -114,7 +119,7 @@ RM__/Day" with no deposit and no total; WordPress blog furniture.
 | Saga | **RM330** | RM430 | — | RM400 | — |
 | Bezza | RM420 | RM430 | RM380 | — | — |
 | Alza | RM460 | — | RM450 | RM500 | — |
-| Deposit | per car | RM100 + variable | undisclosed | RM1,000 | RM500 + RM150 admin |
+| Deposit | **= 1 week** (RM330/420/460) | RM100 + variable | undisclosed | RM1,000 | RM500 + RM150 admin |
 
 GB's Saga undercuts VisionCar by RM100/week. Lead with it.
 
