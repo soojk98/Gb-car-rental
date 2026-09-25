@@ -418,6 +418,188 @@ table.data tbody tr:last-child td { border-bottom: none; }
 }
 .empty-state h3 { margin: 0 0 8px 0; color: var(--text); font-weight: 600; letter-spacing: -0.01em; }
 
+/* =====================================================================
+   Shared portal components.
+
+   These eight blocks used to be pasted into the page-local <style> of up
+   to six admin/driver pages each -- around 280 lines of duplicate CSS
+   that had already drifted (five different modal widths, two filter-bar
+   spellings, an .actions-cell missing its margin-bottom). Promoted here
+   so there is one definition to read, and one to re-theme.
+
+   index.html links this file but uses none of these classes -- it only
+   consumes .btn, .btn-primary and .form-group -- so nothing here can
+   affect the landing page.
+   ===================================================================== */
+
+/* ---------- Micro label ----------
+   The same 11px uppercase label was hand-rolled in ~12 places (.kpi,
+   .info-box, .summary-box, .section-title, .photo .cap). One definition,
+   so the tracking can be changed in one place. */
+.label-micro {
+    font-size: 11px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    letter-spacing: 0.5px;
+}
+
+/* ---------- Modal ----------
+   Widths were 460/500/560/640/800 across the pages. Kept as an explicit
+   scale rather than normalised, so promoting this changed nothing on
+   screen. Open state is a class, never an inline style.display. */
+.modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 20px;
+}
+.modal-backdrop.open { display: flex; }
+
+.modal {
+    background: #fff;
+    border-radius: 10px;
+    padding: 28px;
+    width: 100%;
+    max-width: 560px;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+.modal.modal-xs { max-width: 460px; }
+.modal.modal-sm { max-width: 500px; }
+.modal.modal-md { max-width: 640px; }
+.modal.modal-lg { max-width: 800px; }
+
+.modal h2 { margin: 0 0 18px 0; font-size: 20px; color: var(--dark-bg); }
+.modal h3 { margin: 20px 0 10px 0; font-size: 15px; color: var(--dark-bg); }
+.modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+
+/* ---------- Filter bar ---------- */
+.filter-bar { display: flex; gap: 8px; margin-bottom: 18px; flex-wrap: wrap; }
+.filter-bar button {
+    padding: 8px 16px;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    cursor: pointer;
+}
+.filter-bar button.active {
+    background: var(--primary-green);
+    color: #fff;
+    border-color: var(--primary-green);
+}
+
+/* ---------- Table action cell ---------- */
+.actions-cell { white-space: nowrap; }
+.actions-cell .btn { margin-right: 4px; margin-bottom: 2px; }
+
+/* ---------- Summary / stat row ---------- */
+.summary-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+}
+.summary-box {
+    background: var(--light-bg);
+    padding: 14px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+}
+.summary-box .label { font-size: 11px; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px; }
+.summary-box .value { font-size: 18px; font-weight: 700; color: var(--dark-bg); margin-top: 4px; }
+
+/* ---------- KPI grid ---------- */
+.kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 14px;
+    margin-bottom: 24px;
+}
+.kpi {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 18px;
+    /* admin/index.html had this, admin/profit-loss.html did not. Kept, via
+       the token rather than the literal rgba it used to be, so it can be
+       retired on a dark surface where a black shadow does nothing. */
+    box-shadow: var(--shadow-sm);
+}
+.kpi .label { font-size: 11px; text-transform: uppercase; color: var(--text-muted); letter-spacing: .5px; }
+.kpi .value { font-size: 28px; font-weight: 800; color: var(--dark-bg); margin-top: 6px; line-height: 1; }
+.kpi .sub { font-size: 12px; color: var(--text-muted); margin-top: 6px; }
+.kpi.kpi-warn .value { color: var(--warning); }
+.kpi.kpi-bad  .value { color: var(--danger); }
+.kpi.kpi-good .value { color: var(--success); }
+
+/* ---------- Tabs ----------
+   .active is on both the button and its panel. Overloaded with
+   .sidebar-nav a.active and .filter-bar button.active, which is
+   confusing but is baked into JS template strings. */
+.tab-bar {
+    display: flex;
+    gap: 4px;
+    border-bottom: 2px solid var(--border);
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+.tab-bar button {
+    padding: 12px 18px;
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+}
+.tab-bar button.active { color: var(--primary-green); border-bottom-color: var(--primary-green); }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ---------- Document list ----------
+   Two spellings of the inner element exist -- .meta on the detail pages,
+   .doc-info on the list pages -- because they were written months apart.
+   Both kept; they are referenced inside JS template strings. */
+.doc-list { list-style: none; padding: 0; margin: 0; }
+.doc-list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    margin-bottom: 8px;
+    background: var(--light-bg);
+    gap: 12px;
+}
+.doc-list li .meta strong { display: block; font-size: 13px; }
+.doc-list li .meta span { font-size: 12px; color: var(--text-muted); }
+.doc-list .doc-info { font-size: 13px; }
+.doc-list .doc-info strong { display: block; color: var(--dark-bg); margin-bottom: 2px; }
+.doc-list .doc-info span { color: var(--text-muted); font-size: 12px; }
+
+/* ---------- Info grid ----------
+   driver/index.html deliberately runs a larger variant of this and keeps
+   its own overrides in the page. */
+.info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.info-box {
+    background: var(--light-bg);
+    padding: 12px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+}
+.info-box .label { font-size: 11px; text-transform: uppercase; color: var(--text-muted); letter-spacing: .5px; }
+.info-box .value { font-size: 15px; font-weight: 600; color: var(--dark-bg); margin-top: 4px; word-break: break-word; }
+
 /* ---------- Mobile ---------- */
 @media (max-width: 900px) {
     .app-shell { flex-direction: column; }

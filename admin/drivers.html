@@ -9,33 +9,9 @@
     <link rel="stylesheet" href="../css/tokens.css">
     <link rel="stylesheet" href="../css/app.css">
     <style>
-        .filter-bar { display:flex; gap:8px; margin-bottom:18px; flex-wrap:wrap; }
-        .filter-bar button {
-            padding: 8px 16px; background: white; border: 1px solid var(--border);
-            border-radius: 5px; font-size: 13px; font-weight: 600; color: var(--text); cursor: pointer;
-        }
-        .filter-bar button.active { background: var(--primary-green); color: white; border-color: var(--primary-green); }
 
-        .actions-cell { white-space: nowrap; }
-        .actions-cell .btn { margin-right: 4px; margin-bottom: 2px; }
 
-        .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 100; padding: 20px; }
-        .modal-backdrop.open { display: flex; }
-        .modal { background: white; border-radius: 10px; padding: 28px; width: 100%; max-width: 640px; max-height: 90vh; overflow-y: auto; }
-        .modal.modal-lg { max-width: 800px; }
-        .modal h2 { margin: 0 0 18px 0; font-size: 20px; color: var(--dark-bg); }
-        .modal h3 { margin: 20px 0 10px 0; font-size: 15px; color: var(--dark-bg); }
-        .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
 
-        .doc-list { list-style: none; padding: 0; margin: 0; }
-        .doc-list li {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; margin-bottom: 8px;
-            background: var(--light-bg);
-        }
-        .doc-list .doc-info { font-size: 13px; }
-        .doc-list .doc-info strong { display: block; color: var(--dark-bg); margin-bottom: 2px; }
-        .doc-list .doc-info span { color: var(--text-muted); font-size: 12px; }
 
         .badge-submitted { background: var(--hairline-soft); color: var(--text); }
         .badge-approved  { background: var(--text); color: #fff; }
@@ -118,7 +94,7 @@
 
     <!-- Add / Edit driver modal -->
     <div class="modal-backdrop" id="driver-modal">
-        <div class="modal">
+        <div class="modal modal-md">
             <h2 id="driver-modal-title">Add driver</h2>
             <div id="driver-error" class="alert alert-error" style="display:none;"></div>
 
@@ -220,7 +196,7 @@
 
     <!-- Sign-in details modal -->
     <div class="modal-backdrop" id="link-modal">
-        <div class="modal">
+        <div class="modal modal-md">
             <h2>Sign-in details</h2>
             <p style="color: var(--text-muted); font-size: 13px; margin-top:-8px;">
                 Share these details with the driver. They can either click the magic link below for one-tap sign-in,
@@ -259,7 +235,7 @@
 
     <!-- Rental agreement modal -->
     <div class="modal-backdrop" id="agreement-modal">
-        <div class="modal">
+        <div class="modal modal-md">
             <h2 id="agreement-title">Rental agreement</h2>
             <div id="agreement-error" class="alert alert-error" style="display:none;"></div>
             <div id="agreement-info"></div>
@@ -279,7 +255,7 @@
 
     <!-- Review deposit modal -->
     <div class="modal-backdrop" id="deposit-modal">
-        <div class="modal">
+        <div class="modal modal-md">
             <h2>Review deposit</h2>
             <div id="deposit-error" class="alert alert-error" style="display:none;"></div>
 

@@ -8,15 +8,6 @@
     <link rel="apple-touch-icon" href="../apple-touch-icon.png">
     <link rel="stylesheet" href="../css/tokens.css">
     <link rel="stylesheet" href="../css/app.css">
-    <style>
-        .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display:none; align-items:center; justify-content:center; z-index: 100; padding: 20px; }
-        .modal-backdrop.open { display: flex; }
-        .modal { background: white; border-radius: 10px; padding: 28px; width: 100%; max-width: 460px; }
-        .modal h2 { margin: 0 0 16px 0; font-size: 19px; color: var(--dark-bg); }
-        .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
-        .actions-cell { white-space: nowrap; }
-        .actions-cell .btn { margin-right: 4px; }
-    </style>
 </head>
 <body>
     <div id="app" style="display:none;">
@@ -79,7 +70,7 @@
 
     <!-- New admin modal -->
     <div class="modal-backdrop" id="new-modal">
-        <div class="modal">
+        <div class="modal modal-xs">
             <h2>New admin user</h2>
             <div id="new-error" class="alert alert-error" style="display:none;"></div>
             <div class="form-group">

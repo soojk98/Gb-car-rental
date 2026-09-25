@@ -9,27 +9,10 @@
     <link rel="stylesheet" href="../css/tokens.css">
     <link rel="stylesheet" href="../css/app.css">
     <style>
-        .filter-bar { display:flex; gap:8px; margin-bottom:18px; flex-wrap:wrap; }
-        .filter-bar button {
-            padding: 8px 16px; background: white; border: 1px solid var(--border);
-            border-radius: 5px; font-size: 13px; font-weight: 600; color: var(--text); cursor: pointer;
-        }
-        .filter-bar button.active { background: var(--primary-green); color: white; border-color: var(--primary-green); }
-        .actions-cell { white-space: nowrap; }
-        .actions-cell .btn { margin-right: 4px; margin-bottom: 2px; }
 
-        .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 100; padding: 20px; }
-        .modal-backdrop.open { display: flex; }
-        .modal { background: white; border-radius: 10px; padding: 28px; width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto; }
-        .modal h2 { margin: 0 0 18px 0; font-size: 20px; color: var(--dark-bg); }
-        .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
 
         .stock-low { color: var(--danger); font-weight: 700; }
         .stock-ok  { color: var(--success); font-weight: 700; }
-        .summary-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 16px; }
-        .summary-box { background: var(--light-bg); padding: 14px; border-radius: 6px; border: 1px solid var(--border); }
-        .summary-box .label { font-size: 11px; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px; }
-        .summary-box .value { font-size: 18px; font-weight: 700; color: var(--dark-bg); margin-top: 4px; }
     </style>
 </head>
 <body>

@@ -63,8 +63,8 @@
     </div>
 
     <!-- Upload modal -->
-    <div class="modal-backdrop" id="up-modal" style="position:fixed; inset:0; background:rgba(0,0,0,0.5); display:none; align-items:center; justify-content:center; z-index:100; padding:20px;">
-        <div class="modal" style="background:white; border-radius:10px; padding:28px; width:100%; max-width:460px;">
+    <div class="modal-backdrop" id="up-modal">
+        <div class="modal modal-xs">
             <h2 style="margin:0 0 16px 0; font-size:19px;">Upload document</h2>
             <div id="up-error" class="alert alert-error" style="display:none;"></div>
             <div class="form-row">
@@ -195,11 +195,11 @@
             document.getElementById('up-file').value = '';
             document.getElementById('up-notes').value = '';
             document.getElementById('up-error').style.display = 'none';
-            upModal.style.display = 'flex';
+            upModal.classList.add('open');
         }
         document.getElementById('add-btn').addEventListener('click', openUp);
-        document.getElementById('up-cancel').addEventListener('click', function () { upModal.style.display = 'none'; });
-        upModal.addEventListener('click', function (e) { if (e.target === upModal) upModal.style.display = 'none'; });
+        document.getElementById('up-cancel').addEventListener('click', function () { upModal.classList.remove('open'); });
+        upModal.addEventListener('click', function (e) { if (e.target === upModal) upModal.classList.remove('open'); });
 
         document.getElementById('up-save').addEventListener('click', async function () {
             const errBox = document.getElementById('up-error');
@@ -224,7 +224,7 @@
             });
             btn.disabled = false; btn.textContent = 'Upload';
             if (error) { errBox.textContent = error.message; errBox.style.display = 'block'; return; }
-            upModal.style.display = 'none';
+            upModal.classList.remove('open');
             showAlert('Document uploaded.', false);
             await load();
         });

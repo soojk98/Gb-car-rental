@@ -9,12 +9,7 @@
     <link rel="stylesheet" href="../css/tokens.css">
     <link rel="stylesheet" href="../css/app.css">
     <style>
-        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 24px; }
-        .kpi { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 18px; }
-        .kpi .label { font-size: 11px; text-transform: uppercase; color: var(--text-muted); letter-spacing: .5px; }
         .kpi .value { font-size: 24px; font-weight: 800; color: var(--dark-bg); margin-top: 6px; line-height: 1; }
-        .kpi.kpi-good .value { color: var(--success); }
-        .kpi.kpi-bad  .value { color: var(--danger); }
         .progress { background: var(--border); height: 8px; border-radius: 4px; overflow: hidden; min-width: 80px; margin-top: 4px; }
         .progress > div { height: 100%; background: var(--success); }
         .progress.over > div { background: var(--success); }
