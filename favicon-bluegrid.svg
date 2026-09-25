@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <!-- Blue Grid. A grid glyph, not a "BG" monogram: BG and GB are the same
+       two letters reversed, and at 16px in a tab strip next to the GB icon
+       they would be indistinguishable. Four cells, one lit. -->
+  <rect width="32" height="32" fill="#0B0B0C"/>
+  <rect x="5"  y="5"  width="9" height="9" fill="#0080FF"/>
+  <rect x="18" y="5"  width="9" height="9" fill="#F2F4F7"/>
+  <rect x="5"  y="18" width="9" height="9" fill="#0080FF"/>
+  <rect x="18" y="18" width="9" height="9" fill="#0080FF"/>
+</svg>

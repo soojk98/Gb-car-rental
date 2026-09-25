@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="bluegrid">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Component gallery | Blue Grid</title>
+    <link rel="icon" href="../favicon-bluegrid.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="../css/tokens.css">
+    <link rel="stylesheet" href="../css/app.css">
+    <link rel="stylesheet" href="../css/bluegrid.css">
+    <!--
+        Every portal component on one page, with no Supabase and no auth.
+
+        The portals sit behind requireRole(), so they cannot be opened -- let
+        alone screenshotted -- without credentials. That makes the design
+        system unreviewable in the one place it matters. This page is the
+        answer: serve the repo over http and open tools/portal-gallery.html.
+
+        It is static markup using the real stylesheets, so if a component
+        looks wrong here it looks wrong in the app. Keep it in sync when
+        adding a component to app.css.
+    -->
+    <style>
+        .gal-section { margin-bottom: 48px; }
+        .gal-h { font-size: 11px; text-transform: uppercase; letter-spacing: .14em;
+                 color: var(--accent); font-weight: 600; margin: 0 0 14px;
+                 padding-bottom: 8px; border-bottom: 1px solid var(--hairline); }
+        .gal-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+        .gal-note { color: var(--text-subtle); font-size: 12px; margin: 0 0 14px; }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="app-shell">
+            <aside class="sidebar">
+                <div class="sidebar-brand">Blue Grid</div>
+                <nav class="sidebar-nav">
+                    <a href="#" class="active">Dashboard</a>
+                    <a href="#">Leads</a>
+                    <a href="#">Cars</a>
+                    <a href="#">Drivers</a>
+                    <a href="#">Rentals</a>
+                    <a href="#">Inventory</a>
+                    <a href="#">Profit &amp; Loss</a>
+                    <a href="#">Help</a>
+                </nav>
+            </aside>
+
+            <main class="main">
+                <div class="topbar">
+                    <h1>Component gallery</h1>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <div class="topbar-user">
+                            <div class="avatar">JS</div>
+                            <div class="who"><span class="name">Jing Kai</span><span class="role">Admin</span></div>
+                            <a class="signout" href="#">Sign out</a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="content">
+                    <p class="gal-note">Static markup on the real stylesheets. No Supabase, no auth.</p>
+
+                    <div class="gal-section">
+                        <h2 class="gal-h">KPI grid</h2>
+                        <div class="kpi-grid">
+                            <div class="kpi"><div class="label">Cars in fleet</div><div class="value">97</div><div class="sub">93 rented</div></div>
+                            <div class="kpi kpi-good"><div class="label">Utilisation</div><div class="value">96%</div><div class="sub">2 in maintenance</div></div>
+                            <div class="kpi kpi-warn"><div class="label">Overdue</div><div class="value">4</div><div class="sub">payments</div></div>
+                            <div class="kpi kpi-bad"><div class="label">Expiring</div><div class="value">2</div><div class="sub">road tax this month</div></div>
+                        </div>
+                    </div>
+
+                    <div class="gal-section">
+                        <h2 class="gal-h">Buttons</h2>
+                        <div class="gal-row">
+                            <button class="btn btn-primary">Primary</button>
+                            <button class="btn btn-secondary">Secondary</button>
+                            <button class="btn btn-danger">Delete</button>
+                            <button class="btn btn-secondary btn-sm">Small</button>
+                            <button class="btn btn-primary" disabled>Disabled</button>
+                        </div>
+                        <p class="gal-note">Primary is a white rectangle at 17.86:1. Blue cannot carry white text (3.80:1), so it stays on borders and state.</p>
+                    </div>
+
+                    <div class="gal-section">
+                        <h2 class="gal-h">Filters and tabs</h2>
+                        <div class="filter-bar">
+                            <button class="active">All</button>
+                            <button>Active</button>
+                            <button>Ended</button>
+                            <button>Overdue</button>
+                        </div>
+                        <div class="tab-bar">
+                            <button class="active">Service</button>
+                            <button>Mileage</button>
+                            <button>Photos</button>
+                            <button>Notes</button>
+                        </div>
+                    </div>
+
+                    <div class="gal-section">
+                        <h2 class="gal-h">Card and table</h2>
+                        <div class="card">
+                            <div class="card-header"><h2>Active rentals</h2></div>
+                            <div class="table-wrap">
+                                <table class="data">
+                                    <thead><tr><th>Plate</th><th>Driver</th><th>Weekly</th><th>Status</th><th>Actions</th></tr></thead>
+                                    <tbody>
+                                        <tr><td>WXY 1234</td><td>Ahmad bin Ali</td><td>RM 420.00</td><td><span class="badge badge-active">Active</span></td>
+                                            <td class="actions-cell"><button class="btn btn-secondary btn-sm">Edit</button><button class="btn btn-secondary btn-sm">Logs</button></td></tr>
+                                        <tr><td>VBN 5678</td><td>Siti Nurhaliza</td><td>RM 330.00</td><td><span class="badge badge-unpaid">Unpaid</span></td>
+                                            <td class="actions-cell"><button class="btn btn-secondary btn-sm">Edit</button><button class="btn btn-secondary btn-sm">Logs</button></td></tr>
+                                        <tr><td>QWE 9012</td><td>Rajesh Kumar</td><td>RM 460.00</td><td><span class="badge badge-maintenance">Maintenance</span></td>
+                                            <td class="actions-cell"><button class="btn btn-secondary btn-sm">Edit</button><button class="btn btn-secondary btn-sm">Logs</button></td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="gal-section">
+                        <h2 class="gal-h">Badges</h2>
+                        <div class="gal-row">
+                            <span class="badge badge-new">New</span><span class="badge badge-contacted">Contacted</span>
+                            <span class="badge badge-converted">Converted</span><span class="badge badge-available">Available</span>
+                            <span class="badge badge-rented">Rented</span><span class="badge badge-maintenance">Maintenance</span>
+                            <span class="badge badge-active">Active</span><span class="badge badge-ended">Ended</span>
+                            <span class="badge badge-inactive">Inactive</span><span class="badge badge-paid">Paid</span>
+                            <span class="badge badge-unpaid">Unpaid</span><span class="badge badge-rejected">Rejected</span>
+                            <span class="badge badge-disputed">Disputed</span>
+                        </div>
+                    </div>
+
+                    <div class="gal-section">
+                        <h2 class="gal-h">Alerts</h2>
+                        <div class="alert alert-success" style="margin-bottom:10px;">Payment recorded.</div>
+                        <div class="alert alert-error" style="margin-bottom:10px;">We could not match that plate to an active rental.</div>
+                        <div class="alert alert-info">Two road tax renewals fall due this month.</div>
+                    </div>
+
+                    <div class="gal-section">
+                        <h2 class="gal-h">Form</h2>
+                        <div class="card">
+                            <div class="form-row">
+                                <div class="form-group"><label for="g1">Plate number</label><input id="g1" type="text" placeholder="WXY 1234"></div>
+                                <div class="form-group"><label for="g2">Weekly rate</label><input id="g2" type="number" value="420"></div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group"><label for="g3">Start date</label><input id="g3" type="date"></div>
+                                <div class="form-group"><label for="g4">Status</label>
+                                    <select id="g4"><option>Active</option><option>Ended</option><option>Maintenance</option></select></div>
+                            </div>
+                            <div class="form-group"><label for="g5">Slip</label><input id="g5" type="file"></div>
+                            <div class="form-group"><label for="g6">Notes</label><textarea id="g6" rows="3" placeholder="Optional"></textarea></div>
+                            <div class="modal-actions">
+                                <button class="btn btn-secondary">Cancel</button>
+                                <button class="btn btn-primary">Save</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="gal-section">
+                        <h2 class="gal-h">Summary, info, documents</h2>
+                        <div class="summary-row">
+                            <div class="summary-box"><div class="label">Collected</div><div class="value">RM 38,420</div></div>
+                            <div class="summary-box"><div class="label">Outstanding</div><div class="value">RM 1,680</div></div>
+                            <div class="summary-box"><div class="label">Deposits held</div><div class="value">RM 40,110</div></div>
+                        </div>
+                        <div class="info-grid" style="margin-bottom:16px;">
+                            <div class="info-box"><div class="label">Model</div><div class="value">Perodua Bezza 1.3</div></div>
+                            <div class="info-box"><div class="label">Registered</div><div class="value">2022-03-14</div></div>
+                            <div class="info-box"><div class="label">Mileage</div><div class="value">84,102 km</div></div>
+                        </div>
+                        <ul class="doc-list">
+                            <li><div class="doc-info"><strong>Road tax 2026</strong><span>Uploaded 2026-01-08 &middot; PDF</span></div>
+                                <button class="btn btn-secondary btn-sm">View</button></li>
+                            <li><div class="doc-info"><strong>Insurance cover note</strong><span>Uploaded 2026-01-08 &middot; PDF</span></div>
+                                <button class="btn btn-secondary btn-sm">View</button></li>
+                        </ul>
+                    </div>
+
+                    <div class="gal-section">
+                        <h2 class="gal-h">Stepper and empty state</h2>
+                        <div class="stepper" style="margin-bottom:20px;">
+                            <div class="step done"><div class="circle">1</div><div class="step-label">Applied</div><div class="step-sub">12 Jan</div></div>
+                            <div class="step done"><div class="circle">2</div><div class="step-label">Approved</div><div class="step-sub">13 Jan</div></div>
+                            <div class="step current"><div class="circle">3</div><div class="step-label">Deposit</div><div class="step-sub">Due</div></div>
+                            <div class="step"><div class="circle">4</div><div class="step-label">Collect car</div><div class="step-sub">&mdash;</div></div>
+                        </div>
+                        <div class="card"><div class="empty-state"><h3>No leads yet</h3><p>New enquiries from the website land here.</p></div></div>
+                    </div>
+
+                    <div class="gal-section">
+                        <h2 class="gal-h">Modal</h2>
+                        <p class="gal-note">Shown inline rather than over a backdrop, so it can be seen without a click.</p>
+                        <div class="modal" style="margin:0;">
+                            <h2>Record a payment</h2>
+                            <div class="form-group"><label for="g7">Amount</label><input id="g7" type="number" value="420"></div>
+                            <div class="form-group"><label for="g8">Paid on</label><input id="g8" type="date"></div>
+                            <div class="modal-actions">
+                                <button class="btn btn-secondary">Cancel</button>
+                                <button class="btn btn-primary">Record</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+</body>
+</html>

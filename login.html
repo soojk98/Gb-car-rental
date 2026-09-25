@@ -1,13 +1,14 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="bluegrid">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login | GB Car Rental</title>
-    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <title>Sign in | Blue Grid</title>
+    <link rel="icon" href="favicon-bluegrid.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
     <link rel="stylesheet" href="css/tokens.css">
     <link rel="stylesheet" href="css/app.css">
+    <link rel="stylesheet" href="css/bluegrid.css">
     <style>
         body {
             min-height: 100vh;
@@ -71,8 +72,9 @@
 </head>
 <body>
     <div class="login-card">
-        <div class="login-brand"><span>GB</span> Car Rental</div>
-        <div class="login-tagline">Management Portal</div>
+        <div class="login-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+        <div class="login-brand">Blue Grid</div>
+        <div class="login-tagline">Car Rental Management System</div>
 
         <h2>Sign in</h2>
 
@@ -91,10 +93,11 @@
         </form>
 
         <p class="login-hint">
-            Drivers: enter your phone number, and your IC number as the password.
+            GB Car Rental drivers: enter your phone number, and your IC number
+            as the password.
         </p>
 
-        <a href="index.html" class="login-back">← Back to website</a>
+        <a href="index.html" class="login-back">← Back to GB Car Rental</a>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
