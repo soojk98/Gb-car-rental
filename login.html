@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login | GB Car Rental</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
+    <link rel="stylesheet" href="css/tokens.css">
     <link rel="stylesheet" href="css/app.css">
     <style>
         body {
@@ -11,43 +14,50 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            background: linear-gradient(135deg, #0a4f32 0%, #1a1a1a 100%);
+            background: var(--bg-invert);
             padding: 20px;
         }
         .login-card {
-            background: white;
+            background: var(--surface);
             padding: 40px 36px;
-            border-radius: 10px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            border-radius: var(--r-xl);
+            box-shadow: var(--shadow-lg);
             width: 100%;
             max-width: 400px;
         }
         .login-brand {
             text-align: center;
-            font-size: 26px;
-            font-weight: 900;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: var(--dark-bg);
-            margin-bottom: 8px;
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            color: var(--text);
+            margin-bottom: 6px;
         }
-        .login-brand span { color: var(--primary-green); }
+        .login-brand span { color: var(--text); }
         .login-tagline {
             text-align: center;
             color: var(--text-muted);
             font-size: 14px;
-            margin-bottom: 28px;
+            margin-bottom: 30px;
         }
         .login-card h2 {
-            font-size: 20px;
+            font-size: 19px;
+            font-weight: 600;
+            letter-spacing: -0.01em;
             margin: 0 0 20px 0;
-            color: var(--dark-bg);
+            color: var(--text);
         }
         .login-card .btn {
             width: 100%;
             padding: 13px;
             font-size: 15px;
             margin-top: 8px;
+        }
+        .login-hint {
+            text-align: center;
+            margin-top: 16px;
+            font-size: 12px;
+            color: var(--text-muted);
         }
         .login-back {
             display: block;
@@ -56,6 +66,7 @@
             font-size: 13px;
             color: var(--text-muted);
         }
+        .login-alert-note { font-size: 11px; opacity: 0.7; }
     </style>
 </head>
 <body>
@@ -79,7 +90,7 @@
             <button id="login-btn" type="submit" class="btn btn-primary">Sign in</button>
         </form>
 
-        <p style="text-align: center; margin-top: 16px; font-size: 12px; color: var(--text-muted);">
+        <p class="login-hint">
             Drivers: enter your phone number, and your IC number as the password.
         </p>
 
@@ -115,7 +126,7 @@
 
                 if (result.error) {
                     alertBox.innerHTML = result.error
-                        + (result.attemptedEmail ? '<br><span style="font-size:11px; opacity:0.7;">tried email: ' + result.attemptedEmail + '</span>' : '');
+                        + (result.attemptedEmail ? '<br><span class="login-alert-note">tried email: ' + result.attemptedEmail + '</span>' : '');
                     alertBox.style.display = 'block';
                     btn.disabled = false;
                     btn.textContent = 'Sign in';

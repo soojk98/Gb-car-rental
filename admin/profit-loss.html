@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Profit & Loss | GB Car Rental</title>
+    <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="../apple-touch-icon.png">
+    <link rel="stylesheet" href="../css/tokens.css">
     <link rel="stylesheet" href="../css/app.css">
     <style>
         .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 24px; }
@@ -15,7 +18,7 @@
         .progress { background: var(--border); height: 8px; border-radius: 4px; overflow: hidden; min-width: 80px; margin-top: 4px; }
         .progress > div { height: 100%; background: var(--success); }
         .progress.over > div { background: var(--success); }
-        .progress.under > div { background: #c80; }
+        .progress.under > div { background: var(--warning); }
         td.num { text-align: right; font-variant-numeric: tabular-nums; }
         td.pos { color: var(--success); font-weight: 600; }
         td.neg { color: var(--danger); font-weight: 600; }
@@ -41,7 +44,7 @@
                 </nav>
                 <div class="sidebar-footer">
                     <div class="user-name" id="user-name"></div>
-                    <a href="#" id="logout" style="color:#cbd1d8;">Sign out</a>
+                    <a href="#" id="logout">Sign out</a>
                 </div>
             </aside>
 

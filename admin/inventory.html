@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Inventory | GB Car Rental</title>
+    <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="../apple-touch-icon.png">
+    <link rel="stylesheet" href="../css/tokens.css">
     <link rel="stylesheet" href="../css/app.css">
     <style>
         .filter-bar { display:flex; gap:8px; margin-bottom:18px; flex-wrap:wrap; }
@@ -21,8 +24,8 @@
         .modal h2 { margin: 0 0 18px 0; font-size: 20px; color: var(--dark-bg); }
         .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
 
-        .stock-low { color: var(--danger, #c00); font-weight: 700; }
-        .stock-ok  { color: var(--success, #0a7); font-weight: 700; }
+        .stock-low { color: var(--danger); font-weight: 700; }
+        .stock-ok  { color: var(--success); font-weight: 700; }
         .summary-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 16px; }
         .summary-box { background: var(--light-bg); padding: 14px; border-radius: 6px; border: 1px solid var(--border); }
         .summary-box .label { font-size: 11px; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px; }
@@ -49,7 +52,7 @@
                 </nav>
                 <div class="sidebar-footer">
                     <div class="user-name" id="user-name"></div>
-                    <a href="#" id="logout" style="color:#cbd1d8;">Sign out</a>
+                    <a href="#" id="logout">Sign out</a>
                 </div>
             </aside>
 

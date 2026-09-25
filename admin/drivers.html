@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Drivers | GB Car Rental</title>
+    <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="../apple-touch-icon.png">
+    <link rel="stylesheet" href="../css/tokens.css">
     <link rel="stylesheet" href="../css/app.css">
     <style>
         .filter-bar { display:flex; gap:8px; margin-bottom:18px; flex-wrap:wrap; }
@@ -34,9 +37,9 @@
         .doc-list .doc-info strong { display: block; color: var(--dark-bg); margin-bottom: 2px; }
         .doc-list .doc-info span { color: var(--text-muted); font-size: 12px; }
 
-        .badge-submitted { background: #fff3e0; color: #e65100; }
-        .badge-approved  { background: #e8f5e9; color: #2e7d32; }
-        .badge-pending   { background: #eceff1; color: #546e7a; }
+        .badge-submitted { background: var(--hairline-soft); color: var(--text); }
+        .badge-approved  { background: var(--text); color: #fff; }
+        .badge-pending   { background: transparent; color: var(--text-subtle); border: 1px solid var(--hairline); }
     </style>
 </head>
 <body>
@@ -59,7 +62,7 @@
                 </nav>
                 <div class="sidebar-footer">
                     <div class="user-name" id="user-name"></div>
-                    <a href="#" id="logout" style="color:#cbd1d8;">Sign out</a>
+                    <a href="#" id="logout">Sign out</a>
                 </div>
             </aside>
 

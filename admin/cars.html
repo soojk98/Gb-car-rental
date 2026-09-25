@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cars | GB Car Rental</title>
+    <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="../apple-touch-icon.png">
+    <link rel="stylesheet" href="../css/tokens.css">
     <link rel="stylesheet" href="../css/app.css">
     <style>
         .filter-bar { display:flex; gap:8px; margin-bottom:18px; flex-wrap:wrap; }
@@ -55,7 +58,7 @@
                 </nav>
                 <div class="sidebar-footer">
                     <div class="user-name" id="user-name"></div>
-                    <a href="#" id="logout" style="color:#cbd1d8;">Sign out</a>
+                    <a href="#" id="logout">Sign out</a>
                 </div>
             </aside>
 
@@ -557,7 +560,7 @@
                 let expiryLabel = '';
                 if (d.expiry_date) {
                     const days = Math.ceil((new Date(d.expiry_date) - new Date()) / (1000*60*60*24));
-                    const color = days < 0 ? 'var(--danger)' : (days < 30 ? '#c80' : 'var(--success)');
+                    const color = days < 0 ? 'var(--danger)' : (days < 30 ? 'var(--warning)' : 'var(--success)');
                     const text  = days < 0 ? 'expired' : (days < 30 ? days + ' days left' : 'valid');
                     expiryLabel = ' · <span style="color:' + color + '; font-weight:600;">Expires ' + new Date(d.expiry_date).toLocaleDateString('en-MY', { year:'numeric', month:'short', day:'numeric' }) + ' (' + text + ')</span>';
                 }

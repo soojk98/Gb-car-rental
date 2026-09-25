@@ -1,0 +1,72 @@
+/* =====================================================================
+   GB Car Rental — design tokens
+   The ONE place colour, type and spacing are defined. Linked first by
+   every page, before app.css. Do not duplicate these values anywhere.
+   ===================================================================== */
+
+:root {
+    /* ---------- surfaces ---------- */
+    --bg:              #ffffff;
+    --bg-alt:          #f5f5f7;   /* the grey panel */
+    --bg-invert:       #000000;
+    --surface:         #ffffff;
+    --surface-invert:  #1d1d1f;   /* tiles sitting on a black panel */
+    --hairline:        #d2d2d7;
+    --hairline-soft:   #e8e8ed;
+    --hairline-invert: #2a2a2c;
+
+    /* ---------- text ---------- */
+    --text:             #1d1d1f;
+    --text-muted:       #6e6e73;
+    --text-subtle:      #86868b;   /* >=16px or decorative only — 3.6:1 on white */
+    --text-on-dark:     #f5f5f7;
+    --text-muted-dark:  #86868b;
+
+    /* ---------- interactive ---------- */
+    --accent:        #1d1d1f;      /* buttons are black, not blue */
+    --accent-hover:  #000000;
+    --focus-ring:    0 0 0 4px rgba(0, 0, 0, 0.08);
+
+    /* ---------- semantic — used sparingly ---------- */
+    --danger:  #c8102e;  --danger-bg:  #fdf2f3;  --danger-line:  #f2c7ce;
+    --success: #1d7a3e;  --success-bg: #f1f8f3;  --success-line: #bfe0c9;
+    --warning: #8a6d00;  --warning-bg: #fdf8e8;  --warning-line: #e8dca8;
+
+    /* ---------- radius ---------- */
+    --r-sm: 8px;
+    --r-md: 12px;
+    --r-lg: 18px;
+    --r-xl: 28px;
+    --r-pill: 980px;
+
+    /* ---------- shadow — most surfaces use hairlines instead ---------- */
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 18px 48px rgba(0, 0, 0, 0.12);
+
+    /* ---------- motion ---------- */
+    --ease: cubic-bezier(.28, .11, .32, 1);
+
+    /* ---------- type ---------- */
+    --font: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text',
+            'Segoe UI Variable Display', 'Segoe UI', Roboto, 'Helvetica Neue',
+            Arial, sans-serif;
+
+    /* =================================================================
+       Legacy aliases.
+       The per-page <style> blocks across admin/ and driver/ still say
+       var(--primary-green) etc. These keep them working while resolving
+       to the monochrome palette. Safe to retire once those blocks are
+       swept; nothing new should use them.
+       ================================================================= */
+    --primary-green:      #1d1d1f;
+    --primary-green-dark: #000000;
+    --highlight-yellow:   #1d1d1f;
+    --dark-bg:            #1d1d1f;
+    --light-bg:           #f5f5f7;
+    --border:             #d2d2d7;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }

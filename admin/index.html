@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard | GB Car Rental</title>
+    <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="../apple-touch-icon.png">
+    <link rel="stylesheet" href="../css/tokens.css">
     <link rel="stylesheet" href="../css/app.css">
     <style>
         .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 24px; }
@@ -11,7 +14,7 @@
         .kpi .label { font-size: 11px; text-transform: uppercase; color: var(--text-muted); letter-spacing: .5px; }
         .kpi .value { font-size: 28px; font-weight: 800; color: var(--dark-bg); margin-top: 6px; line-height: 1; }
         .kpi .sub   { font-size: 12px; color: var(--text-muted); margin-top: 6px; }
-        .kpi.kpi-warn .value { color: #c80; }
+        .kpi.kpi-warn .value { color: var(--warning); }
         .kpi.kpi-bad  .value { color: var(--danger); }
         .kpi.kpi-good .value { color: var(--success); }
         a.kpi-link { display: block; text-decoration: none; color: inherit; transition: transform 0.12s, box-shadow 0.12s, border-color 0.12s; }
@@ -49,7 +52,7 @@
                 </nav>
                 <div class="sidebar-footer">
                     <div class="user-name" id="user-name"></div>
-                    <a href="#" id="logout" style="color:#cbd1d8;">Sign out</a>
+                    <a href="#" id="logout">Sign out</a>
                 </div>
             </aside>
 
