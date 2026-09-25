@@ -517,12 +517,26 @@ CREATE POLICY leads_admin_all ON public.leads
 
 
 -- ---------------------------------------------------------------------
--- cars — admin full, drivers can read (so they see their car details)
--- Public/anon can also SELECT (the landing page lists the fleet).
+-- cars — admin full; a driver can read only the cars on their own
+-- rentals. Anon has no access: the landing page hardcodes the fleet.
 -- ---------------------------------------------------------------------
+-- Cars are NOT publicly readable. A blanket anon SELECT here would expose
+-- plate_number, purchase_price and purchase_date to anyone holding the
+-- published anon key. Drivers get a row-scoped read of their own car only.
+-- See sql/migration_cars_rls_hardening.sql.
 DROP POLICY IF EXISTS cars_public_select ON public.cars;
-CREATE POLICY cars_public_select ON public.cars
-    FOR SELECT TO anon, authenticated USING (true);
+DROP POLICY IF EXISTS cars_driver_select ON public.cars;
+CREATE POLICY cars_driver_select ON public.cars
+    FOR SELECT
+    USING (
+        public.is_admin()
+        OR EXISTS (
+            SELECT 1
+            FROM public.rentals r
+            WHERE r.car_id = cars.id
+              AND r.driver_id = public.current_driver_id()
+        )
+    );
 
 DROP POLICY IF EXISTS cars_admin_all ON public.cars;
 CREATE POLICY cars_admin_all ON public.cars
