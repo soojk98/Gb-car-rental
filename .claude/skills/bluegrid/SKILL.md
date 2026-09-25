@@ -12,7 +12,7 @@ Established 2026-09-25. Branch `bluegrid-portal`.
 | | Product | Pages | Identity |
 |---|---|---|---|
 | Shopfront | **GB Car Rental** | `index.html`, `public-pay.html` | Vermillion `#FF3D00` on black, Space Grotesk. See the `gb-brand` skill. |
-| The software | **Blue Grid** | `login.html`, `admin/*` (14), `driver/*` (6) | Near-black, electric blue `#0080FF`, system stack, hard corners. |
+| The software | **Blue Grid** | `login.html`, `admin/*` (14), `driver/*` (6) | Light field, blue `#0063CC`, system stack, hard corners. |
 
 **Do not let them touch.** `css/landing.css` is loaded only by `index.html`;
 `css/bluegrid.css` only by the 21 portal pages. `css/tokens.css` and
@@ -36,7 +36,7 @@ operate, GB Car Rental is what the customer rents from.
 | `admin/help.html` sign-in domain | **GB** — a deployment fact, not branding |
 | `public-pay.html`, `index.html` | **GB**, and both are out of scope |
 
-Drivers get the identical dark styling but never see the words "Blue Grid".
+Drivers get the identical styling but never see the words "Blue Grid".
 They are GB's customers, nobody sold them Blue Grid, and a driver who signs in
 to an unfamiliar brand has no way to tell it is not a phishing page. That
 split is also the first proof the white-label works: one design system, two
@@ -61,7 +61,7 @@ and the 21 portal pages carry that attribute on `<html>`. This does two jobs:
    attribute every rule would need `!important`.
 
 The failure mode is therefore **all-or-nothing per page** — miss the `<link>`
-or the attribute and the page is fully light, never half dark.
+or the attribute and the page is unstyled, never half themed.
 
 ```
 node tools/check-portals.js      # nav drift + literal colours + inline attrs
@@ -69,58 +69,64 @@ node tools/check-portals.js      # nav drift + literal colours + inline attrs
 
 ## 4. Tokens
 
-Defined under `html[data-theme="bluegrid"]` in `css/bluegrid.css`. Ratios are
-computed, not eyeballed.
+Defined under `html[data-theme="bluegrid"]` in `css/bluegrid.css`. **There is
+one theme and it is light.** An earlier draft was dark; it read as "dark mode"
+rather than as a product, and these are tools people use in daylight. The
+Swiss/technical character is carried by hard corners, wide-tracked uppercase
+micro-labels, hairline rules and a single blue — not by the background being
+black.
+
+Ratios are computed, not eyeballed, against `--surface` (#FFFFFF).
 
 ```
---bg #0B0B0C   --surface #121316   --surface-2 #191A1E   --surface-3 #232429
---text #F2F4F7 (17.86)   --text-muted #9BA1AC (7.58)   --text-subtle #7D8490 (5.22)
---accent #0080FF (5.18)  --accent-bright #3B9BFF (6.86)  --accent-wash #0A1F33
---hairline #24262B       --hairline-strong #5D6069 (3.13)
---danger #FF6B6B  --success #4ADE80  --warning #FBBF24
---r-* all 0px  (--r-round 50% owns the avatar)
+--bg #F7F8FA   --surface #FFFFFF   --surface-2 #F0F2F6   --surface-3 #E6E9EF
+--text #0D0F12 (19.19)   --text-muted #565C66 (6.73)   --text-subtle #626973 (5.54)
+--accent #0063CC (5.74)  --accent-bright #0058BD   --accent-wash #E8F0FC
+--hairline #E2E5EA       --hairline-strong #8E949E (3.05)
+--danger #C8102E (5.88)  --success #1D7A3E (5.38)  --warning #8A6D00 (4.92)
+--r-* all 0px            (--r-round 50% owns the avatar)
 --track-label 0.14em     the wide uppercase micro-label, the signature
 ```
 
-**Two rules that must not be broken:**
+**The contrast rule that shapes the palette.** `--accent` is `#0063CC`, not the
+`#0080FF` this started as. On white, #0080FF is **3.80:1** and fails both as
+text *and* as a fill behind white text. #0063CC clears **5.74:1 in both
+directions**, which is why one value serves as link colour, focus ring and
+button fill. If you ever lighten the accent, re-check both directions.
 
-1. **Text on a blue fill must be near-black.** White on `#0080FF` is
-   **3.80:1** and fails body text. So the primary button is a *white*
-   rectangle with near-black text (17.86:1) and blue is reserved for borders
-   and state. Active filter pills and tabs use accent text on `--accent-wash`,
-   never a blue fill.
-2. **Blue *text* uses `--accent-bright`.** `--accent` falls to 4.08:1 on a
-   hovered row (`--surface-3`), which fails. `--accent-bright` holds 5.40:1.
+**`--hairline-strong` is for input borders**, not `--hairline`. At 1.26:1 the
+decorative hairline does not meet WCAG 1.4.11's 3:1 for a control boundary;
+`#8E949E` gives 3.05:1.
 
 **The `--dark-bg` trap.** All 25 uses of this legacy alias are `color:` on
-headings and values — "dark" meant "the strong text colour". It therefore
-maps to **`var(--text)`, i.e. white**. Mapping it to a dark value turns 25
-headings invisible. The other live aliases: `--border` → `--hairline`,
-`--light-bg` → `--surface-2`, `--primary-green` → `--accent`.
+headings and values — "dark" meant "the strong text colour". It maps to
+`var(--text)`, never to a background. The other live aliases: `--border` →
+`--hairline`, `--light-bg` → `--surface-2`, `--primary-green` → `--accent`.
 
 ## 5. Things that will break if you forget them
 
-- **`color-scheme: dark`** on the root. Without it the 16 date inputs, 22
-  selects and 16 file inputs render as light OS widgets, and a `<select>`
-  dropdown list is OS-drawn and cannot be styled any other way.
-- **Chrome autofill** paints inputs near-white and ignores `background`. The
-  only override is `-webkit-box-shadow: 0 0 0 1000px <colour> inset`.
-- **`::-webkit-calendar-picker-indicator`** is a dark SVG and vanishes on a
-  dark input; it needs `filter: invert(1)`.
-- **`--focus-ring`** was `rgba(0,0,0,0.08)` — invisible on black. Keyboard
-  focus disappears entirely if this is not redefined.
-- **Print stays light.** `admin/help.html` is the one thing here that gets
-  printed; a black page is unreadable and empties a toner cartridge.
+- **`color-scheme: light`** on the root. It is explicit rather than omitted so
+  the 16 date inputs, 22 selects and 16 file inputs stay light even for a
+  viewer whose OS is set to dark. A `<select>` dropdown list is OS-drawn and
+  this is the only lever over it.
+- **An SVG used as a `background-image` cannot inherit CSS custom properties.**
+  `img/bluegrid-car.svg` therefore hardcodes its strokes. If the palette
+  moves, that file moves with it.
+- **XML comments may not contain a double hyphen.** A `--token` name inside an
+  SVG comment makes the file invalid, and an invalid SVG is silently not
+  painted — no console error, no broken-image icon, nothing. This cost a
+  debugging round on `img/bluegrid-car.svg`.
 - **`js/auth.js:151-246` rewrites the topbar at runtime** and writes inline
   styles. `.topbar-user`, `.avatar`, `.who`, `.name`, `.role` and `.signout`
   are a contract with that file — do not rename them.
+- **`--focus-ring`** must stay visible. It is a blue halo, not the
+  `rgba(0,0,0,0.08)` the base tokens ship.
 
 ## 6. No web font, on purpose
 
 The portals use the system stack. These pages already blank until
 `requireRole()` round-trips to Supabase, and a font swap on top of that is a
-second flash which is *more* visible on black than on white. The character
-comes from tracking, case, weight and rhythm.
+second flash. The character comes from tracking, case, weight and rhythm.
 
 If it ever reads too plain, the upgrade is **IBM Plex Sans** — not Inter,
 which belongs to the landing page. `--font-mono` is defined for plates, IDs

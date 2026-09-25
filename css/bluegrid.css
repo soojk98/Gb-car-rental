@@ -1,6 +1,6 @@
 /* =====================================================================
    Blue Grid — Car Rental Management System
-   The portal design layer. Dark field, one electric blue, hard corners.
+   The portal design layer. Light field, one blue, hard corners.
 
    SCOPING
    Every rule is scoped to html[data-theme="bluegrid"]. That does two jobs:
@@ -16,81 +16,80 @@
       to empty all 13 remaining <style> blocks before any theming worked.
 
    The failure mode is therefore all-or-nothing per page: forget the
-   <link> or the attribute and the page is fully light, never half dark.
+   <link> or the attribute and the page is unstyled, never half themed.
    Check both with:  node tools/check-portals.js
 
-   THE TWO CONTRAST RULES
-   - Text on a blue fill must be near-black. White on #0080FF is 3.80:1
-     and fails body text. This mirrors the vermillion rule on the landing
-     page, for the same reason.
-   - --accent is for borders, icons and state. Blue *text* uses
-     --accent-bright: --accent drops to 4.08:1 on a hovered row, which
-     fails, while --accent-bright holds 5.40:1.
+   LIGHT ONLY
+   There is one theme and it is light. An earlier draft was dark; it read
+   as "dark mode" rather than as a product, and these are tools people use
+   in daylight. The Swiss/technical character is carried by hard corners,
+   wide-tracked uppercase micro-labels, hairline rules and a single blue —
+   not by the background being black.
+
+   THE CONTRAST RULE THAT SHAPES THE PALETTE
+   --accent is #0063CC, not the #0080FF this started as. On white, #0080FF
+   is 3.80:1 and fails both as text AND as a fill behind white text.
+   #0063CC clears 5.74:1 in both directions, which is why one value can
+   serve as link colour, focus ring and button fill.
 
    TYPOGRAPHY
    Deliberately no web font. These pages already blank until requireRole()
-   round-trips to Supabase; a font swap on top of that is a second flash,
-   and it is more visible on black than on white. The Starlink character
-   comes from tracking, case, weight and rhythm, which the system stack
-   does fine. If it ever reads too plain, IBM Plex Sans is the upgrade --
-   not Inter, which belongs to the landing page.
+   round-trips to Supabase; a font swap on top of that is a second flash.
+   The character comes from tracking, case, weight and rhythm, which the
+   system stack does fine. If it ever reads too plain, IBM Plex Sans is the
+   upgrade — not Inter, which belongs to the landing page.
    ===================================================================== */
 
 html[data-theme="bluegrid"] {
-    /* Tell the browser this is a dark document. Without this, all 16 date
-       inputs, 22 selects and 16 file inputs render as light OS widgets,
-       and a <select> dropdown list is OS-drawn and cannot be styled any
-       other way. This one line does more than any rule below it. */
-    color-scheme: dark;
+    color-scheme: light;
 
-    /* ---------- surfaces: a ladder, since shadow does nothing on black ---------- */
-    --bg:              #0B0B0C;
-    --bg-alt:          #0B0B0C;
-    --bg-invert:       #000000;
-    --surface:         #121316;
-    --surface-2:       #191A1E;
-    --surface-3:       #232429;
-    --surface-invert:  #191A1E;
-    --overlay:         rgba(0, 0, 0, 0.72);
+    /* ---------- surfaces ---------- */
+    --bg:              #F7F8FA;   /* the field */
+    --bg-alt:          #F7F8FA;
+    --bg-invert:       #0D0F12;
+    --surface:         #FFFFFF;   /* cards, modals, table body */
+    --surface-2:       #F0F2F6;   /* inputs, table headers, raised */
+    --surface-3:       #E6E9EF;   /* hover, pressed */
+    --surface-invert:  #0D0F12;
+    --overlay:         rgba(13, 15, 18, 0.45);
 
     /* ---------- hairlines ---------- */
-    --hairline:        #24262B;   /* dividers, card edges, table rules */
-    --hairline-soft:   #1A1C20;   /* row separators */
-    --hairline-strong: #5D6069;   /* input borders — 3.13:1, clears WCAG 1.4.11 */
-    --hairline-invert: #24262B;
-    --grid-line:       rgba(255, 255, 255, 0.032);
+    --hairline:        #E2E5EA;   /* dividers, card edges, table rules */
+    --hairline-soft:   #EDEFF3;   /* row separators */
+    --hairline-strong: #8E949E;   /* input borders — 3.05:1, clears WCAG 1.4.11 */
+    --hairline-invert: #2A2D33;
+    --grid-line:       rgba(13, 15, 18, 0.045);
 
-    /* ---------- text (ratios on --bg / --surface / --surface-3) ---------- */
-    --text:            #F2F4F7;   /* 17.86 / 16.86 / 14.06 */
-    --text-muted:      #9BA1AC;   /*  7.58 /  7.15 /  5.96 */
-    --text-subtle:     #7D8490;   /*  5.22 /  4.93 /  4.11 — >=18px or UI only */
-    --text-on-dark:    #F2F4F7;
-    --text-muted-dark: #9BA1AC;
+    /* ---------- text (ratios on --surface / --bg / --surface-3) ---------- */
+    --text:            #0D0F12;   /* 19.19 / 18.06 / 15.78 */
+    --text-muted:      #565C66;   /*  6.73 /  6.34 /  5.54 */
+    --text-subtle:     #626973;   /*  5.54 /  5.22 /  4.56 */
+    --text-on-dark:    #F7F8FA;
+    --text-muted-dark: #A6ACB8;
 
     /* ---------- accent ---------- */
-    --accent:          #0080FF;   /* 5.18 on bg — borders, icons, state */
-    --accent-bright:   #3B9BFF;   /* 6.86 on bg — any blue TEXT, hover */
-    --accent-hover:    #3B9BFF;
-    --accent-dim:      #0A5FC8;
-    --accent-wash:     #0A1F33;   /* selected row, active nav, badge fill */
-    --accent-fg:       #05060A;   /* near-black, for text on a blue fill */
+    --accent:          #0063CC;   /* 5.74 on white, and 5.74 under white text */
+    --accent-bright:   #0058BD;   /* hover — darker, since we are on light */
+    --accent-hover:    #0058BD;
+    --accent-dim:      #004FB0;
+    --accent-wash:     #E8F0FC;   /* selected row, active nav, badge fill */
+    --accent-fg:       #FFFFFF;   /* text on a blue fill */
 
-    /* ---------- semantic, re-tuned for dark ----------
-       The light values are unusable here: #c8102e on black is 2.6:1. */
-    --danger:  #FF6B6B;  --danger-bg:  #2A0E12;  --danger-line:  #5C1F23;
-    --success: #4ADE80;  --success-bg: #0D2318;  --success-line: #1F4A32;
-    --warning: #FBBF24;  --warning-bg: #2A1E05;  --warning-line: #5A4410;
-    --danger-solid: #C2302F;      /* .btn-danger fill — white on it is 5.59 */
+    /* ---------- semantic ---------- */
+    --danger:  #C8102E;  --danger-bg:  #FDF2F3;  --danger-line:  #F2C7CE;
+    --success: #1D7A3E;  --success-bg: #F1F8F3;  --success-line: #BFE0C9;
+    --warning: #8A6D00;  --warning-bg: #FDF8E8;  --warning-line: #E8DCA8;
+    --danger-solid: #C8102E;
 
     /* ---------- radius: Blue Grid is hard-cornered ---------- */
     --r-sm: 0px;  --r-md: 0px;  --r-lg: 0px;  --r-xl: 0px;  --r-pill: 0px;
     --r-round: 50%;               /* owns the one circular thing, the avatar */
 
-    /* ---------- "shadow" is a ring here, not a drop ---------- */
-    --shadow-sm: 0 0 0 1px var(--hairline);
-    --shadow-md: 0 0 0 1px var(--hairline);
-    --shadow-lg: 0 0 0 1px var(--hairline-strong), 0 40px 90px -24px rgba(0,0,0,0.95);
-    --focus-ring: 0 0 0 1px var(--bg), 0 0 0 3px var(--accent);
+    /* ---------- elevation is a rule, not a blur ---------- */
+    --shadow-sm: none;
+    --shadow-md: 0 1px 2px rgba(13, 15, 18, 0.05);
+    --shadow-lg: 0 24px 60px -18px rgba(13, 15, 18, 0.22);
+    --focus-ring: 0 0 0 3px rgba(0, 99, 204, 0.28);
 
     /* ---------- spacing scale (4px base) — did not exist before ---------- */
     --s-1: 4px;   --s-2: 8px;   --s-3: 12px;  --s-4: 16px;  --s-5: 20px;
@@ -107,15 +106,14 @@ html[data-theme="bluegrid"] {
                  'Roboto Mono', Consolas, monospace;
 
     /* ---------- legacy aliases still live in page-local CSS ----------
-       --dark-bg is the trap: all 25 uses are `color:` on headings and
-       values. "dark" meant "the strong text colour", so on a dark theme
-       it must resolve to WHITE. Mapping it to a dark value turns 25
-       headings invisible. */
+       --dark-bg is the one to watch: all 25 uses are `color:` on headings
+       and values. "dark" meant "the strong text colour", so it maps to
+       --text, not to a background. */
     --border:         var(--hairline);
     --dark-bg:        var(--text);
     --light-bg:       var(--surface-2);
     --primary-green:  var(--accent);
-    --primary-green-dark: var(--accent-bright);
+    --primary-green-dark: var(--accent-dim);
     --highlight-yellow:   var(--warning);
 }
 
@@ -148,8 +146,7 @@ html[data-theme="bluegrid"] #app,
 html[data-theme="bluegrid"] .login-card { position: relative; z-index: 1; }
 
 html[data-theme="bluegrid"] ::selection { background: var(--accent-wash); color: var(--text); }
-
-html[data-theme="bluegrid"] a { color: var(--accent-bright); }
+html[data-theme="bluegrid"] a { color: var(--accent); }
 
 /* Hard corners everywhere, with the one exception that must stay round.
    Cheaper and more reliable than chasing 43 literal border-radius values
@@ -183,9 +180,10 @@ html[data-theme="bluegrid"] .summary-box .value { font-variant-numeric: tabular-
    Shell
    ===================================================================== */
 html[data-theme="bluegrid"] .sidebar {
-    background: var(--bg);
+    background: var(--surface);
     border-right: 1px solid var(--hairline);
 }
+
 /* Two variants of the same block. Admin carries the product -- mark plus
    "Blue Grid". Driver carries the operator -- "GB Car Rental", no mark,
    because drivers are GB's customers and were never sold Blue Grid. Same
@@ -222,6 +220,7 @@ html[data-theme="bluegrid"] .bg-portal {
     font-size: var(--fs-micro);
     font-weight: 600;
 }
+
 html[data-theme="bluegrid"] .sidebar-nav a {
     color: var(--text-muted);
     border-left: 2px solid transparent;
@@ -233,12 +232,13 @@ html[data-theme="bluegrid"] .sidebar-nav a:hover {
 }
 html[data-theme="bluegrid"] .sidebar-nav a.active {
     background: var(--accent-wash);
-    color: var(--text);
+    color: var(--accent);
     border-left-color: var(--accent);
+    font-weight: 600;
 }
 
 html[data-theme="bluegrid"] .topbar {
-    background: rgba(11, 11, 12, 0.72);
+    background: rgba(247, 248, 250, 0.82);
     border-bottom: 1px solid var(--hairline);
 }
 html[data-theme="bluegrid"] .topbar h1 {
@@ -252,33 +252,29 @@ html[data-theme="bluegrid"] .content { background: transparent; }
 html[data-theme="bluegrid"] .avatar { background: var(--accent); color: var(--accent-fg); }
 html[data-theme="bluegrid"] .topbar-user .name { color: var(--text); }
 html[data-theme="bluegrid"] .signout {
-    background: var(--surface-2);
-    border-color: var(--hairline);
+    background: var(--surface);
+    border-color: var(--hairline-strong);
     color: var(--text-muted);
 }
 html[data-theme="bluegrid"] .signout:hover {
     background: var(--surface-3);
     color: var(--text);
-    border-color: var(--hairline-strong);
 }
 
 /* =====================================================================
    Controls
    ===================================================================== */
-/* Primary is a white rectangle with near-black text: 17.86:1, and the
-   most Starlink thing in the file. A blue fill cannot carry white text
-   (3.80:1), so blue stays on borders and state. */
 html[data-theme="bluegrid"] .btn-primary {
-    background: var(--text);
-    color: var(--bg);
-    border-color: var(--text);
+    background: var(--accent);
+    color: var(--accent-fg);
+    border-color: var(--accent);
     font-weight: 600;
     letter-spacing: var(--track-caps);
 }
-html[data-theme="bluegrid"] .btn-primary:hover { background: #ffffff; border-color: #ffffff; }
+html[data-theme="bluegrid"] .btn-primary:hover { background: var(--accent-bright); border-color: var(--accent-bright); }
 
 html[data-theme="bluegrid"] .btn-secondary {
-    background: transparent;
+    background: var(--surface);
     color: var(--text);
     border-color: var(--hairline-strong);
 }
@@ -289,7 +285,7 @@ html[data-theme="bluegrid"] .btn-danger {
     color: #ffffff;
     border-color: var(--danger-solid);
 }
-html[data-theme="bluegrid"] .btn-danger:hover { background: #D93A38; border-color: #D93A38; }
+html[data-theme="bluegrid"] .btn-danger:hover { background: #A60D26; border-color: #A60D26; }
 
 html[data-theme="bluegrid"] .btn:focus-visible { box-shadow: var(--focus-ring); }
 
@@ -304,7 +300,7 @@ html[data-theme="bluegrid"] .form-group input,
 html[data-theme="bluegrid"] .form-group select,
 html[data-theme="bluegrid"] .form-group textarea,
 html[data-theme="bluegrid"] input[type="search"] {
-    background: var(--surface-2);
+    background: var(--surface);
     border-color: var(--hairline-strong);
     color: var(--text);
 }
@@ -317,27 +313,13 @@ html[data-theme="bluegrid"] .form-group textarea:focus {
     box-shadow: var(--focus-ring);
     outline: none;
 }
-
-/* The date picker's calendar glyph is a dark SVG and vanishes on a dark
-   input. The file-input button needs the same treatment. */
-html[data-theme="bluegrid"] ::-webkit-calendar-picker-indicator { filter: invert(1) opacity(0.65); }
 html[data-theme="bluegrid"] ::-webkit-file-upload-button {
-    background: var(--surface-3);
+    background: var(--surface-2);
     color: var(--text);
     border: 1px solid var(--hairline-strong);
     padding: 6px 12px;
     margin-right: 10px;
     cursor: pointer;
-}
-
-/* Chrome paints autofilled fields near-white and ignores `background`.
-   The inset shadow is the only way to override it. */
-html[data-theme="bluegrid"] input:-webkit-autofill,
-html[data-theme="bluegrid"] input:-webkit-autofill:hover,
-html[data-theme="bluegrid"] input:-webkit-autofill:focus {
-    -webkit-text-fill-color: var(--text);
-    -webkit-box-shadow: 0 0 0 1000px var(--surface-2) inset;
-    caret-color: var(--text);
 }
 
 /* =====================================================================
@@ -364,7 +346,7 @@ html[data-theme="bluegrid"] table.data thead th {
     border-bottom-color: var(--hairline);
 }
 html[data-theme="bluegrid"] table.data td { border-bottom-color: var(--hairline-soft); }
-html[data-theme="bluegrid"] table.data tbody tr:hover { background: var(--surface-3); }
+html[data-theme="bluegrid"] table.data tbody tr:hover { background: var(--accent-wash); }
 
 html[data-theme="bluegrid"] .kpi,
 html[data-theme="bluegrid"] .summary-box,
@@ -380,7 +362,7 @@ html[data-theme="bluegrid"] .kpi .value { font-size: var(--fs-2xl); letter-spaci
 html[data-theme="bluegrid"] a.kpi-link:hover { border-color: var(--accent); }
 
 html[data-theme="bluegrid"] .doc-list li {
-    background: var(--surface-2);
+    background: var(--surface);
     border-color: var(--hairline);
 }
 html[data-theme="bluegrid"] .doc-list .doc-info strong,
@@ -394,7 +376,7 @@ html[data-theme="bluegrid"] .empty-state h3 { color: var(--text); }
    ===================================================================== */
 html[data-theme="bluegrid"] .badge {
     border: 1px solid var(--hairline-strong);
-    background: var(--surface-2);
+    background: var(--surface);
     color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: var(--track-caps);
@@ -412,7 +394,7 @@ html[data-theme="bluegrid"] .badge-new,
 html[data-theme="bluegrid"] .badge-available,
 html[data-theme="bluegrid"] .badge-contacted,
 html[data-theme="bluegrid"] .badge-submitted {
-    background: var(--accent-wash); color: var(--accent-bright); border-color: var(--accent);
+    background: var(--accent-wash); color: var(--accent); border-color: #BBD4F5;
 }
 html[data-theme="bluegrid"] .badge-unpaid,
 html[data-theme="bluegrid"] .badge-rejected,
@@ -431,28 +413,26 @@ html[data-theme="bluegrid"] .badge-ended {
 html[data-theme="bluegrid"] .alert { border-width: 1px; border-style: solid; }
 html[data-theme="bluegrid"] .alert-error   { background: var(--danger-bg);  color: var(--danger);  border-color: var(--danger-line); }
 html[data-theme="bluegrid"] .alert-success { background: var(--success-bg); color: var(--success); border-color: var(--success-line); }
-html[data-theme="bluegrid"] .alert-info    { background: var(--accent-wash); color: var(--accent-bright); border-color: var(--accent); }
+html[data-theme="bluegrid"] .alert-info    { background: var(--accent-wash); color: var(--accent); border-color: #BBD4F5; }
 
 /* =====================================================================
    Modal, filters, tabs, stepper
    ===================================================================== */
 html[data-theme="bluegrid"] .modal-backdrop {
     background: var(--overlay);
-    -webkit-backdrop-filter: blur(8px);
-    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
 }
 html[data-theme="bluegrid"] .modal {
     background: var(--surface);
-    border: 1px solid var(--hairline-strong);
+    border: 1px solid var(--hairline);
     box-shadow: var(--shadow-lg);
 }
 html[data-theme="bluegrid"] .modal h2,
 html[data-theme="bluegrid"] .modal h3 { color: var(--text); letter-spacing: var(--track-tight); }
 
-/* Active filter is accent text on a wash, never a blue fill -- a fill
-   would need white text, which fails at 3.80:1. */
 html[data-theme="bluegrid"] .filter-bar button {
-    background: transparent;
+    background: var(--surface);
     border-color: var(--hairline-strong);
     color: var(--text-muted);
     text-transform: uppercase;
@@ -461,8 +441,8 @@ html[data-theme="bluegrid"] .filter-bar button {
 }
 html[data-theme="bluegrid"] .filter-bar button:hover { background: var(--surface-3); color: var(--text); }
 html[data-theme="bluegrid"] .filter-bar button.active {
-    background: var(--accent-wash);
-    color: var(--accent-bright);
+    background: var(--accent);
+    color: var(--accent-fg);
     border-color: var(--accent);
 }
 
@@ -475,7 +455,7 @@ html[data-theme="bluegrid"] .tab-bar button {
 }
 html[data-theme="bluegrid"] .tab-bar button:hover { color: var(--text); }
 html[data-theme="bluegrid"] .tab-bar button.active {
-    color: var(--accent-bright);
+    color: var(--accent);
     border-bottom-color: var(--accent);
 }
 
@@ -486,10 +466,10 @@ html[data-theme="bluegrid"] .stepper .step .circle {
     color: var(--text-muted);
 }
 html[data-theme="bluegrid"] .stepper .step.done .circle {
-    background: var(--success); color: var(--bg); border-color: var(--success);
+    background: var(--success); color: #ffffff; border-color: var(--success);
 }
 html[data-theme="bluegrid"] .stepper .step.current .circle {
-    background: var(--accent-wash); border-color: var(--accent); color: var(--accent-bright);
+    background: var(--accent); border-color: var(--accent); color: var(--accent-fg);
 }
 
 /* =====================================================================
@@ -506,7 +486,7 @@ html[data-theme="bluegrid"] .photo {
     background: var(--surface-2);
     border-color: var(--hairline-strong);
 }
-html[data-theme="bluegrid"] .photo .cap { background: var(--overlay); color: var(--text); }
+html[data-theme="bluegrid"] .photo .cap { background: var(--overlay); color: #ffffff; }
 html[data-theme="bluegrid"] .progress { background: var(--surface-3); }
 html[data-theme="bluegrid"] .due-banner.ok      { background: var(--success-bg); color: var(--success); border-color: var(--success-line); }
 html[data-theme="bluegrid"] .due-banner.overdue { background: var(--danger-bg);  color: var(--danger);  border-color: var(--danger-line); }
@@ -514,21 +494,48 @@ html[data-theme="bluegrid"] .due-banner.overdue { background: var(--danger-bg); 
 html[data-theme="bluegrid"] .guide h2 { color: var(--text); border-bottom-color: var(--hairline); }
 html[data-theme="bluegrid"] .guide h3 { color: var(--text); }
 html[data-theme="bluegrid"] .guide kbd,
-html[data-theme="bluegrid"] .guide code { background: var(--surface-2); color: var(--accent-bright); }
-html[data-theme="bluegrid"] .toc a { color: var(--accent-bright); }
+html[data-theme="bluegrid"] .guide code { background: var(--surface-2); color: var(--accent); }
+html[data-theme="bluegrid"] .toc a { color: var(--accent); }
 
 /* =====================================================================
    Sign-in
-   Blue Grid's front door, and the one page where the flip would otherwise
-   make something vanish: the card is --surface on a black body, so
-   without a border it dissolves into the page.
+   Blue Grid's front door. One of our own car drawings, large and faint,
+   bleeding off the right edge -- it is a car rental system, and the
+   drawing is ours, unlike the photographs this project started with.
    ===================================================================== */
+html[data-theme="bluegrid"] body.login-page {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    padding: var(--s-6);
+    overflow: hidden;
+}
+html[data-theme="bluegrid"] .login-alert-note { font-size: var(--fs-micro); opacity: 0.75; }
+html[data-theme="bluegrid"] body.login-page::after {
+    content: "";
+    position: fixed;
+    right: -8vw;
+    bottom: 12vh;
+    width: min(76vw, 1180px);
+    aspect-ratio: 2 / 1;
+    background: url("../img/bluegrid-car.svg") no-repeat right center / contain;
+    opacity: 0.14;
+    pointer-events: none;
+    z-index: 0;
+}
+/* The card sits left of the drawing rather than on top of it, so nothing
+   has to be dimmed to keep the form legible. */
 html[data-theme="bluegrid"] .login-card {
     background: var(--surface);
-    border: 1px solid var(--hairline-strong);
+    border: 1px solid var(--hairline);
     box-shadow: var(--shadow-lg);
     padding: var(--s-10) var(--s-8);
+    margin-left: min(9vw, 140px);
+    width: 100%;
+    max-width: 380px;
 }
+
 /* The mark, built from four divs rather than an <img> so it inherits the
    theme colours and stays crisp at any zoom. Same four cells as
    favicon-bluegrid.svg, one lit. */
@@ -585,29 +592,29 @@ html[data-theme="bluegrid"] .login-back {
     padding-top: var(--s-4);
     border-top: 1px solid var(--hairline);
 }
-html[data-theme="bluegrid"] .login-back:hover { color: var(--accent-bright); }
+html[data-theme="bluegrid"] .login-back:hover { color: var(--accent); }
+
+/* On a phone there is no room beside the card, so the drawing drops
+   behind it at a lower opacity and the card centres. */
+@media (max-width: 720px) {
+    html[data-theme="bluegrid"] body.login-page { justify-content: center; }
+    html[data-theme="bluegrid"] .login-card { margin-left: 0; }
+    html[data-theme="bluegrid"] body.login-page::after {
+        right: -20vw; bottom: 6vh; width: 130vw; opacity: 0.08;
+    }
+}
 
 /* =====================================================================
    Print
-   The user guide is the one thing here that gets printed. A black page
-   is unreadable and empties a toner cartridge, so print stays light.
+   The user guide is the one thing here that gets printed.
    ===================================================================== */
 @media print {
-    html[data-theme="bluegrid"] body,
-    html[data-theme="bluegrid"] .card,
-    html[data-theme="bluegrid"] .toc { background: #ffffff !important; color: #000000 !important; }
-    html[data-theme="bluegrid"] body::before { display: none !important; }
-    html[data-theme="bluegrid"] .guide,
-    html[data-theme="bluegrid"] .guide h2,
-    html[data-theme="bluegrid"] .guide h3,
-    html[data-theme="bluegrid"] .guide li,
-    html[data-theme="bluegrid"] .guide p { color: #000000 !important; }
-    html[data-theme="bluegrid"] .guide code,
-    html[data-theme="bluegrid"] .guide kbd { background: #f0f0f0 !important; color: #000000 !important; }
+    html[data-theme="bluegrid"] body::before,
+    html[data-theme="bluegrid"] body.login-page::after { display: none !important; }
+    html[data-theme="bluegrid"] body { background: #ffffff !important; }
 }
 
-/* Respect the OS setting. The grid backdrop is the only decorative
-   motion-adjacent thing here, but transitions are everywhere. */
+/* Respect the OS setting. */
 @media (prefers-reduced-motion: reduce) {
     html[data-theme="bluegrid"] * { transition-duration: 0.01ms !important; animation: none !important; }
 }

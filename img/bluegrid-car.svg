@@ -1,0 +1,29 @@
+<!-- Blue Grid sign-in backdrop.
+
+     Same geometry as the fleet drawings on the GB landing page (generated
+     by tools/build-car-art.js), but a standalone asset with its own fixed
+     strokes: the two products must not share a file, or restyling one
+     silently restyles the other. Strokes are the Blue Grid light palette,
+     text #0D0F12 and accent #0063CC, hardcoded because a background-image
+     cannot inherit CSS custom properties.
+
+     Note: no double hyphen anywhere in this comment. XML forbids it, and
+     an SVG that fails to parse is simply not painted, with no error
+     anywhere in the console. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400"
+     fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="#0063CC" stroke-width="2" d="M72 348 H740"/>
+  <path stroke="#0D0F12" stroke-width="2.6" d="M70 288 C62 284 58 278 60 268 L60 238 C60 228 64 222 72 219 L116 202 C166 194 214 187 246 184 L348 108 C354 105 360 104 370 104 L546 104 C556 104 562 107 568 114 L628 180 L734 188 C746 189 754 197 756 210 C758 228 758 258 752 274 C748 281 742 288 734 288 L653 286 A66 66 0 0 0 523 286 L235 286 A66 66 0 0 0 105 286 Z"/>
+  <path stroke="#565C66" stroke-width="1.6" fill="rgba(13,15,18,.05)" d="M356 112 L432 112 L432 176 L265 176 Z"/>
+  <path stroke="#565C66" stroke-width="1.6" fill="rgba(13,15,18,.05)" d="M442 112 L504 112 L504 176 L442 176 Z"/>
+  <path stroke="#565C66" stroke-width="1.6" fill="rgba(13,15,18,.05)" d="M514 112 L556 112 L614 176 L514 176 Z"/>
+  <path stroke="#565C66" stroke-width="1.6" d="M262 180 L624 174"/>
+  <path stroke="#565C66" stroke-width="1.6" d="M508 178 V276"/>
+  <path stroke="#565C66" stroke-width="1.6" d="M452 196 h30"/>
+  <path stroke="#565C66" stroke-width="1.6" d="M516 194 h30"/>
+  <path stroke="#565C66" stroke-width="1.6" d="M256 254 H502"/>
+  <circle stroke="#0D0F12" stroke-width="2.6" cx="170" cy="292" r="56"/>
+  <circle stroke="#0063CC" stroke-width="2.6" cx="170" cy="292" r="28"/>
+  <circle stroke="#0D0F12" stroke-width="2.6" cx="588" cy="292" r="56"/>
+  <circle stroke="#0063CC" stroke-width="2.6" cx="588" cy="292" r="28"/>
+</svg>
