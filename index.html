@@ -3,358 +3,511 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GB Car Rental | Turn Driving Into Income</title>
-    <meta name="description" content="Long-term car rental for e-hailing drivers in Klang Valley. Free maintenance, insurance, road tax and e-hailing licence. Weekly rental from RM330.">
-    <meta name="theme-color" content="#ffffff">
+    <title>GB Car Rental | E-hailing car rental, Klang Valley</title>
+    <meta name="description" content="Long-term car rental for e-hailing drivers in Klang Valley. Servicing, tyres, brake pads, road tax and insurance with zero excess included. We pay for your PSV licence. From RM330 a week.">
+    <meta name="theme-color" content="#0A0A0A">
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/tokens.css">
     <link rel="stylesheet" href="css/app.css">
     <link rel="stylesheet" href="css/landing.css">
 </head>
 <body class="landing">
 
-    <!-- Navigation -->
+    <!-- Nav: one action only -->
     <header class="site-nav">
         <div class="nav-inner">
-            <a href="#top" class="nav-logo" aria-label="GB Car Rental, home">
-                <svg viewBox="0 0 132 24" width="132" height="24" aria-hidden="true">
-                    <rect x="0" y="1" width="22" height="22" rx="5" fill="currentColor"/>
-                    <text x="11" y="12.5" fill="#ffffff" font-family="inherit" font-size="11" font-weight="700"
-                          letter-spacing="-0.4" text-anchor="middle" dominant-baseline="central">GB</text>
-                    <text x="29" y="12.5" fill="currentColor" font-family="inherit" font-size="13" font-weight="600"
-                          letter-spacing="-0.3" dominant-baseline="central">Car Rental</text>
-                </svg>
-            </a>
+            <a href="#top" class="nav-logo"><span class="mark">GB</span><span class="word">Car Rental</span></a>
 
-            <button type="button" id="nav-toggle" class="nav-toggle" aria-expanded="false" aria-controls="nav-links" aria-label="Open menu">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true">
-                    <path d="M3 7h18M3 12h18M3 17h18"/>
-                </svg>
-            </button>
+            <div class="lang-toggle" role="group" aria-label="Language">
+                <button type="button" data-lang="en" aria-pressed="true">EN</button>
+                <button type="button" data-lang="ms" aria-pressed="false">BM</button>
+            </div>
 
-            <nav class="nav-links" id="nav-links">
-                <a href="#fleet">Our Cars</a>
-                <a href="#how-it-works">How It Works</a>
-                <a href="#faq">FAQ</a>
-                <a href="#contact">Contact</a>
-                <a href="login.html">Sign in</a>
-                <a href="#apply" class="btn btn-primary nav-cta">Apply</a>
-            </nav>
+            <a class="btn btn-primary nav-cta" data-wa="" data-i18n="nav.cta" target="_blank" rel="noopener">WhatsApp</a>
         </div>
     </header>
 
-    <!-- Hero -->
-    <section class="panel-dark hero" id="top">
-        <p class="eyebrow">GB Car Rental</p>
-        <h1 class="display">Turn driving<br>into income.</h1>
-        <p class="lede">Long-term car rental built for e-hailing drivers. Drive daily, pay weekly, and keep what you earn. From RM330 a week.</p>
-        <div class="cta-row">
-            <a href="#apply" class="btn btn-lg btn-on-dark">Apply now</a>
-            <a href="#fleet" class="link-chevron">See the fleet</a>
-        </div>
-        <div class="hero-shot">
-            <img src="img/saga.jpg" width="1600" height="944" alt="Proton Saga, one of the cars in the GB Car Rental fleet"
-                 loading="eager" fetchpriority="high" decoding="async">
-        </div>
-    </section>
+    <!-- Hero: price is the front door -->
+    <section class="hero panel-dark" id="top">
+        <div class="inner">
+            <p class="eyebrow" data-i18n="hero.eyebrow" data-reveal>E-hailing car rental · Klang Valley</p>
+            <h1 class="display" data-i18n="hero.h1" data-reveal data-reveal-delay="1">This isn&rsquo;t car rental.<br>It&rsquo;s your <em>working car</em>.</h1>
+            <p class="lede" data-i18n="hero.lede" data-reveal data-reveal-delay="2">Everything is covered — servicing, tyres, brake pads, road tax, insurance with zero excess, and we pay for your PSV licence. You drive. We handle the rest.</p>
 
-    <!-- Trust stats -->
-    <section class="panel panel-grey">
-        <div class="stats-grid" data-reveal>
-            <div class="stat">
-                <p class="figure">100+</p>
-                <p class="label">Cars available</p>
-            </div>
-            <div class="stat">
-                <p class="figure">24h</p>
-                <p class="label">Approval process</p>
-            </div>
-            <div class="stat">
-                <p class="figure">Weekly</p>
-                <p class="label">Easy payments</p>
+            <p class="eyebrow" data-i18n="hero.pick" data-reveal data-reveal-delay="3">Pick your weekly budget</p>
+            <div class="price-tiles" data-reveal data-reveal-delay="3">
+                <a class="price-tile" href="#saga">
+                    <span class="model">Proton Saga</span>
+                    <span class="amount">RM330</span>
+                    <span class="per" data-i18n="tile.per.saga">per week &middot; about RM47 a day</span>
+                </a>
+                <a class="price-tile" href="#bezza">
+                    <span class="model">Perodua Bezza</span>
+                    <span class="amount">RM420</span>
+                    <span class="per" data-i18n="tile.per.bezza">per week &middot; about RM60 a day</span>
+                </a>
+                <a class="price-tile" href="#alza">
+                    <span class="model">Perodua Alza</span>
+                    <span class="amount">RM460</span>
+                    <span class="per" data-i18n="tile.per.alza">per week &middot; about RM66 a day</span>
+                </a>
             </div>
         </div>
     </section>
 
-    <!-- Benefits -->
-    <section class="panel panel-light">
-        <div class="panel-inner">
-            <div class="benefit-grid">
-                <div class="benefit" data-reveal>
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.8-3.8a6 6 0 0 1-7.9 7.9l-6.9 6.9a2.1 2.1 0 0 1-3-3l6.9-6.9a6 6 0 0 1 7.9-7.9l-3.8 3.8Z"/></svg>
-                    <p class="title">Free maintenance</p>
-                    <p class="note">Servicing and wear-and-tear on us.</p>
+    <!-- Break-even calculator: the driver's own numbers, not a promise -->
+    <section class="panel panel-accent" id="calculator">
+        <div class="inner">
+            <div class="calc-grid">
+                <div>
+                    <p class="eyebrow" data-i18n="calc.eyebrow" data-reveal>Do the maths yourself</p>
+                    <h2 class="section-title" data-i18n="calc.h2" data-reveal>How many trips<br>cover the car?</h2>
+                    <p class="lede" data-i18n="calc.lede" data-reveal>Everyone else promises what you will earn. We will not. Put in what you actually take home on a normal day and see the number for yourself.</p>
+
+                    <div class="calc-field" data-reveal>
+                        <label for="calc-takings" data-i18n="calc.takings">Your takings on a normal day</label>
+                        <div class="calc-input-wrap">
+                            <span class="prefix" aria-hidden="true">RM</span>
+                            <input id="calc-takings" type="number" inputmode="numeric" min="0" step="10" value="250" aria-describedby="calc-note">
+                        </div>
+                    </div>
+
+                    <div class="calc-field" data-reveal>
+                        <label id="calc-car-label" data-i18n="calc.whichcar">Which car</label>
+                        <div class="calc-cars" role="group" aria-labelledby="calc-car-label">
+                            <button type="button" data-car="saga"  aria-pressed="true">Saga &middot; RM330</button>
+                            <button type="button" data-car="bezza" aria-pressed="false">Bezza &middot; RM420</button>
+                            <button type="button" data-car="alza"  aria-pressed="false">Alza &middot; RM460</button>
+                        </div>
+                    </div>
                 </div>
-                <div class="benefit" data-reveal data-reveal-delay="1">
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="M9 12l2 2 4-4"/></svg>
-                    <p class="title">Free insurance</p>
-                    <p class="note">Fully covered from day one.</p>
-                </div>
-                <div class="benefit" data-reveal data-reveal-delay="2">
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M8 15h4"/></svg>
-                    <p class="title">Free e-hailing licence</p>
-                    <p class="note">We guide you through the PSV.</p>
-                </div>
-                <div class="benefit" data-reveal data-reveal-delay="3">
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 17h14M6.5 17l1.2-6.2a2 2 0 0 1 2-1.6h4.6a2 2 0 0 1 2 1.6L17.5 17"/><circle cx="8" cy="19.5" r="1.5"/><circle cx="16" cy="19.5" r="1.5"/><path d="M9 6h6"/></svg>
-                    <p class="title">Free road tax</p>
-                    <p class="note">Renewals handled for you.</p>
+
+                <div class="calc-out" data-reveal data-reveal-delay="1">
+                    <span class="big" id="calc-big" aria-live="polite">20%</span>
+                    <span class="big-label" id="calc-big-label" data-i18n="calc.result.label">of your day covers the rental</span>
+                    <div class="calc-rows">
+                        <div><span data-i18n="calc.row.weekly">Rental per week</span><span id="calc-weekly">RM 330</span></div>
+                        <div><span data-i18n="calc.row.daily">Same thing per day</span><span id="calc-daily">RM 47.14</span></div>
+                        <div class="keep"><span data-i18n="calc.row.keep">You keep, per week</span><span id="calc-keep">RM 1,420</span></div>
+                    </div>
+                    <p class="calc-note" id="calc-note" data-i18n="calc.note">Before fuel and your own expenses. Rental is the only payment you make to us — no service fees, no admin charges, and no commission on what you earn.</p>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Fleet -->
-    <section id="fleet" class="panel panel-grey">
-        <div class="panel-inner">
-            <div class="center" data-reveal>
-                <h2 class="section-title">Choose your vehicle.</h2>
-                <p class="lede">Three cars, one weekly price. Everything included.</p>
-            </div>
-            <div class="fleet-grid">
-                <article class="car-tile" data-reveal>
-                    <img src="img/saga.jpg" width="1600" height="944" alt="Proton Saga" loading="lazy" decoding="async">
-                    <h3 class="model">Proton Saga</h3>
-                    <p class="price"><strong>RM 330</strong> / week</p>
-                    <ul>
-                        <li>Highly fuel efficient</li>
-                        <li>Easy to drive and park</li>
-                        <li>Perfect for city rides</li>
-                    </ul>
-                    <a href="#apply" class="btn btn-primary">Book Saga</a>
-                </article>
+    <!-- What is included, itemised to the part -->
+    <section class="panel panel-light" id="included">
+        <div class="inner">
+            <p class="eyebrow" data-i18n="incl.eyebrow" data-reveal>What is actually included</p>
+            <h2 class="section-title" data-i18n="incl.h2" data-reveal>No hidden bills.</h2>
+            <p class="lede" data-i18n="incl.lede" data-reveal>Not &ldquo;maintenance included&rdquo;. Here is the actual list, item by item.</p>
+            <div class="rule" data-reveal></div>
 
-                <article class="car-tile" data-reveal data-reveal-delay="1">
-                    <img src="img/bezza.jpg" width="1600" height="829" alt="Perodua Bezza" loading="lazy" decoding="async">
-                    <h3 class="model">Perodua Bezza</h3>
-                    <p class="price"><strong>RM 420</strong> / week</p>
-                    <ul>
-                        <li>Class-leading boot space</li>
-                        <li>Maximum fuel economy</li>
-                        <li>Ideal for airport transfers</li>
-                    </ul>
-                    <a href="#apply" class="btn btn-primary">Book Bezza</a>
-                </article>
-
-                <article class="car-tile" data-reveal data-reveal-delay="2">
-                    <img src="img/alza.jpg" width="1600" height="960" alt="Perodua Alza" loading="lazy" decoding="async">
-                    <h3 class="model">Perodua Alza</h3>
-                    <p class="price"><strong>RM 460</strong> / week</p>
-                    <ul>
-                        <li>7-seater MPV space</li>
-                        <li>Qualifies for premium fares</li>
-                        <li>Maximum earning potential</li>
-                    </ul>
-                    <a href="#apply" class="btn btn-primary">Book Alza</a>
-                </article>
+            <div class="incl-grid" data-reveal>
+                <ul>
+                    <li><span class="tick" aria-hidden="true">&check;</span><span><strong data-i18n="incl.1.h">Scheduled servicing</strong><span class="detail" data-i18n="incl.1.d">Engine oil, oil filter, air filter, at our panel workshop.</span></span></li>
+                    <li><span class="tick" aria-hidden="true">&check;</span><span><strong data-i18n="incl.2.h">Tyres</strong><span class="detail" data-i18n="incl.2.d">Replaced on normal wear, not charged to you.</span></span></li>
+                    <li><span class="tick" aria-hidden="true">&check;</span><span><strong data-i18n="incl.3.h">Brake pads and discs</strong><span class="detail" data-i18n="incl.3.d">Normal wear, replaced as needed.</span></span></li>
+                    <li><span class="tick" aria-hidden="true">&check;</span><span><strong data-i18n="incl.4.h">Battery, wipers, bulbs</strong><span class="detail" data-i18n="incl.4.d">The small things that stop you working.</span></span></li>
+                </ul>
+                <ul>
+                    <li><span class="tick" aria-hidden="true">&check;</span><span><strong data-i18n="incl.5.h">Road tax and PUSPAKOM</strong><span class="detail" data-i18n="incl.5.d">Renewed before expiry. You are never on the road non-compliant.</span></span></li>
+                    <li><span class="tick" aria-hidden="true">&check;</span><span><strong data-i18n="incl.6.h">Comprehensive insurance &mdash; zero excess</strong><span class="detail" data-i18n="incl.6.d">On a claim you pay nothing. Not a reduced excess. Zero.</span></span></li>
+                    <li><span class="tick" aria-hidden="true">&check;</span><span><strong data-i18n="incl.7.h">PSV licence &mdash; we pay</strong><span class="detail" data-i18n="incl.7.d">No PSV yet? We arrange it and we cover the cost.</span></span></li>
+                    <li><span class="tick" aria-hidden="true">&check;</span><span><strong data-i18n="incl.8.h">Active e-hailing vehicle permit</strong><span class="detail" data-i18n="incl.8.d">EVP in order, so you can accept jobs from day one.</span></span></li>
+                </ul>
             </div>
+
+            <p class="incl-except" data-i18n="incl.except" data-reveal>The one exclusion, stated plainly: damage caused by driver negligence, and traffic summonses you incur, are yours to pay.</p>
         </div>
     </section>
 
-    <!-- Range-topper feature -->
-    <section class="panel panel-dark">
-        <div class="feature">
-            <div class="text" data-reveal>
-                <p class="eyebrow">The range-topper</p>
-                <h2 class="sub-head">Seven seats. Premium fares.</h2>
-                <p class="lede">The Alza opens up the higher-paying jobs most drivers never see: family groups, airport runs and premium bookings. RM460 a week, everything included.</p>
-                <a href="#apply" class="btn btn-lg btn-on-dark">Book the Alza</a>
+    <!-- Fleet: one car per viewport -->
+    <section class="panel panel-dark" id="fleet">
+        <div class="inner">
+            <p class="eyebrow" data-i18n="fleet.eyebrow" data-reveal>The fleet</p>
+            <h2 class="section-title" data-i18n="fleet.h2" data-reveal>Three cars.<br>One weekly price each.</h2>
+        </div>
+    </section>
+
+    <article class="car-panel" id="saga">
+        <div class="car-grid">
+            <div>
+                <h3 class="car-name" data-reveal>Proton Saga</h3>
+                <p class="car-price" data-reveal><span class="rm">RM330</span><span class="per" data-i18n="tile.per.saga">per week &middot; about RM47 a day</span></p>
+                <p class="car-sub" data-reveal>
+                    <span data-i18n="fleet.deposit">Deposit</span>
+                    <span class="todo">RM ___ &mdash; owner to confirm</span>
+                    <span class="sep">|</span><span data-i18n="fleet.arriving">New cars arriving monthly</span>
+                </p>
+                <div class="spec-strip" data-reveal>
+                    <span data-i18n="spec.seats5">5 seats</span><span data-i18n="spec.auto">Automatic</span><span>1.3L</span><span data-i18n="spec.boot420">Boot 420L</span>
+                </div>
+                <div class="car-ctas" data-reveal>
+                    <a class="btn btn-primary" data-wa="saga" data-i18n="fleet.wa" target="_blank" rel="noopener">WhatsApp about this car</a>
+                    <a class="btn btn-ghost" href="#apply" data-i18n="fleet.reserve">Reserve this car</a>
+                </div>
             </div>
-            <img src="img/alza.jpg" width="1600" height="960" alt="Perodua Alza, the seven-seater in the GB Car Rental fleet"
-                 loading="lazy" decoding="async" data-reveal data-reveal-delay="1">
+            <div class="car-shot" data-mask="on" style="--mx:18.5%; --my:64.5%; --mw:17%; --mh:9%;" data-reveal data-reveal-delay="1">
+                <img src="img/saga.jpg" width="1600" height="944" alt="Proton Saga" loading="lazy" decoding="async">
+                <span class="plate-mask" aria-hidden="true"></span>
+            </div>
+        </div>
+    </article>
+
+    <article class="car-panel" id="bezza">
+        <div class="car-grid">
+            <div>
+                <h3 class="car-name" data-reveal>Perodua Bezza</h3>
+                <p class="car-price" data-reveal><span class="rm">RM420</span><span class="per" data-i18n="tile.per.bezza">per week &middot; about RM60 a day</span></p>
+                <p class="car-sub" data-reveal>
+                    <span data-i18n="fleet.deposit">Deposit</span>
+                    <span class="todo">RM ___ &mdash; owner to confirm</span>
+                    <span class="sep">|</span><span data-i18n="fleet.arriving">New cars arriving monthly</span>
+                </p>
+                <div class="spec-strip" data-reveal>
+                    <span data-i18n="spec.seats5">5 seats</span><span data-i18n="spec.auto">Automatic</span><span>1.3L</span><span data-i18n="spec.boot508">Boot 508L</span>
+                </div>
+                <div class="car-ctas" data-reveal>
+                    <a class="btn btn-primary" data-wa="bezza" data-i18n="fleet.wa" target="_blank" rel="noopener">WhatsApp about this car</a>
+                    <a class="btn btn-ghost" href="#apply" data-i18n="fleet.reserve">Reserve this car</a>
+                </div>
+            </div>
+            <div class="car-shot" data-reveal data-reveal-delay="1">
+                <img src="img/bezza.jpg" width="1600" height="829" alt="Perodua Bezza" loading="lazy" decoding="async">
+            </div>
+        </div>
+    </article>
+
+    <article class="car-panel" id="alza">
+        <div class="car-grid">
+            <div>
+                <h3 class="car-name" data-reveal>Perodua Alza</h3>
+                <p class="car-price" data-reveal><span class="rm">RM460</span><span class="per" data-i18n="tile.per.alza">per week &middot; about RM66 a day</span></p>
+                <p class="car-sub" data-reveal>
+                    <span data-i18n="fleet.deposit">Deposit</span>
+                    <span class="todo">RM ___ &mdash; owner to confirm</span>
+                    <span class="sep">|</span><span data-i18n="fleet.arriving">New cars arriving monthly</span>
+                </p>
+                <div class="spec-strip" data-reveal>
+                    <span data-i18n="spec.seats7">7 seats</span><span data-i18n="spec.auto">Automatic</span><span>1.5L</span><span data-i18n="spec.mpv">MPV</span>
+                </div>
+                <div class="car-ctas" data-reveal>
+                    <a class="btn btn-primary" data-wa="alza" data-i18n="fleet.wa" target="_blank" rel="noopener">WhatsApp about this car</a>
+                    <a class="btn btn-ghost" href="#apply" data-i18n="fleet.reserve">Reserve this car</a>
+                </div>
+            </div>
+            <div class="car-shot" data-mask="on" style="--mx:16.5%; --my:61%; --mw:15%; --mh:9.5%;" data-reveal data-reveal-delay="1">
+                <img src="img/alza.jpg" width="1600" height="960" alt="Perodua Alza" loading="lazy" decoding="async">
+            <span class="plate-mask" aria-hidden="true"></span>
+            </div>
+        </div>
+    </article>
+
+    <!-- Stats: one big number per cell -->
+    <section class="panel panel-dark" id="numbers">
+        <div class="inner">
+            <p class="eyebrow" data-i18n="stats.eyebrow" data-reveal>By the numbers</p>
+            <div class="stats-grid" data-reveal>
+                <div class="stat"><span class="num" data-count="97">97</span><span class="label" data-i18n="stat.1">Cars in the fleet</span></div>
+                <div class="stat"><span class="num" data-count="0" data-prefix="RM">RM0</span><span class="label" data-i18n="stat.2">Insurance excess</span></div>
+                <div class="stat"><span class="num" data-count="0">0</span><span class="label" data-i18n="stat.3">Maintenance bills</span></div>
+                <div class="stat"><span class="num" data-count="24" data-suffix="h">24h</span><span class="label" data-i18n="stat.4">To approval</span></div>
+            </div>
         </div>
     </section>
 
     <!-- How it works -->
-    <section id="how-it-works" class="panel panel-dark">
-        <div class="panel-inner">
-            <div class="center" data-reveal>
-                <h2 class="section-title">How it works.</h2>
-                <p class="lede">Four steps from application to your first fare.</p>
-            </div>
-            <div class="steps-grid">
-                <div class="step" data-reveal>
-                    <p class="num">1</p>
-                    <h3>Apply online</h3>
-                    <p>Fill in the form below to register your interest.</p>
+    <section class="panel panel-light" id="how-it-works">
+        <div class="inner">
+            <p class="eyebrow" data-i18n="steps.eyebrow" data-reveal>How it works</p>
+            <h2 class="section-title" data-i18n="steps.h2" data-reveal>Four steps.</h2>
+            <div class="steps" data-reveal>
+                <div class="step">
+                    <span class="n">01</span>
+                    <h3 data-i18n="steps.1.h">Apply</h3>
+                    <p data-i18n="steps.1.p">Fill in the form below, or just WhatsApp us. No payment, no commitment.</p>
+                    <span class="when" data-i18n="steps.1.w">Under a minute</span>
                 </div>
-                <div class="step" data-reveal data-reveal-delay="1">
-                    <p class="num">2</p>
-                    <h3>Submit documents</h3>
-                    <p>Send your NRIC, licence and PSV over WhatsApp.</p>
+                <div class="step">
+                    <span class="n">02</span>
+                    <h3 data-i18n="steps.2.h">Send documents</h3>
+                    <p data-i18n="steps.2.p">Your NRIC and Competent Driving Licence over WhatsApp. No PSV yet? We arrange and pay for it.</p>
+                    <span class="when" data-i18n="steps.2.w">Same day</span>
                 </div>
-                <div class="step" data-reveal data-reveal-delay="2">
-                    <p class="num">3</p>
-                    <h3>Get approved</h3>
-                    <p>We process your application within 24 hours.</p>
+                <div class="step">
+                    <span class="n">03</span>
+                    <h3 data-i18n="steps.3.h">Get approved</h3>
+                    <p data-i18n="steps.3.p">We check your documents and confirm which car we can match you with.</p>
+                    <span class="when" data-i18n="steps.3.w">Within 24 hours</span>
                 </div>
-                <div class="step" data-reveal data-reveal-delay="3">
-                    <p class="num">4</p>
-                    <h3>Start earning</h3>
-                    <p>Collect your car and turn your driving into income.</p>
+                <div class="step">
+                    <span class="n">04</span>
+                    <h3 data-i18n="steps.4.h">Collect and drive</h3>
+                    <p data-i18n="steps.4.p">Pay your deposit and first week, collect the keys, and start taking trips.</p>
+                    <span class="when" data-i18n="steps.4.w">Same week</span>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Application form -->
-    <section id="apply" class="panel panel-grey">
-        <div class="form-card" data-reveal>
-            <h2 class="section-title">Apply to drive.</h2>
-            <p class="form-intro">Takes under a minute. We reply on WhatsApp.</p>
-            <form id="lead-form">
-                <div class="form-group">
-                    <label for="lead-name">Full name (as per IC)</label>
-                    <input id="lead-name" name="full_name" type="text" placeholder="Enter your full name" autocomplete="name" required>
-                </div>
-                <div class="form-group">
-                    <label for="lead-whatsapp">WhatsApp number</label>
-                    <input id="lead-whatsapp" name="whatsapp" type="tel" placeholder="012-3456789" autocomplete="tel" required>
-                </div>
-                <div class="form-group">
-                    <label for="lead-email">Email <span class="optional">(optional)</span></label>
-                    <input id="lead-email" name="email" type="email" placeholder="you@example.com" autocomplete="email">
-                </div>
-                <div class="form-group">
-                    <label for="lead-car">Which car do you want?</label>
-                    <select id="lead-car" name="preferred_car" required>
-                        <option value="" disabled selected>Select preferred car...</option>
-                        <option value="saga">Proton Saga (RM 330/week)</option>
-                        <option value="bezza">Perodua Bezza (RM 420/week)</option>
-                        <option value="alza">Perodua Alza (RM 460/week)</option>
-                    </select>
-                </div>
-                <button id="lead-submit" type="submit" class="btn btn-primary btn-lg">Submit application</button>
-                <div id="lead-feedback" class="form-feedback" hidden></div>
-                <p class="form-note">No payment needed to apply.</p>
-            </form>
+    <!--
+      TESTIMONIALS — hidden until the owner supplies real ones.
+      Nothing here is invented. To publish: remove the hidden attribute and
+      replace each quote with a real driver's words, initial, car and duration.
+    -->
+    <section class="panel panel-darker" id="drivers" hidden>
+        <div class="inner">
+            <p class="eyebrow" data-i18n="quotes.eyebrow">From our drivers</p>
+            <h2 class="section-title" data-i18n="quotes.h2">What they say.</h2>
+            <div class="quotes">
+                <figure class="quote">
+                    <blockquote>REPLACE WITH A REAL QUOTE</blockquote>
+                    <figcaption class="who"><strong>A. Name</strong> &middot; Bezza &middot; 10 months</figcaption>
+                </figure>
+                <figure class="quote">
+                    <blockquote>REPLACE WITH A REAL QUOTE</blockquote>
+                    <figcaption class="who"><strong>A. Name</strong> &middot; Saga &middot; 6 months</figcaption>
+                </figure>
+                <figure class="quote">
+                    <blockquote>REPLACE WITH A REAL QUOTE</blockquote>
+                    <figcaption class="who"><strong>A. Name</strong> &middot; Alza &middot; 1 year</figcaption>
+                </figure>
+            </div>
         </div>
     </section>
 
     <!-- FAQ -->
-    <section id="faq" class="panel panel-light">
-        <div class="panel-narrow">
-            <div class="center" data-reveal>
-                <h2 class="section-title">Questions.</h2>
-            </div>
+    <section class="panel panel-light" id="faq">
+        <div class="inner-narrow">
+            <p class="eyebrow" data-i18n="faq.eyebrow" data-reveal>Questions</p>
+            <h2 class="section-title" data-i18n="faq.h2" data-reveal>Straight answers.</h2>
             <div class="faq" data-reveal>
                 <details>
-                    <summary>What documents do I need to prepare?</summary>
-                    <p>Please prepare a copy of your NRIC, your Competent Driving Licence (CDL), and your e-hailing PSV licence. If you do not have a PSV yet, tell us and we will guide you through it.</p>
+                    <summary data-i18n="faq.1.q">What do I need to pay before I can drive?</summary>
+                    <p><span class="todo">Deposit amounts &mdash; owner to confirm</span> <span data-i18n="faq.1.a">Your deposit plus the first week&rsquo;s rental. Nothing else &mdash; no admin fee, no processing charge.</span></p>
                 </details>
                 <details>
-                    <summary>Is there a deposit required?</summary>
-                    <p>Yes, a standard refundable deposit is required before you collect the vehicle. This protects both parties. Contact us for the exact deposit on your chosen car.</p>
+                    <summary data-i18n="faq.2.q">What documents do I need?</summary>
+                    <p><span data-i18n="faq.2.a">Your NRIC and your Competent Driving Licence (CDL). If you do not have a PSV licence yet, tell us &mdash; we arrange it and we pay for it.</span></p>
                 </details>
                 <details>
-                    <summary>Who pays for maintenance and servicing?</summary>
-                    <p>We do. Routine servicing, oil changes and normal wear-and-tear maintenance are fully covered by GB Car Rental. Just bring the car to our panel workshop when it is due.</p>
+                    <summary data-i18n="faq.3.q">What is the minimum rental period?</summary>
+                    <p><span class="todo">Owner to confirm</span></p>
+                </details>
+                <details>
+                    <summary data-i18n="faq.4.q">Who pays for servicing and repairs?</summary>
+                    <p><span data-i18n="faq.4.a">We do. Scheduled servicing, tyres, brake pads, battery, wipers and bulbs are all covered. Bring the car to our panel workshop when it is due. Damage caused by driver negligence is yours.</span></p>
+                </details>
+                <details>
+                    <summary data-i18n="faq.5.q">What happens if I have an accident?</summary>
+                    <p><span class="todo">Owner to confirm the procedure</span> <span data-i18n="faq.5.a">What we can say now: the car carries comprehensive insurance with zero excess, so an insured claim costs you nothing.</span></p>
+                </details>
+                <details>
+                    <summary data-i18n="faq.6.q">What if the car breaks down?</summary>
+                    <p><span class="todo">Owner to confirm towing and replacement-car policy</span></p>
+                </details>
+                <details>
+                    <summary data-i18n="faq.7.q">Is there a mileage limit?</summary>
+                    <p><span class="todo">Owner to confirm</span></p>
+                </details>
+                <details>
+                    <summary data-i18n="faq.8.q">Who pays for fuel and traffic summonses?</summary>
+                    <p><span data-i18n="faq.8.a">Fuel is yours. Summonses issued while the car is with you are yours to settle.</span></p>
+                </details>
+                <details>
+                    <summary data-i18n="faq.9.q">How do I pay each week?</summary>
+                    <p><span data-i18n="faq.9.a">Bank in, then upload the slip from a link we WhatsApp you. No app to install and no login needed. You can also see everything you have paid in your driver portal.</span></p>
+                </details>
+                <details>
+                    <summary data-i18n="faq.10.q">Can I stop early?</summary>
+                    <p><span class="todo">Owner to confirm early-termination terms</span></p>
                 </details>
             </div>
         </div>
     </section>
 
-    <!-- Contact -->
-    <section id="contact" class="panel panel-dark">
-        <div class="panel-inner">
-            <div class="center" data-reveal>
-                <h2 class="section-title">Get in touch.</h2>
-            </div>
-            <div class="contact-grid">
-                <a href="https://wa.me/60163652235" target="_blank" rel="noopener" class="contact-card" data-reveal>
-                    <svg viewBox="0 0 448 512" aria-hidden="true"><path d="M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 39.1 10.2 77.3 29.6 111L0 480l117.7-30.9c32.4 17.7 68.9 27 106.1 27h.1c122.3 0 224.1-99.6 224.1-222 0-59.3-25.2-115-67.1-157zM223.9 414.7c-33 0-65.3-8.9-93.5-25.7l-6.7-4-69.5 18.2 18.5-67.7-4.4-7c-18.4-29.3-28.1-63.1-28.1-98.2 0-101.4 82.5-183.9 184-183.9 49.1 0 95.3 19.1 130 53.9 34.7 34.7 53.8 80.9 53.8 130-.1 101.5-82.6 183.9-184.2 183.9zM324.5 289.4c-5.5-2.8-32.6-16.1-37.7-18-5.1-1.9-8.8-2.8-12.5 2.8-3.7 5.5-14.3 18-17.5 21.6-3.2 3.7-6.5 4.1-12 1.4-5.5-2.8-23.3-8.6-44.4-27.4-16.4-14.6-27.5-32.7-30.7-38.2-3.2-5.5-.3-8.5 2.5-11.2 2.5-2.5 5.5-6.5 8.3-9.7 2.8-3.2 3.7-5.5 5.5-9.2 1.9-3.7.9-7-.5-9.7-1.4-2.8-12.5-30.1-17.1-41.2-4.5-10.8-9.1-9.3-12.5-9.5-3.2-.2-6.9-.2-10.6-.2-3.7 0-9.7 1.4-14.8 6.9-5.1 5.5-19.4 19-19.4 46.3 0 27.3 19.9 53.7 22.6 57.4 2.8 3.7 39.1 59.7 94.8 83.8 35.2 15.2 49 16.5 66.6 13.9 10.7-1.6 32.6-13.4 37.2-26.4 4.6-13 4.6-24.1 3.2-26.4-1.3-2.5-5-3.9-10.5-6.6z"/></svg>
-                    <h3>WhatsApp us</h3>
-                    <p>016-365 2235</p>
-                </a>
-
-                <a href="mailto:gbcarrental@gmail.com" class="contact-card" data-reveal data-reveal-delay="1">
-                    <svg class="stroked" viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M3 7l9 6 9-6"/></svg>
-                    <h3>Email us</h3>
-                    <p>gbcarrental@gmail.com</p>
-                </a>
-
-                <a href="https://www.facebook.com/share/1U1auLBxU5/?mibextid=wwXIfr" target="_blank" rel="noopener" class="contact-card" data-reveal data-reveal-delay="2">
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
-                    <h3>Facebook</h3>
-                    <p>Visit our page</p>
-                </a>
-
-                <div class="contact-card" data-reveal data-reveal-delay="3">
-                    <svg class="stroked" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21.5s7-5.6 7-11a7 7 0 1 0-14 0c0 5.4 7 11 7 11Z"/><circle cx="12" cy="10.5" r="2.5"/></svg>
-                    <h3>Our location</h3>
-                    <p>Klang Valley / KL<span class="hint">(Change to actual address)</span></p>
+    <!-- Trust block -->
+    <section class="panel panel-dark" id="contact">
+        <div class="inner">
+            <p class="eyebrow" data-i18n="trust.eyebrow" data-reveal>Who we are</p>
+            <h2 class="section-title" data-i18n="trust.h2" data-reveal>A real company,<br>with a real address.</h2>
+            <div class="trust-grid" data-reveal>
+                <div class="trust-cell">
+                    <span class="k" data-i18n="trust.ssm">Company registration</span>
+                    <span class="v"><span class="todo">SSM no. &mdash; owner to supply</span></span>
+                </div>
+                <div class="trust-cell">
+                    <span class="k" data-i18n="trust.where">Where to find us</span>
+                    <span class="v"><span class="todo">Address &mdash; owner to supply</span></span>
+                </div>
+                <div class="trust-cell">
+                    <span class="k" data-i18n="trust.hours">Opening hours</span>
+                    <span class="v"><span class="todo">Hours &mdash; owner to supply</span></span>
+                </div>
+                <div class="trust-cell">
+                    <span class="k" data-i18n="trust.reply">WhatsApp reply time</span>
+                    <span class="v">
+                        <a href="https://wa.me/60163652235" target="_blank" rel="noopener">016-365 2235</a><br>
+                        <a href="mailto:gbcarrental@gmail.com">gbcarrental@gmail.com</a>
+                    </span>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Footer -->
+    <!-- Apply -->
+    <section class="panel panel-light" id="apply">
+        <div class="form-wrap">
+            <p class="eyebrow" data-i18n="apply.eyebrow" data-reveal>Apply</p>
+            <h2 class="section-title" data-i18n="apply.h2" data-reveal>Start driving.</h2>
+            <p class="form-note-top" data-i18n="apply.note" data-reveal>No payment needed to apply, and applying commits you to nothing.</p>
+
+            <form id="lead-form" novalidate data-reveal>
+                <div class="form-group">
+                    <label for="lead-name" data-i18n="apply.name">Full name (as per IC)</label>
+                    <input id="lead-name" name="full_name" type="text" autocomplete="name" required aria-describedby="err-name">
+                    <span class="err" id="err-name" hidden></span>
+                </div>
+                <div class="form-group">
+                    <label for="lead-whatsapp" data-i18n="apply.whatsapp">WhatsApp number</label>
+                    <input id="lead-whatsapp" name="whatsapp" type="tel" inputmode="tel" autocomplete="tel" placeholder="012-3456789" required aria-describedby="err-whatsapp">
+                    <span class="err" id="err-whatsapp" hidden></span>
+                </div>
+                <div class="form-group">
+                    <label for="lead-email" data-i18n="apply.email">Email (optional)</label>
+                    <input id="lead-email" name="email" type="email" autocomplete="email" placeholder="you@example.com">
+                </div>
+                <div class="form-group">
+                    <label for="lead-car" data-i18n="apply.car">Which car do you want?</label>
+                    <select id="lead-car" name="preferred_car" required aria-describedby="err-car">
+                        <option value="" disabled selected data-i18n-attr="label:apply.car.placeholder">Select a car…</option>
+                        <option value="saga">Proton Saga — RM330/week</option>
+                        <option value="bezza">Perodua Bezza — RM420/week</option>
+                        <option value="alza">Perodua Alza — RM460/week</option>
+                    </select>
+                    <span class="err" id="err-car" hidden></span>
+                </div>
+                <button id="lead-submit" type="submit" class="btn btn-primary" style="width:100%" data-i18n="apply.submit">Send my application</button>
+                <div id="lead-feedback" class="form-feedback" hidden></div>
+            </form>
+        </div>
+    </section>
+
     <footer class="site-footer">
-        <div class="footer-inner">
-            <p class="copyright">&copy; 2026 GB Car Rental. Turn driving into income.</p>
-            <nav>
-                <a href="#fleet">Our Cars</a>
-                <a href="#how-it-works">How It Works</a>
-                <a href="#faq">FAQ</a>
-                <a href="#contact">Contact</a>
-                <a href="login.html">Sign in</a>
-            </nav>
+        <div class="inner">
+            <p style="margin:0">&copy; 2026 GB Car Rental. <span data-i18n="footer.rights">All rights reserved.</span></p>
+            <p style="margin:0"><a href="login.html" data-i18n="footer.signin">Sign in</a></p>
         </div>
     </footer>
 
-    <!-- Floating WhatsApp button -->
-    <a href="https://wa.me/60163652235" class="whatsapp-float" target="_blank" rel="noopener" aria-label="Chat with GB Car Rental on WhatsApp">
+    <!-- Sticky WhatsApp bar, thumb zone on mobile -->
+    <a class="wa-bar" data-wa="" target="_blank" rel="noopener">
         <svg viewBox="0 0 448 512" aria-hidden="true"><path d="M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 39.1 10.2 77.3 29.6 111L0 480l117.7-30.9c32.4 17.7 68.9 27 106.1 27h.1c122.3 0 224.1-99.6 224.1-222 0-59.3-25.2-115-67.1-157zM223.9 414.7c-33 0-65.3-8.9-93.5-25.7l-6.7-4-69.5 18.2 18.5-67.7-4.4-7c-18.4-29.3-28.1-63.1-28.1-98.2 0-101.4 82.5-183.9 184-183.9 49.1 0 95.3 19.1 130 53.9 34.7 34.7 53.8 80.9 53.8 130-.1 101.5-82.6 183.9-184.2 183.9zM324.5 289.4c-5.5-2.8-32.6-16.1-37.7-18-5.1-1.9-8.8-2.8-12.5 2.8-3.7 5.5-14.3 18-17.5 21.6-3.2 3.7-6.5 4.1-12 1.4-5.5-2.8-23.3-8.6-44.4-27.4-16.4-14.6-27.5-32.7-30.7-38.2-3.2-5.5-.3-8.5 2.5-11.2 2.5-2.5 5.5-6.5 8.3-9.7 2.8-3.2 3.7-5.5 5.5-9.2 1.9-3.7.9-7-.5-9.7-1.4-2.8-12.5-30.1-17.1-41.2-4.5-10.8-9.1-9.3-12.5-9.5-3.2-.2-6.9-.2-10.6-.2-3.7 0-9.7 1.4-14.8 6.9-5.1 5.5-19.4 19-19.4 46.3 0 27.3 19.9 53.7 22.6 57.4 2.8 3.7 39.1 59.7 94.8 83.8 35.2 15.2 49 16.5 66.6 13.9 10.7-1.6 32.6-13.4 37.2-26.4 4.6-13 4.6-24.1 3.2-26.4-1.3-2.5-5-3.9-10.5-6.6z"/></svg>
+        <span data-i18n="wa.bar">WhatsApp us</span>
+        <span class="reply" data-i18n="wa.reply">We reply fast</span>
     </a>
 
-    <!-- Supabase client + lead form handler -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/supabase.js"></script>
+    <script src="js/i18n.js"></script>
     <script>
         (function () {
-            const form = document.getElementById('lead-form');
-            const submitBtn = document.getElementById('lead-submit');
-            const feedback = document.getElementById('lead-feedback');
+            var form = document.getElementById('lead-form');
+            var submitBtn = document.getElementById('lead-submit');
+            var feedback = document.getElementById('lead-feedback');
 
-            function showFeedback(message, isError) {
-                feedback.textContent = message;
-                feedback.className = 'form-feedback ' + (isError ? 'is-error' : 'is-ok');
-                feedback.hidden = false;
+            function T(key) {
+                var lang = document.documentElement.getAttribute('lang') === 'ms' ? 'ms' : 'en';
+                var d = window.GB_I18N || {};
+                return (d[lang] && d[lang][key]) || (d.en && d.en[key]) || '';
+            }
+
+            function setError(inputId, errId, msgKey) {
+                var input = document.getElementById(inputId);
+                var err = document.getElementById(errId);
+                if (msgKey) {
+                    err.textContent = T(msgKey);
+                    err.hidden = false;
+                    input.setAttribute('aria-invalid', 'true');
+                    return false;
+                }
+                err.hidden = true;
+                input.removeAttribute('aria-invalid');
+                return true;
+            }
+
+            function validate() {
+                var ok = true;
+                var name = document.getElementById('lead-name').value.trim();
+                var wa = document.getElementById('lead-whatsapp').value.trim();
+                var car = document.getElementById('lead-car').value;
+
+                ok = setError('lead-name', 'err-name', name ? null : 'apply.err.name') && ok;
+                // Malaysian mobile numbers are 9-11 digits once punctuation is stripped.
+                ok = setError('lead-whatsapp', 'err-whatsapp',
+                        wa.replace(/\D/g, '').length >= 9 ? null : 'apply.err.whatsapp') && ok;
+                ok = setError('lead-car', 'err-car', car ? null : 'apply.err.car') && ok;
+                return ok;
             }
 
             form.addEventListener('submit', async function (event) {
                 event.preventDefault();
-                submitBtn.disabled = true;
-                const originalLabel = submitBtn.textContent;
-                submitBtn.textContent = 'Submitting...';
                 feedback.hidden = true;
 
-                const payload = {
+                if (!validate()) {
+                    form.querySelector('[aria-invalid="true"]').focus();
+                    return;
+                }
+
+                submitBtn.disabled = true;
+                var originalLabel = submitBtn.textContent;
+                submitBtn.textContent = T('apply.sending');
+
+                var payload = {
                     full_name: document.getElementById('lead-name').value.trim(),
                     whatsapp: document.getElementById('lead-whatsapp').value.trim(),
                     email: document.getElementById('lead-email').value.trim() || null,
                     preferred_car: document.getElementById('lead-car').value
                 };
 
-                const { error } = await supabaseClient.from('leads').insert(payload);
+                var res = await supabaseClient.from('leads').insert(payload);
 
-                if (error) {
-                    console.error('Lead submission failed:', error);
-                    showFeedback('Sorry, something went wrong. Please WhatsApp us at 016-365 2235.', true);
+                if (res.error) {
+                    console.error('Lead submission failed:', res.error);
+                    feedback.textContent = T('apply.err');
+                    feedback.className = 'form-feedback is-error';
+                    feedback.hidden = false;
                     submitBtn.disabled = false;
                     submitBtn.textContent = originalLabel;
                     return;
                 }
 
-                showFeedback('Thank you. We have received your application and will contact you on WhatsApp shortly.', false);
+                feedback.textContent = T('apply.ok');
+                feedback.className = 'form-feedback is-ok';
+                feedback.hidden = false;
                 form.reset();
-                submitBtn.textContent = 'Submitted';
-                // Re-enable after a few seconds in case they want to submit another
                 setTimeout(function () {
                     submitBtn.disabled = false;
                     submitBtn.textContent = originalLabel;
                 }, 5000);
+            });
+
+            // Clear an error as soon as the driver starts fixing it.
+            ['lead-name', 'lead-whatsapp', 'lead-car'].forEach(function (id) {
+                var el = document.getElementById(id);
+                el.addEventListener('input', function () {
+                    if (el.getAttribute('aria-invalid')) {
+                        el.removeAttribute('aria-invalid');
+                        var err = document.getElementById('err-' + id.replace('lead-', ''));
+                        if (err) err.hidden = true;
+                    }
+                });
             });
         }());
     </script>

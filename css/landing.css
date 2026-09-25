@@ -1,557 +1,534 @@
 /* =====================================================================
-   GB Car Rental — landing page only.
-   Requires css/tokens.css and css/app.css to be linked first; buttons
-   and form controls are reused from app.css rather than redefined.
+   GB Car Rental — landing page.
+   Linked ONLY by index.html, after tokens.css and app.css. The :root
+   block below deliberately overrides the monochrome tokens for this
+   page alone, so the admin and driver portals are untouched.
    ===================================================================== */
 
+:root {
+    /* ---------- bold palette ---------- */
+    --bg:           #0A0A0A;
+    --surface:      #FAFAFA;
+    --surface-2:    #141414;
+    --line:         #262626;
+    --line-light:   #E3E3E3;
+
+    --fg:           #FAFAFA;
+    --fg-muted:     #9A9A9A;
+    --fg-on-light:  #0A0A0A;
+    --fg-on-light-muted: #5A5A5A;
+
+    --accent:       #FF3D00;
+    --accent-fg:    #0A0A0A;   /* text ON vermillion — 5.58:1 */
+    --accent-surface: #FFFFFF; /* white boxes sitting on a vermillion panel */
+    --accent-dim:   #CC3100;   /* vermillion on a light panel — 5.02:1 */
+
+    /* ---------- type ---------- */
+    --font-display: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+    --font-body:    'Inter', system-ui, -apple-system, sans-serif;
+
+    /* ---------- shape ---------- */
+    --r: 0px;
+    --border-w: 2px;
+    --ease: cubic-bezier(.2, .7, .3, 1);
+}
+
+/* ---------- base ---------- */
 html { scroll-behavior: smooth; }
 
 body.landing {
     background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-body);
     font-size: 17px;
-    line-height: 1.47;
+    line-height: 1.55;
+    margin: 0;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
 }
 
-/* Anchored sections must clear the 48px sticky nav. */
-.landing section[id] { scroll-margin-top: 60px; }
+body.landing section[id] { scroll-margin-top: 56px; }
 
-/* ---------- Panels ---------- */
-.panel { padding: 100px 24px; }
-.panel-light  { background: var(--bg);      color: var(--text); }
-.panel-grey   { background: var(--bg-alt);  color: var(--text); }
-.panel-dark   { background: var(--bg-invert); color: var(--text-on-dark); }
-.panel-inner  { max-width: 1120px; margin: 0 auto; }
-.panel-narrow { max-width: 720px; margin: 0 auto; }
-
-/* ---------- Type ---------- */
-.eyebrow {
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--text-muted);
-    margin: 0 0 18px;
-}
-.panel-dark .eyebrow { color: var(--text-muted-dark); }
-
-.display {
-    font-size: 80px;
-    line-height: 1.05;
-    letter-spacing: -0.025em;
+.landing h1, .landing h2, .landing h3, .landing .num {
+    font-family: var(--font-display);
     font-weight: 700;
-    margin: 0 0 22px;
+    letter-spacing: -0.03em;
+    line-height: 1.02;
+    margin: 0;
+}
+
+/* Everything is a hard rectangle. No radii anywhere on this page. */
+.landing *, .landing *::before, .landing *::after { border-radius: 0 !important; }
+
+/* ---------- panels ---------- */
+.panel { padding: 96px 24px; }
+.panel-dark   { background: var(--bg);        color: var(--fg); }
+.panel-darker { background: var(--surface-2); color: var(--fg); }
+.panel-light  { background: var(--surface);   color: var(--fg-on-light); }
+.panel-accent { background: var(--accent);    color: var(--accent-fg); }
+.inner        { max-width: 1160px; margin: 0 auto; }
+.inner-narrow { max-width: 760px;  margin: 0 auto; }
+
+/* ---------- type scale ---------- */
+.display {
+    font-size: clamp(2.6rem, 8.5vw, 6.4rem);
+    text-transform: uppercase;
 }
 .section-title {
-    font-size: 48px;
-    line-height: 1.08;
-    letter-spacing: -0.02em;
-    font-weight: 700;
+    font-size: clamp(2rem, 5vw, 3.4rem);
+    text-transform: uppercase;
+    margin-bottom: 18px;
+}
+.eyebrow {
+    font-family: var(--font-body);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent);
     margin: 0 0 20px;
 }
-.sub-head {
-    font-size: 28px;
-    line-height: 1.15;
-    letter-spacing: -0.01em;
-    font-weight: 600;
-    margin: 0 0 12px;
-}
+.panel-light .eyebrow { color: var(--accent-dim); }
+.panel-accent .eyebrow { color: var(--accent-fg); opacity: .92; }
+
 .lede {
-    font-size: 21px;
-    line-height: 1.42;
-    color: var(--text-muted);
-    margin: 0 auto 34px;
-    max-width: 640px;
+    font-size: clamp(1.05rem, 2.2vw, 1.3rem);
+    color: var(--fg-muted);
+    margin: 0 0 32px;
+    max-width: 58ch;
 }
-.panel-dark .lede { color: var(--text-muted-dark); }
-.center { text-align: center; }
+.panel-light .lede { color: var(--fg-on-light-muted); }
+.panel-accent .lede { color: var(--accent-fg); opacity: 1; }
 
-/* Chevron text link, the Apple "learn more" affordance */
-.link-chevron {
-    font-size: 17px;
-    font-weight: 500;
-    color: var(--text);
-    text-decoration: none;
-    white-space: nowrap;
+.rule { height: var(--border-w); background: var(--accent); width: 72px; margin: 0 0 28px; }
+
+/* ---------- buttons (override the pill .btn from app.css) ---------- */
+.landing .btn {
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 15px;
+    letter-spacing: 0.01em;
+    padding: 15px 28px;
+    border: var(--border-w) solid transparent;
+    display: inline-block;
+    text-align: center;
+    cursor: pointer;
+    transition: background .2s var(--ease), color .2s var(--ease), border-color .2s var(--ease);
 }
-.link-chevron::after { content: ' \203A'; }
-.link-chevron:hover { text-decoration: underline; }
-.panel-dark .link-chevron { color: var(--text-on-dark); }
+.landing .btn-primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+.landing .btn-primary:hover { background: var(--accent-dim); border-color: var(--accent-dim); }
 
-/* Big pill CTAs, slightly larger than the portal .btn */
-.btn-lg { padding: 14px 28px; font-size: 17px; }
-.btn-on-dark { background: #fff; color: var(--text); border-color: #fff; }
-.btn-on-dark:hover { background: var(--bg-alt); border-color: var(--bg-alt); }
+.landing .btn-ghost { background: transparent; color: var(--fg); border-color: var(--line); }
+.landing .btn-ghost:hover { border-color: var(--fg); }
+.panel-light .btn-ghost { color: var(--fg-on-light); border-color: var(--line-light); }
+.panel-light .btn-ghost:hover { border-color: var(--fg-on-light); }
 
-.cta-row {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: center;
-    gap: 14px 28px;
-}
+.landing .btn-invert { background: var(--fg); color: var(--fg-on-light); border-color: var(--fg); }
+.landing .btn-invert:hover { background: transparent; color: var(--fg); }
 
-/* ---------- Navigation: translucent blur bar ---------- */
+.landing .btn:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+
+/* ---------- nav ---------- */
 .site-nav {
-    position: sticky;
-    top: 0;
-    z-index: 9000;
-    height: 48px;
-    background: rgba(255, 255, 255, 0.72);
-    -webkit-backdrop-filter: saturate(180%) blur(20px);
-    backdrop-filter: saturate(180%) blur(20px);
-    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    position: sticky; top: 0; z-index: 900;
+    height: 56px;
+    background: rgba(10, 10, 10, .88);
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--line);
 }
-/* Opaque fallback where backdrop-filter is unsupported, so the bar is
-   never unreadable over the black hero on older Android WebViews. */
 @supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
-    .site-nav { background: #fff; }
+    .site-nav { background: var(--bg); }
 }
 .nav-inner {
-    max-width: 1120px;
-    height: 100%;
-    margin: 0 auto;
-    padding: 0 24px;
-    display: flex;
-    align-items: center;
-    gap: 20px;
+    max-width: 1160px; height: 100%; margin: 0 auto; padding: 0 20px;
+    display: flex; align-items: center; gap: 16px;
 }
 .nav-logo {
-    display: flex;
-    align-items: center;
-    color: var(--text);
-    flex-shrink: 0;
+    font-family: var(--font-display); font-weight: 700; font-size: 18px;
+    letter-spacing: -0.02em; text-transform: uppercase; color: var(--fg);
+    text-decoration: none; margin-right: auto; white-space: nowrap;
 }
-.nav-logo svg { display: block; height: 22px; width: auto; }
-
-.nav-links {
-    display: flex;
-    align-items: center;
-    gap: 26px;
-    margin-left: auto;
-}
-.nav-links a {
-    font-size: 12px;
-    font-weight: 400;
-    color: var(--text);
-    opacity: 0.8;
-    text-decoration: none;
-    white-space: nowrap;
-}
-.nav-links a:hover { opacity: 1; text-decoration: none; }
-/* The CTA is a .btn inside .nav-links, so it needs to out-specify the
-   plain-link rule above rather than inherit its colour and opacity. */
-.nav-links a.nav-cta {
-    margin-left: 8px;
-    padding: 6px 15px;
-    font-size: 12px;
-    font-weight: 500;
-    color: #fff;
-    opacity: 1;
-}
-.nav-links a.nav-cta:hover { color: #fff; }
-
-.nav-toggle {
-    display: none;
-    margin-left: auto;
-    width: 40px;
-    height: 40px;
-    padding: 0;
-    border: none;
-    background: none;
-    cursor: pointer;
-    color: var(--text);
-}
-.nav-toggle svg { display: block; margin: 0 auto; width: 20px; height: 20px; }
-
-@media (max-width: 833px) {
-    .nav-toggle { display: block; }
-    .nav-links {
-        position: fixed;
-        inset: 48px 0 auto 0;
-        flex-direction: column;
-        align-items: stretch;
-        gap: 0;
-        margin: 0;
-        padding: 8px 24px 28px;
-        /* Opaque, not translucent: over the black hero a blurred sheet lets
-           the headline bleed through and the links become hard to read. */
-        background: var(--bg);
-        border-bottom: 1px solid var(--hairline);
-        max-height: calc(100vh - 48px);
-        overflow-y: auto;
-        transform: translateY(-8px);
-        opacity: 0;
-        visibility: hidden;
-        transition: opacity 0.25s var(--ease), transform 0.25s var(--ease), visibility 0.25s;
-    }
-    .nav-links.is-open { transform: none; opacity: 1; visibility: visible; }
-    .nav-links a {
-        font-size: 17px;
-        padding: 15px 0;
-        border-bottom: 1px solid var(--hairline-soft);
-    }
-    .nav-cta {
-        margin: 20px 0 0;
-        padding: 12px 22px;
-        font-size: 15px;
-        text-align: center;
-    }
+.nav-logo .mark {
+    background: var(--accent); color: var(--accent-fg);
+    padding: 3px 7px; margin-right: 7px;
 }
 
-/* ---------- Hero ---------- */
-.hero { padding: 90px 24px 0; text-align: center; }
-.hero .display { color: var(--text-on-dark); }
-.hero-shot {
-    max-width: 1120px;
-    margin: 56px auto 0;
-    padding: 0 0 20px;
+/* language toggle */
+.lang-toggle { display: flex; border: 1px solid var(--line); flex-shrink: 0; }
+.lang-toggle button {
+    font-family: var(--font-body); font-size: 12px; font-weight: 600;
+    letter-spacing: .06em; padding: 7px 13px; min-height: 44px;
+    background: transparent; color: var(--fg-muted);
+    border: none; cursor: pointer; transition: background .2s, color .2s;
 }
-.hero-shot img {
-    display: block;
-    width: 100%;
-    height: auto;
-    border-radius: var(--r-xl);
+.lang-toggle button[aria-pressed="true"] { background: var(--fg); color: var(--bg); }
+.lang-toggle button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+.nav-cta { padding: 11px 16px !important; font-size: 13px !important; min-height: 44px; }
+@media (max-width: 520px) { .nav-cta .long { display: none; } }
+
+/* ---------- hero ---------- */
+.hero { padding: 72px 24px 0; }
+.hero .display { margin-bottom: 24px; }
+.hero .display em { font-style: normal; color: var(--accent); }
+.hero .lede { margin-bottom: 40px; }
+
+/* budget tiles — price is the front door */
+.price-tiles {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 0; border: var(--border-w) solid var(--line); border-right: none;
+    margin-bottom: 0;
+}
+.price-tile {
+    border-right: var(--border-w) solid var(--line);
+    padding: 26px 20px 24px;
+    text-decoration: none; color: var(--fg);
+    display: flex; flex-direction: column; gap: 4px;
+    transition: background .2s var(--ease), color .2s var(--ease);
+}
+.price-tile:hover, .price-tile:focus-visible {
+    background: var(--accent); color: var(--accent-fg); text-decoration: none; outline: none;
+}
+.price-tile .model {
+    font-family: var(--font-body); font-size: 12px; font-weight: 600;
+    letter-spacing: .14em; text-transform: uppercase; color: var(--fg-muted);
+}
+.price-tile:hover .model, .price-tile:focus-visible .model { color: var(--accent-fg); }
+.price-tile .amount {
+    font-family: var(--font-display); font-weight: 700;
+    font-size: clamp(1.9rem, 5vw, 2.9rem); letter-spacing: -0.04em; line-height: 1;
+}
+.price-tile .per { font-size: 13px; color: var(--fg-muted); }
+.price-tile:hover .per, .price-tile:focus-visible .per { color: var(--accent-fg); }
+
+/* ---------- break-even calculator ---------- */
+.calc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: start; }
+.calc-grid > * { min-width: 0; }
+.calc-field { margin-bottom: 26px; }
+.calc-field label {
+    display: block; font-size: 12px; font-weight: 700;
+    letter-spacing: .14em; text-transform: uppercase;
+    margin-bottom: 10px; color: var(--accent-fg);
+}
+.calc-input-wrap { display: flex; align-items: stretch; border: var(--border-w) solid var(--accent-surface); background: var(--accent-surface); }
+.calc-input-wrap .prefix {
+    display: flex; align-items: center; padding: 0 14px;
+    font-family: var(--font-display); font-weight: 700; font-size: 20px;
+    color: var(--fg-on-light); background: var(--accent-surface);
+}
+.calc-grid input[type="number"] {
+    flex: 1; min-width: 0; border: none; background: var(--accent-surface);
+    font-family: var(--font-display); font-weight: 700; font-size: 28px;
+    color: var(--fg-on-light); padding: 12px 14px 12px 0; -moz-appearance: textfield;
+}
+.calc-grid input[type="number"]::-webkit-outer-spin-button,
+.calc-grid input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.calc-grid input:focus { outline: none; }
+.calc-input-wrap:focus-within { box-shadow: 0 0 0 3px rgba(0,0,0,.35); }
+
+.calc-cars { display: flex; flex-wrap: wrap; gap: 10px; }
+.calc-cars button {
+    font-family: var(--font-body); font-size: 13px; font-weight: 600;
+    padding: 10px 16px; min-height: 44px;
+    background: transparent; color: var(--accent-fg);
+    border: var(--border-w) solid rgba(0,0,0,.3); cursor: pointer;
+    transition: background .2s, color .2s, border-color .2s;
+}
+.calc-cars button[aria-pressed="true"] { background: var(--accent-surface); color: var(--fg-on-light); border-color: var(--accent-surface); }
+.calc-cars button:focus-visible { outline: 3px solid var(--accent-fg); outline-offset: 2px; }
+
+.calc-out { border-left: var(--border-w) solid rgba(0,0,0,.28); padding-left: 40px; }
+.calc-out .big {
+    font-family: var(--font-display); font-weight: 700; line-height: .95;
+    font-size: clamp(3.2rem, 11vw, 6rem); letter-spacing: -0.045em;
+    display: block; margin-bottom: 6px;
+}
+.calc-out .big-label {
+    font-size: 13px; font-weight: 600; letter-spacing: .14em;
+    text-transform: uppercase; opacity: 1; display: block; margin-bottom: 28px;
+}
+.calc-rows { border-top: 1px solid rgba(0,0,0,.28); }
+.calc-rows div {
+    display: flex; justify-content: space-between; gap: 16px;
+    padding: 12px 0; border-bottom: 1px solid rgba(0,0,0,.28);
+    font-size: 15px;
+}
+.calc-rows div span:last-child { font-family: var(--font-display); font-weight: 700; }
+.calc-rows div.keep { font-size: 17px; }
+.calc-note { font-size: 13px; opacity: .92; margin: 18px 0 0; max-width: 46ch; }
+
+/* ---------- included list ---------- */
+.incl-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0 56px; }
+.incl-grid ul { list-style: none; margin: 0; padding: 0; }
+.incl-grid li {
+    display: flex; gap: 14px; align-items: baseline;
+    padding: 16px 0; border-bottom: 1px solid var(--line-light);
+    font-size: 17px;
+}
+.incl-grid li .tick { color: var(--accent-dim); font-weight: 700; flex-shrink: 0; }
+.incl-grid li strong { font-weight: 600; }
+.incl-grid li .detail { display: block; font-size: 14px; color: var(--fg-on-light-muted); margin-top: 3px; }
+.incl-except {
+    margin-top: 34px; padding: 18px 20px;
+    border-left: 4px solid var(--accent); background: #F0F0F0;
+    font-size: 15px; color: var(--fg-on-light);
 }
 
-/* ---------- Stats band ---------- */
+/* ---------- fleet panels (one car per viewport) ---------- */
+.car-panel {
+    min-height: 100vh; min-height: 100svh;
+    display: flex; align-items: center;
+    padding: 80px 24px;
+    border-top: 1px solid var(--line);
+}
+.car-panel:nth-child(even) { background: var(--surface-2); }
+.car-grid {
+    max-width: 1160px; margin: 0 auto; width: 100%;
+    display: grid; grid-template-columns: 1fr 1.15fr; gap: 64px; align-items: center;
+}
+.car-grid > * { min-width: 0; }
+.car-panel:nth-child(even) .car-grid { direction: rtl; }
+.car-panel:nth-child(even) .car-grid > * { direction: ltr; }
+
+.car-name { font-size: clamp(2.2rem, 6vw, 4rem); text-transform: uppercase; margin-bottom: 20px; }
+
+.car-price { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 4px; }
+.car-price .rm {
+    font-family: var(--font-display); font-weight: 700;
+    font-size: clamp(2.2rem, 6vw, 3.4rem); letter-spacing: -0.04em; color: var(--accent);
+}
+.car-price .per { font-size: 15px; color: var(--fg-muted); }
+.car-sub { font-size: 15px; color: var(--fg-muted); margin: 0 0 26px; }
+.car-sub .sep { opacity: .4; margin: 0 8px; }
+
+.spec-strip {
+    display: flex; flex-wrap: wrap; gap: 0;
+    border: 1px solid var(--line); margin-bottom: 30px;
+}
+.spec-strip span {
+    padding: 11px 16px; font-size: 13px; font-weight: 500; color: var(--fg-muted);
+    border-right: 1px solid var(--line); flex: 1 1 auto; text-align: center; white-space: nowrap;
+}
+.spec-strip span:last-child { border-right: none; }
+
+.car-ctas { display: flex; flex-wrap: wrap; gap: 12px; }
+
+.car-shot { position: relative; }
+.car-shot img {
+    display: block; width: 100%; height: auto;
+    aspect-ratio: 16 / 10; object-fit: cover;
+    filter: grayscale(.25) contrast(1.06);
+}
+/* Masks the number plate region until the owner's own photos land. */
+.car-shot .plate-mask {
+    position: absolute; background: var(--bg);
+    left: var(--mx, 50%); top: var(--my, 78%);
+    width: var(--mw, 14%); height: var(--mh, 7%);
+    transform: translateX(-50%); display: none;
+}
+.car-shot[data-mask="on"] .plate-mask { display: block; }
+
+/* ---------- stats band ---------- */
 .stats-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    max-width: 900px;
-    margin: 0 auto;
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    border: var(--border-w) solid var(--line); border-right: none;
 }
-.stat {
-    text-align: center;
-    padding: 8px 20px;
-    border-left: 1px solid var(--hairline);
-}
-.stat:first-child { border-left: none; }
-.stat .figure {
-    font-size: 56px;
-    line-height: 1.05;
-    letter-spacing: -0.02em;
-    font-weight: 700;
-    margin: 0 0 8px;
+.stat { border-right: var(--border-w) solid var(--line); padding: 34px 22px; }
+.stat .num {
+    font-size: clamp(2.6rem, 7vw, 4.4rem); letter-spacing: -0.045em;
+    color: var(--accent); display: block; margin-bottom: 8px;
 }
 .stat .label {
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--text-muted);
-    margin: 0;
+    font-size: 12px; font-weight: 600; letter-spacing: .14em;
+    text-transform: uppercase; color: var(--fg-muted);
 }
 
-/* ---------- Benefits ---------- */
-.benefit-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 40px 32px;
+/* ---------- steps ---------- */
+.steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; border-top: var(--border-w) solid var(--line-light); }
+.step { padding: 28px 24px 30px; border-right: 1px solid var(--line-light); }
+.step:last-child { border-right: none; }
+.step .n {
+    font-family: var(--font-display); font-weight: 700; font-size: 13px;
+    letter-spacing: .1em; color: var(--accent-dim); display: block; margin-bottom: 14px;
 }
-.benefit { text-align: center; }
-.benefit svg {
-    width: 32px;
-    height: 32px;
-    margin-bottom: 16px;
-    stroke: currentColor;
-    fill: none;
-    stroke-width: 1.5;
-    stroke-linecap: round;
-    stroke-linejoin: round;
+.step h3 { font-size: 21px; margin-bottom: 8px; text-transform: none; letter-spacing: -0.02em; }
+.step p { margin: 0; font-size: 15px; color: var(--fg-on-light-muted); }
+.step .when {
+    display: inline-block; margin-top: 12px; font-size: 12px; font-weight: 700;
+    letter-spacing: .08em; text-transform: uppercase;
+    background: var(--fg-on-light); color: var(--surface); padding: 4px 9px;
 }
-.benefit .title { font-size: 17px; font-weight: 600; margin: 0 0 4px; }
-.benefit .note { font-size: 14px; color: var(--text-muted); margin: 0; }
 
-/* ---------- Fleet tiles ---------- */
-.fleet-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 24px;
-}
-.car-tile {
-    background: var(--surface);
-    border-radius: var(--r-lg);
-    padding: 24px 24px 28px;
-    display: flex;
-    flex-direction: column;
-    transition: transform 0.3s var(--ease), box-shadow 0.3s var(--ease);
-}
-.car-tile:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); }
-.car-tile img {
-    display: block;
-    width: 100%;
-    height: auto;
-    aspect-ratio: 16 / 10;
-    object-fit: cover;
-    border-radius: var(--r-md);
-    margin-bottom: 22px;
-}
-.car-tile .model {
-    font-size: 28px;
-    line-height: 1.15;
-    letter-spacing: -0.01em;
-    font-weight: 600;
-    margin: 0 0 6px;
-}
-.car-tile .price {
-    font-size: 21px;
-    color: var(--text-muted);
-    margin: 0 0 20px;
-}
-.car-tile .price strong { color: var(--text); font-weight: 600; }
-.car-tile ul {
-    list-style: none;
-    margin: 0 0 26px;
-    padding: 0;
-    font-size: 15px;
-    color: var(--text-muted);
-    border-top: 1px solid var(--hairline-soft);
-}
-.car-tile ul li { padding: 11px 0; border-bottom: 1px solid var(--hairline-soft); }
-.car-tile .btn { margin-top: auto; text-align: center; }
+/* ---------- testimonials ---------- */
+.quotes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.quote { border: 1px solid var(--line); padding: 28px 24px; display: flex; flex-direction: column; }
+.quote blockquote { margin: 0 0 20px; font-size: 18px; line-height: 1.45; }
+.quote blockquote::before { content: '\201C'; color: var(--accent); }
+.quote blockquote::after  { content: '\201D'; color: var(--accent); }
+.quote .who { margin-top: auto; font-size: 13px; color: var(--fg-muted); letter-spacing: .04em; }
+.quote .who strong { color: var(--fg); font-weight: 600; letter-spacing: 0; }
 
-/* ---------- Feature panel (the range-topper) ---------- */
-.feature {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    align-items: center;
-    gap: 64px;
-    max-width: 1120px;
-    margin: 0 auto;
-}
-.feature img {
-    display: block;
-    width: 100%;
-    height: auto;
-    border-radius: var(--r-lg);
-}
-.feature .sub-head { color: var(--text-on-dark); }
-.feature .lede { margin-left: 0; margin-right: 0; max-width: none; }
-
-/* ---------- How it works ---------- */
-.steps-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 32px;
-}
-.step {
-    position: relative;
-    padding-top: 28px;
-    border-top: 1px solid var(--hairline-invert);
-}
-.step .num {
-    font-size: 64px;
-    line-height: 1;
-    font-weight: 200;
-    letter-spacing: -0.03em;
-    color: var(--text-muted-dark);
-    margin: 0 0 18px;
-}
-.step h3 { font-size: 21px; font-weight: 600; letter-spacing: -0.01em; margin: 0 0 8px; color: var(--text-on-dark); }
-.step p  { font-size: 17px; color: var(--text-muted-dark); margin: 0; }
-
-/* ---------- Application form ---------- */
-.form-card {
-    background: var(--surface);
-    border-radius: var(--r-lg);
-    box-shadow: var(--shadow-lg);
-    padding: 44px 40px;
-    max-width: 580px;
-    margin: 0 auto;
-}
-.form-card .section-title { font-size: 32px; margin-bottom: 8px; }
-.form-card .form-intro { font-size: 15px; color: var(--text-muted); margin: 0 0 30px; }
-.form-card .btn { width: 100%; }
-.form-card .btn-lg { padding: 15px 28px; }
-
-.form-feedback {
-    margin-top: 20px;
-    padding: 14px 16px;
-    border-radius: var(--r-md);
-    text-align: center;
-    font-size: 15px;
-    font-weight: 500;
-}
-.form-feedback.is-ok    { background: var(--success-bg); color: var(--success); border: 1px solid var(--success-line); }
-.form-feedback.is-error { background: var(--danger-bg);  color: var(--danger);  border: 1px solid var(--danger-line); }
-.form-note { font-size: 12px; color: var(--text-subtle); text-align: center; margin: 16px 0 0; }
-.optional { font-weight: 400; color: var(--text-subtle); }
-
-/* ---------- FAQ accordion ---------- */
-.faq { border-top: 1px solid var(--hairline); }
-.faq details { border-bottom: 1px solid var(--hairline); }
+/* ---------- FAQ ---------- */
+.faq { border-top: 1px solid var(--line-light); }
+.faq details { border-bottom: 1px solid var(--line-light); }
 .faq summary {
-    list-style: none;
-    cursor: pointer;
-    padding: 24px 44px 24px 0;
-    position: relative;
-    font-size: 21px;
-    font-weight: 600;
-    letter-spacing: -0.01em;
-    color: var(--text);
+    list-style: none; cursor: pointer; position: relative;
+    padding: 24px 48px 24px 0;
+    font-family: var(--font-display); font-weight: 700;
+    font-size: clamp(1.05rem, 2.4vw, 1.35rem); letter-spacing: -0.02em;
 }
 .faq summary::-webkit-details-marker { display: none; }
-/* Plus sign built from two bars: ::after is the horizontal one and stays put,
-   ::before is the vertical one and rotates flat, so open/close reads as a
-   plus collapsing into a minus. */
-.faq summary::before,
-.faq summary::after {
-    content: '';
-    position: absolute;
-    right: 6px;
-    top: 50%;
-    width: 15px;
-    height: 1.5px;
-    background: currentColor;
-    border-radius: 1px;
+.faq summary::before, .faq summary::after {
+    content: ''; position: absolute; right: 4px; top: 50%;
+    width: 16px; height: 2px; background: var(--accent);
 }
-.faq summary::before {
-    transform: rotate(90deg);
-    transition: transform 0.3s var(--ease);
-}
+.faq summary::before { transform: rotate(90deg); transition: transform .25s var(--ease); }
 .faq details[open] summary::before { transform: rotate(0deg); }
-.faq details > p {
-    margin: 0;
-    padding: 0 44px 26px 0;
-    font-size: 17px;
-    color: var(--text-muted);
-}
-.faq summary:focus-visible { outline: 2px solid var(--text); outline-offset: 4px; border-radius: 4px; }
+.faq details > p { margin: 0; padding: 0 48px 26px 0; font-size: 16px; color: var(--fg-on-light-muted); }
+.faq summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 
-/* ---------- Contact ---------- */
-.contact-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 20px;
+/* ---------- trust block ---------- */
+.trust-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; border: var(--border-w) solid var(--line); border-right: none; }
+.trust-cell { border-right: var(--border-w) solid var(--line); padding: 26px 22px; }
+.trust-cell .k {
+    font-size: 11px; font-weight: 700; letter-spacing: .16em;
+    text-transform: uppercase; color: var(--accent); display: block; margin-bottom: 10px;
 }
-.contact-card {
-    background: var(--surface-invert);
-    border-radius: var(--r-lg);
-    padding: 32px 24px;
-    text-align: center;
-    text-decoration: none;
-    color: var(--text-on-dark);
-    transition: transform 0.3s var(--ease), background 0.3s var(--ease);
-}
-a.contact-card:hover { transform: translateY(-4px); background: var(--hairline-invert); text-decoration: none; }
-.contact-card svg {
-    width: 26px;
-    height: 26px;
-    margin-bottom: 18px;
-    fill: currentColor;
-}
-.contact-card svg.stroked { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
-.contact-card h3 { font-size: 17px; font-weight: 600; margin: 0 0 6px; }
-.contact-card p  { font-size: 15px; color: var(--text-muted-dark); margin: 0; }
-.contact-card .hint { font-size: 12px; display: block; margin-top: 4px; }
+.trust-cell .v { font-size: 16px; line-height: 1.45; }
+.trust-cell .v a { color: var(--fg); text-decoration: underline; text-underline-offset: 3px; }
 
-/* ---------- Footer ---------- */
-.site-footer {
-    background: var(--bg-alt);
-    border-top: 1px solid var(--hairline);
-    padding: 32px 24px;
-    font-size: 12px;
-    color: var(--text-muted);
+/* A visible placeholder for facts the owner still has to supply. */
+.todo {
+    background: var(--accent); color: var(--accent-fg);
+    padding: 1px 7px; font-size: .85em; font-weight: 700;
+    letter-spacing: .06em; text-transform: uppercase;
+    /* These hold whole sentences until the owner fills them in, so they
+       must be allowed to wrap rather than push the page sideways. */
+    display: inline; overflow-wrap: anywhere;
 }
-.site-footer .footer-inner {
-    max-width: 1120px;
-    margin: 0 auto;
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px 28px;
-}
-.site-footer a { color: var(--text-muted); }
-.site-footer nav { display: flex; flex-wrap: wrap; gap: 20px; }
 
-/* ---------- Floating WhatsApp button ---------- */
-.whatsapp-float {
-    position: fixed;
-    bottom: 24px;
-    right: 24px;
-    width: 56px;
-    height: 56px;
-    border-radius: var(--r-pill);
-    background: var(--text);
-    color: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 8000;
-    box-shadow: var(--shadow-lg);
-    transition: transform 0.25s var(--ease), background 0.25s var(--ease);
+/* ---------- apply form ---------- */
+.form-wrap { max-width: 620px; margin: 0 auto; }
+.landing .form-group label { font-size: 13px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; }
+.landing .form-group input,
+.landing .form-group select {
+    border: var(--border-w) solid var(--line-light);
+    font-size: 17px; padding: 14px 16px; background: #fff; font-family: var(--font-body);
 }
-.whatsapp-float:hover { transform: scale(1.06); background: #000; text-decoration: none; }
-.whatsapp-float svg { width: 28px; height: 28px; fill: currentColor; }
+.landing .form-group input:focus,
+.landing .form-group select:focus { border-color: var(--accent); box-shadow: none; outline: 3px solid rgba(255,61,0,.22); }
+.landing .form-group .err { display: block; margin-top: 7px; font-size: 14px; color: #B3290A; font-weight: 500; }
+.form-note-top { font-size: 14px; color: var(--fg-on-light-muted); margin: 0 0 24px; }
+.form-feedback { margin-top: 20px; padding: 16px; font-size: 16px; font-weight: 500; border: var(--border-w) solid; }
+.form-feedback.is-ok    { background: #EAF6EE; color: #146B33; border-color: #146B33; }
+.form-feedback.is-error { background: #FDECE7; color: #B3290A; border-color: #B3290A; }
 
-/* ---------- Scroll reveal ---------- */
+/* ---------- sticky WhatsApp bar ---------- */
+.wa-bar {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 950;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    background: var(--accent); color: var(--accent-fg);
+    font-family: var(--font-body); font-weight: 700; font-size: 16px;
+    padding: 16px 20px; text-decoration: none;
+    border-top: var(--border-w) solid var(--bg);
+    padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+}
+.wa-bar:hover { background: var(--accent-dim); text-decoration: none; }
+.wa-bar svg { width: 21px; height: 21px; fill: currentColor; flex-shrink: 0; }
+.wa-bar .reply { font-weight: 400; opacity: 1; font-size: 14px; }
+@media (max-width: 600px) { .wa-bar .reply { display: none; } }
+body.landing { padding-bottom: 64px; }
+
+/* ---------- footer ---------- */
+.site-footer { background: var(--bg); border-top: 1px solid var(--line); padding: 34px 24px; font-size: 13px; color: var(--fg-muted); }
+.site-footer .inner { display: flex; flex-wrap: wrap; gap: 12px 30px; justify-content: space-between; align-items: center; }
+.site-footer a { color: var(--fg-muted); }
+
+/* ---------- motion ---------- */
 [data-reveal] {
-    opacity: 0;
-    transform: translateY(24px);
-    transition: opacity 0.7s var(--ease), transform 0.7s var(--ease);
+    opacity: 0; transform: translateY(20px);
+    transition: opacity .6s var(--ease), transform .6s var(--ease);
 }
 [data-reveal].is-revealed { opacity: 1; transform: none; }
-[data-reveal][data-reveal-delay="1"] { transition-delay: 0.08s; }
-[data-reveal][data-reveal-delay="2"] { transition-delay: 0.16s; }
-[data-reveal][data-reveal-delay="3"] { transition-delay: 0.24s; }
+[data-reveal][data-reveal-delay="1"] { transition-delay: .07s; }
+[data-reveal][data-reveal-delay="2"] { transition-delay: .14s; }
+[data-reveal][data-reveal-delay="3"] { transition-delay: .21s; }
+
+/* Scroll-driven car reveal. Native CSS, runs off the main thread, and
+   simply does not apply where unsupported. */
+@supports (animation-timeline: view()) {
+    @media (prefers-reduced-motion: no-preference) {
+        @keyframes car-rise { from { transform: translateY(28px) scale(.985); } to { transform: none; } }
+        .car-shot img {
+            animation: car-rise linear both;
+            animation-timeline: view();
+            animation-range: entry 15% cover 42%;
+        }
+    }
+}
 
 @media (prefers-reduced-motion: reduce) {
     html { scroll-behavior: auto; }
     [data-reveal] { opacity: 1; transform: none; transition: none; }
-    .car-tile:hover, a.contact-card:hover, .whatsapp-float:hover { transform: none; }
+    .landing * { animation: none !important; transition-duration: .01ms !important; }
 }
 
-/* ---------- Responsive ---------- */
+/* ---------- responsive ---------- */
 @media (max-width: 1023px) {
-    .panel { padding: 80px 24px; }
-    .display { font-size: 60px; }
-    .section-title { font-size: 40px; }
-    .benefit-grid, .contact-grid { grid-template-columns: repeat(2, 1fr); }
-    .fleet-grid { grid-template-columns: 1fr; max-width: 520px; margin: 0 auto; }
-    .steps-grid { grid-template-columns: repeat(2, 1fr); gap: 36px 32px; }
-    .feature { grid-template-columns: 1fr; gap: 36px; }
-    .feature .text { text-align: center; }
-    .feature .lede { margin-left: auto; margin-right: auto; }
+    .panel { padding: 72px 22px; }
+    .calc-grid { grid-template-columns: 1fr; gap: 40px; }
+    .calc-out { border-left: none; border-top: var(--border-w) solid rgba(0,0,0,.28); padding-left: 0; padding-top: 32px; }
+    .car-grid { grid-template-columns: 1fr; gap: 36px; }
+    .car-panel:nth-child(even) .car-grid { direction: ltr; }
+    .car-shot { order: -1; }
+    .quotes { grid-template-columns: 1fr; }
+    .steps { grid-template-columns: repeat(2, 1fr); }
+    .step:nth-child(2) { border-right: none; }
+    .step:nth-child(-n+2) { border-bottom: 1px solid var(--line-light); }
+    .trust-grid { grid-template-columns: repeat(2, 1fr); }
+    .trust-cell:nth-child(-n+2) { border-bottom: var(--border-w) solid var(--line); }
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    .stat:nth-child(-n+2) { border-bottom: var(--border-w) solid var(--line); }
 }
 
 @media (max-width: 767px) {
-    .panel { padding: 64px 20px; }
-    .hero { padding: 56px 20px 0; }
-    .display { font-size: 40px; letter-spacing: -0.02em; }
-    .section-title { font-size: 32px; }
-    .sub-head { font-size: 24px; }
-    .lede { font-size: 19px; margin-bottom: 28px; }
-    .hero-shot { margin-top: 40px; }
-    .hero-shot img { border-radius: var(--r-lg); }
+    .panel { padding: 56px 18px; }
+    .hero { padding: 44px 18px 0; }
+    body.landing { font-size: 16px; }
 
-    /* Stats stack, so the dividers become horizontal rules */
-    .stats-grid { grid-template-columns: 1fr; max-width: 320px; gap: 0; }
-    .stat { border-left: none; border-top: 1px solid var(--hairline); padding: 22px 0; }
-    .stat:first-child { border-top: none; padding-top: 0; }
-    .stat .figure { font-size: 44px; }
+    /* Price tiles stack; they are the primary entry point so they stay large. */
+    .price-tiles { grid-template-columns: 1fr; border-right: var(--border-w) solid var(--line); }
+    .price-tile { border-right: none; border-bottom: var(--border-w) solid var(--line); flex-direction: row; align-items: baseline; justify-content: space-between; gap: 12px; padding: 18px 18px; }
+    .price-tile:last-child { border-bottom: none; }
 
-    .benefit-grid { gap: 32px 20px; }
-    .steps-grid { grid-template-columns: 1fr; gap: 28px; }
-    .step .num { font-size: 48px; margin-bottom: 12px; }
+    .incl-grid { grid-template-columns: 1fr; gap: 0; }
+    .steps { grid-template-columns: 1fr; }
+    .step { border-right: none; border-bottom: 1px solid var(--line-light); }
+    .step:last-child { border-bottom: none; }
+    .trust-grid { grid-template-columns: 1fr; border-right: var(--border-w) solid var(--line); }
+    .trust-cell { border-right: none; border-bottom: var(--border-w) solid var(--line); }
+    .trust-cell:last-child { border-bottom: none; }
+    .stats-grid { grid-template-columns: 1fr 1fr; }
 
-    .form-card { padding: 28px 22px; border-radius: var(--r-md); }
-    .form-card .section-title { font-size: 28px; }
+    .car-panel { min-height: 0; padding: 56px 18px; }
+    .spec-strip span { flex: 1 1 50%; border-bottom: 1px solid var(--line); }
+    .car-ctas { flex-direction: column; }
+    .car-ctas .btn { width: 100%; }
 
-    .faq summary { font-size: 19px; padding: 20px 40px 20px 0; }
-    .faq details > p { font-size: 17px; padding-bottom: 22px; }
-
-    .contact-grid { grid-template-columns: 1fr; }
-    .contact-card { padding: 26px 20px; }
-
-    .cta-row { flex-direction: column; gap: 18px; }
-    .cta-row .btn { width: 100%; max-width: 320px; }
-
-    .site-footer .footer-inner { justify-content: center; text-align: center; }
-    .site-footer nav { justify-content: center; }
-
-    .whatsapp-float { width: 52px; height: 52px; bottom: 16px; right: 16px; }
-    .whatsapp-float svg { width: 26px; height: 26px; }
+    .calc-out .big { font-size: clamp(2.8rem, 16vw, 4rem); }
 }
 
-.site-footer .copyright { margin: 0; }
+/* Safety net: no grid or flex child may force the page wider than the
+   viewport. Cheap insurance against a long unbreakable string. */
+.incl-grid > *, .stats-grid > *, .steps > *, .trust-grid > *, .quotes > *, .price-tiles > * { min-width: 0; }
+
+/* Narrow phones: the logo wordmark yields so the language toggle and the
+   single CTA both stay on one 56px row at their full 44px touch height. */
+@media (max-width: 460px) {
+    .nav-inner { gap: 10px; padding: 0 14px; }
+    .nav-logo .word { display: none; }
+    .nav-logo .mark { margin-right: 0; }
+    .lang-toggle button { padding: 7px 10px; }
+    .nav-cta { padding: 11px 13px !important; }
+}
